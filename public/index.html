@@ -1431,6 +1431,7 @@
   /* ---------- AUTH (real Google login) ---------- */
   const TOSS_CLIENT_KEY = "%%TOSS_CLIENT_KEY%%";
   const authState = { loggedIn: false, email: null, name: null };
+  window.authState = authState; // 옷장 기능이 들어있는 별도 모듈 스크립트에서도 로그인 상태를 볼 수 있게 공유해요.
   const authBar = document.getElementById('auth-bar');
   const authStatusText = document.getElementById('auth-status-text');
   const googleSigninContainer = document.getElementById('google-signin-container');
@@ -2197,10 +2198,11 @@
   const uploadStatus = document.getElementById('upload-status');
 
   function refreshWardrobeUploadAccess(){
-    const canUpload = authState.loggedIn;
+    const canUpload = !!(window.authState && window.authState.loggedIn);
     wardrobeUploadLoginNotice.hidden = canUpload;
     wardrobeUploadForm.hidden = !canUpload;
   }
+  window.refreshWardrobeUploadAccess = refreshWardrobeUploadAccess; // 로그인 스크립트(classic script)에서도 호출할 수 있게 공유해요.
 
   function readFileAsDataUrl(file){
     return new Promise((resolve, reject) => {
