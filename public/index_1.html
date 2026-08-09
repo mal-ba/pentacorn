@@ -38,10 +38,32 @@
     color:var(--ink);
     line-height:1.6;
     overflow-x:hidden;
+    user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none;
+  }
+  input, textarea{
+    user-select:text; -webkit-user-select:text; -moz-user-select:text; -ms-user-select:text;
   }
   .serif{font-family:'Fraunces', serif;}
   a{color:inherit; text-decoration:none;}
   img,svg{display:block; max-width:100%;}
+
+  /* ---------- IN-APP BROWSER BANNER ---------- */
+  .inapp-banner{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:#D8663F; color:#FBFAF6;
+    padding:10px 16px; font-size:13px; font-weight:500;
+  }
+  .inapp-banner[hidden]{ display:none; }
+  .inapp-banner span{ flex:1; min-width:180px; }
+  .inapp-banner button{
+    font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
+    border-radius:999px; border:none; padding:8px 16px;
+    background:#FBFAF6; color:#0F2E2C;
+  }
+  .inapp-banner-close{
+    background:transparent !important; color:#FBFAF6 !important;
+    padding:6px 8px !important; font-weight:400 !important;
+  }
 
   /* ---------- NAV ---------- */
   nav{
@@ -56,6 +78,61 @@
   .brand .mark{width:26px; height:26px;}
   .nav-links{display:none; gap:32px; font-size:14px; color:var(--ink-soft);}
   @media(min-width:820px){ .nav-links{display:flex;} }
+  .nav-support-btn{
+    font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
+    border-radius:999px; border:1px solid var(--deep); background:var(--deep); color:var(--paper);
+    padding:9px 16px; flex-shrink:0;
+  }
+  .nav-support-btn:hover{ background:var(--deep-2); }
+
+  /* ---------- 문의 챗봇 ---------- */
+  .support-panel{
+    position:fixed; top:0; right:0; height:100%; width:100%; max-width:380px;
+    background:var(--paper); z-index:300; box-shadow:-16px 0 40px rgba(0,0,0,0.18);
+    display:flex; flex-direction:column;
+    transform:translateX(100%); transition:transform .25s ease;
+  }
+  .support-panel.open{ transform:translateX(0); }
+  .support-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 18px; border-bottom:1px solid var(--line); background:var(--deep); color:var(--paper);
+  }
+  .support-header h4{ font-size:15px; font-weight:600; }
+  .support-header p{ font-size:11.5px; color:#CFE0DD; margin-top:2px; }
+  .support-close-btn{
+    width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
+    background:transparent; color:var(--paper); font-size:13px; cursor:pointer; flex-shrink:0;
+  }
+  .support-messages{
+    flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;
+  }
+  .support-msg{
+    max-width:85%; padding:10px 13px; border-radius:14px; font-size:13px; line-height:1.55;
+  }
+  .support-msg.bot{ background:var(--mist); align-self:flex-start; border-bottom-left-radius:4px; }
+  .support-msg.user{ background:var(--deep); color:var(--paper); align-self:flex-end; border-bottom-right-radius:4px; }
+  .support-suggestions{ display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px; }
+  .support-suggestion-chip{
+    font-family:inherit; font-size:11.5px; padding:7px 12px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer;
+  }
+  .support-suggestion-chip:hover{ border-color:var(--star-dark); color:var(--ink); }
+  .support-input-row{
+    display:flex; gap:8px; padding:14px 16px; border-top:1px solid var(--line);
+  }
+  .support-input-row input{
+    flex:1; padding:11px 13px; border-radius:999px; border:1px solid var(--line);
+    font-family:inherit; font-size:13px; outline:none;
+  }
+  .support-input-row input:focus{ border-color:var(--star-dark); }
+  .support-input-row button{
+    font-family:inherit; font-size:12.5px; font-weight:700; padding:0 18px;
+    border-radius:999px; border:none; background:var(--deep); color:var(--paper); cursor:pointer;
+  }
+  .support-overlay-bg{
+    position:fixed; inset:0; background:rgba(15,46,44,0.35); z-index:290;
+  }
+  .support-overlay-bg[hidden], .support-panel[hidden]{ display:none; }
 
   /* ---------- HERO ---------- */
   .hero{
@@ -234,6 +311,61 @@
   .modal-plan-summary .mp-price{ font-family:'Fraunces',serif; font-size:22px; color:var(--star-dark); }
   .modal-note{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
 
+  .consent-box{ max-width:480px; max-height:88vh; overflow-y:auto; }
+  .consent-section{
+    padding:16px 0; border-bottom:1px solid var(--line);
+  }
+  .consent-section:last-of-type{ border-bottom:none; }
+  .consent-scroll{
+    max-height:110px; overflow-y:auto; font-size:12px; line-height:1.6; color:var(--ink-soft);
+    background:var(--mist); border-radius:10px; padding:12px 14px; margin-bottom:12px;
+  }
+  .consent-title{ font-size:14px; font-weight:600; }
+  .consent-optional{ font-size:12px; color:var(--ink-soft); font-weight:400; }
+  .consent-desc{ font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin:8px 0 12px; }
+  .consent-check{
+    display:flex; align-items:flex-start; gap:10px; font-size:13px; cursor:pointer;
+  }
+  .consent-check input[type="checkbox"]{ margin-top:2px; width:16px; height:16px; flex-shrink:0; }
+  .consent-history{ font-size:11.5px; color:var(--star-dark); margin-top:10px; min-height:14px; }
+
+  /* ---------- DESIGN WIZARD MODAL ---------- */
+  .design-cta-box{
+    background:var(--mist); border:1px solid var(--line); border-radius:var(--radius);
+    padding:44px 32px; text-align:center; max-width:560px; margin:0 auto;
+  }
+  .design-cta-icon{
+    width:64px; height:64px; margin:0 auto 18px; background:var(--paper);
+    border-radius:16px; display:flex; align-items:center; justify-content:center;
+  }
+  .design-cta-icon svg{ width:38px; height:38px; }
+  .design-cta-box h3{ font-size:20px; font-weight:500; margin-bottom:8px; }
+  .design-cta-box p{ font-size:14px; color:var(--ink-soft); margin-bottom:22px; }
+
+  .wizard-box{
+    max-width:920px; width:96%; max-height:92vh; overflow-y:auto;
+    padding:24px 22px 30px;
+  }
+  @media(min-width:640px){ .wizard-box{ padding:30px 36px 38px; } }
+  .wizard-header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:22px; position:sticky; top:0; background:var(--paper); z-index:2;
+  }
+  .wizard-steps{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft); flex-wrap:wrap; }
+  .wizard-step{ padding:6px 12px; border-radius:999px; background:var(--mist); }
+  .wizard-step.active{ background:var(--deep); color:var(--paper); font-weight:600; }
+  .wizard-step-arrow{ color:var(--line); }
+  .wizard-close{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+    background:var(--paper); font-size:14px; cursor:pointer; flex-shrink:0;
+  }
+  .wizard-close:hover{ border-color:var(--star-dark); }
+  .wizard-panel[hidden]{ display:none; }
+  .wizard-actions{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin-top:24px; flex-wrap:wrap;
+  }
+
   /* ---------- SCAN DEMO ---------- */
   .scan-wrap{
     display:grid; gap:24px; grid-template-columns:1fr;
@@ -271,7 +403,7 @@
   .scan-height-row input:focus{ border-color:var(--star-dark); }
   .scan-avatar-box{
     background:var(--deep-2); border-radius:14px; padding:0; position:relative;
-    height:320px; overflow:hidden;
+    height:420px; overflow:hidden;
   }
   #scan-avatar-3d{ width:100%; height:100%; }
   #scan-avatar-3d canvas{ display:block; width:100%; height:100%; touch-action:none; }
@@ -285,6 +417,100 @@
     font-size:11px; color:var(--paper); opacity:0.55; pointer-events:none;
   }
   .scan-status{ font-size:13px; color:var(--star-dark); font-weight:600; min-height:18px; }
+
+  /* ---------- 옷장 & 꾸미기 ---------- */
+  .wardrobe-box{
+    margin-top:22px; padding-top:22px; border-top:1px dashed var(--line);
+  }
+  .wardrobe-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .wardrobe-tab{
+    font-family:inherit; font-size:12.5px; font-weight:600; padding:8px 14px;
+    border-radius:999px; border:1px solid var(--line); background:var(--paper);
+    color:var(--ink-soft); cursor:pointer;
+  }
+  .wardrobe-tab.active{ background:var(--deep); border-color:var(--deep); color:var(--paper); }
+  .wardrobe-panel[hidden]{ display:none; }
+  .wardrobe-hint{ font-size:12px; color:var(--ink-soft); margin:6px 0 12px; line-height:1.5; }
+
+  .wardrobe-recommend-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .wardrobe-recommend-row select{
+    flex:1; min-width:120px; padding:9px 10px; border-radius:8px; border:1px solid var(--line);
+    font-family:inherit; font-size:13px; background:var(--paper);
+  }
+
+  .wardrobe-filter-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .wardrobe-filter-chip{
+    font-family:inherit; font-size:12px; padding:6px 12px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer;
+  }
+  .wardrobe-filter-chip.active{ background:var(--star-dark); border-color:var(--star-dark); color:var(--paper); }
+
+  .wardrobe-grid{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px;
+  }
+  @media(min-width:520px){ .wardrobe-grid{ grid-template-columns:repeat(3,1fr); } }
+  .wardrobe-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:12px;
+    padding:10px; display:flex; flex-direction:column; gap:6px;
+  }
+  .wardrobe-card-thumb{
+    width:100%; aspect-ratio:1; border-radius:8px; background:var(--mist);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;
+  }
+  .wardrobe-card-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .wardrobe-card-thumb span{ font-size:10.5px; color:var(--ink-soft); text-align:center; padding:0 6px; }
+  .wardrobe-official-badge{
+    position:absolute; top:5px; left:5px; font-size:9.5px; font-weight:700;
+    background:var(--deep); color:var(--paper); padding:2px 7px; border-radius:999px;
+  }
+  .wardrobe-card-name{ font-size:12.5px; font-weight:600; }
+  .wardrobe-card-meta{ font-size:10.5px; color:var(--ink-soft); }
+  .wardrobe-card-reason{ font-size:10.5px; color:var(--star-dark); }
+  .wardrobe-card button{
+    margin-top:2px; font-family:inherit; font-size:11.5px; font-weight:600;
+    padding:7px; border-radius:8px; border:1px solid var(--line); background:var(--mist);
+    color:var(--ink); cursor:pointer;
+  }
+  .wardrobe-card button:disabled{ opacity:0.45; cursor:not-allowed; }
+  .wardrobe-card button:not(:disabled):hover{ border-color:var(--star-dark); }
+  .wardrobe-edit-btn{
+    background:var(--paper) !important; border-style:dashed !important; color:var(--star-dark) !important;
+  }
+
+  .wardrobe-edit-box{
+    margin-top:16px; padding:16px; border:1px solid var(--line); border-radius:12px;
+    background:var(--mist); display:flex; flex-direction:column; gap:12px;
+  }
+  .wardrobe-edit-box[hidden]{ display:none; }
+  .wardrobe-edit-box label{
+    display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .wardrobe-edit-actions{ display:flex; gap:10px; }
+  .wardrobe-edit-actions .btn{ flex:1; justify-content:center; }
+
+  .wardrobe-upload-form{ display:flex; flex-direction:column; gap:12px; }
+  .wardrobe-upload-form[hidden]{ display:none; }
+  .wardrobe-upload-form label{
+    display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .wardrobe-upload-form input[type="text"],
+  .wardrobe-upload-form select{
+    padding:9px 10px; border-radius:8px; border:1px solid var(--line);
+    font-family:inherit; font-size:13px; background:var(--paper); color:var(--ink);
+  }
+  .upload-checkbox-group{ display:flex; flex-direction:column; gap:6px; }
+  .upload-group-label{ font-size:12.5px; color:var(--ink-soft); font-weight:600; }
+  .upload-checkbox-group label{
+    flex-direction:row; align-items:center; gap:6px; font-size:12.5px; color:var(--ink);
+  }
+
+  .garment-fit-controls{ margin-top:18px; padding-top:18px; border-top:1px dashed var(--line); display:flex; flex-direction:column; gap:10px; }
+  .garment-fit-controls[hidden]{ display:none; }
+  .garment-fit-controls label{
+    display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .garment-fit-controls input[type="range"]{ flex:1; }
+  .garment-status{ font-size:12.5px; color:var(--star-dark); font-weight:600; margin-top:8px; min-height:16px; }
 
   .calc-custom{
     margin-top:12px; padding:16px 18px; background:var(--mist);
@@ -320,20 +546,14 @@
   .detail-grid{ display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; grid-template-columns:1fr; }
   @media(min-width:760px){ .detail-grid{ grid-template-columns:repeat(2,1fr); } }
   .detail-block{ background:var(--paper); padding:26px 28px; }
+  .detail-icon{
+    width:56px; height:56px; margin-bottom:16px;
+    background:var(--mist); border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .detail-icon svg{ width:34px; height:34px; }
   .detail-block h3{ font-size:17px; font-weight:500; margin-bottom:10px; border-radius:6px; }
   .detail-block p{ font-size:14px; color:var(--ink-soft); border-radius:6px; }
-  .detail-block [contenteditable]{ outline:none; padding:2px 4px; margin:-2px -4px; }
-  .detail-block [contenteditable]:hover{ background:var(--mist); }
-  .detail-block [contenteditable]:focus{ background:var(--mist); box-shadow:0 0 0 1px var(--star-dark); }
-  .detail-tools{ display:flex; justify-content:flex-end; margin-bottom:10px; }
-  .detail-img-btn{
-    font-family:inherit; font-size:12px; padding:6px 12px; border-radius:8px;
-    background:var(--mist); border:1px solid var(--line); color:var(--ink-soft); cursor:pointer;
-  }
-  .detail-img-btn:hover{ border-color:var(--star-dark); color:var(--ink); }
-  .detail-img-slot{ margin-top:14px; }
-  .detail-img-slot img{ width:100%; border-radius:10px; display:block; }
-  .detail-hint{ font-size:12px; color:var(--ink-soft); margin-top:14px; text-align:center; }
 
   /* ---------- CALCULATOR ---------- */
   .calc-wrap{
@@ -364,14 +584,30 @@
   /* ---------- FOOTER ---------- */
   footer{
     background:var(--deep); color:#AFC4C0; padding:44px 6vw;
-    display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px;
+    display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:16px;
     font-size:13px;
   }
   footer .brand{color:var(--paper);}
+  .footer-social{ grid-column:2; justify-self:center; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .footer-social a{
+    color:#AFC4C0; font-weight:600; transition:color .15s ease;
+  }
+  .footer-social a:hover{ color:var(--paper); }
+  .footer-social .dot{ color:#4A6D68; }
+  @media(max-width:600px){
+    footer{ grid-template-columns:1fr; text-align:center; }
+    .footer-social{ grid-column:1; justify-content:center; }
+  }
 
 </style>
 </head>
 <body>
+
+<div class="inapp-banner" id="inapp-banner" hidden>
+  <span id="inapp-banner-text">인앱 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.</span>
+  <button id="inapp-open-external-btn" type="button">외부 브라우저로 열기</button>
+  <button class="inapp-banner-close" id="inapp-banner-close" type="button" aria-label="닫기">✕</button>
+</div>
 
 <nav>
   <div class="brand">
@@ -384,6 +620,7 @@
     <a href="#pricing">pricing</a>
     <a href="#scan">scan demo</a>
   </div>
+  <button class="nav-support-btn" id="support-open-btn" type="button">문의하기</button>
 </nav>
 
 <section class="hero">
@@ -459,44 +696,52 @@
 
   <div class="detail-grid">
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <rect x="6" y="16" width="42" height="30" rx="3" fill="none" stroke="#0F2E2C" stroke-width="3"/>
+          <rect x="2" y="46" width="50" height="4" rx="2" fill="#0F2E2C"/>
+          <rect x="54" y="20" width="22" height="38" rx="4" fill="none" stroke="#3E7F86" stroke-width="3"/>
+          <line x1="61" y1="52" x2="69" y2="52" stroke="#3E7F86" stroke-width="3" stroke-linecap="round"/>
+          <path d="M48 30 a10 10 0 1 1 -2 -6" fill="none" stroke="#D8663F" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M46 20 l2 4 l4 -1" fill="none" stroke="#D8663F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
-      <h3 class="serif" contenteditable="true" spellcheck="false">지원 환경</h3>
-      <p contenteditable="true" spellcheck="false">웹 브라우저와 모바일 앱(iOS·Android)에서 동일한 프로젝트로 이어서 작업할 수 있습니다. 모바일에서는 신체 스캔·간단 수정, 데스크탑에서는 정밀 커스터마이징에 적합하게 UI가 최적화됩니다.</p>
-      <div class="detail-img-slot"></div>
+      <h3 class="serif">지원 환경</h3>
+      <p>웹 브라우저와 모바일 앱(iOS·Android)에서 동일한 프로젝트로 이어서 작업할 수 있습니다. 모바일에서는 신체 스캔·간단 수정, 데스크탑에서는 정밀 커스터마이징에 적합하게 UI가 최적화됩니다.</p>
     </div>
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <rect x="14" y="40" width="52" height="26" rx="4" fill="#6FB8C2"/>
+          <rect x="10" y="28" width="52" height="26" rx="4" fill="#3E7F86"/>
+          <rect x="18" y="14" width="52" height="26" rx="4" fill="#0F2E2C"/>
+        </svg>
       </div>
-      <h3 class="serif" contenteditable="true" spellcheck="false">원단·소재 구성</h3>
-      <p contenteditable="true" spellcheck="false">베이직(면·저지 등 기본 소재), 프리미엄(고급 원단), 스페셜(가죽·특수 직물) 3단계로 원단 등급을 나누고, 등급별로 실제 제작 견적이 달라집니다. 등급 선택은 커스터마이징 단계에서 바로 확인할 수 있어요.</p>
-      <div class="detail-img-slot"></div>
+      <h3 class="serif">원단·소재 구성</h3>
+      <p>베이직(면·저지 등 기본 소재), 프리미엄(고급 원단), 스페셜(가죽·특수 직물) 3단계로 원단 등급을 나누고, 등급별로 실제 제작 견적이 달라집니다. 등급 선택은 커스터마이징 단계에서 바로 확인할 수 있어요.</p>
     </div>
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <path d="M40 8 L68 18 V38 C68 56 56 68 40 74 C24 68 12 56 12 38 V18 Z" fill="none" stroke="#0F2E2C" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M28 40 L37 49 L54 30" fill="none" stroke="#3E7F86" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
-      <h3 class="serif" contenteditable="true" spellcheck="false">데이터 프라이버시</h3>
-      <p contenteditable="true" spellcheck="false">업로드한 신체 사진과 스캔 데이터는 저장하지 않는 제로 포토 리텐션 정책을 기본 적용합니다. 아바타 생성 즉시 원본 이미지는 삭제됩니다.</p>
-      <div class="detail-img-slot"></div>
+      <h3 class="serif">데이터 프라이버시</h3>
+      <p>업로드한 신체 사진과 스캔 데이터는 저장하지 않는 제로 포토 리텐션 정책을 기본 적용합니다. 아바타 생성 즉시 원본 이미지는 삭제됩니다.</p>
     </div>
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="30" fill="none" stroke="#D8663F" stroke-width="3"/>
+          <path d="M44 14 L26 44 H38 L34 66 L56 34 H42 Z" fill="#D8663F"/>
+        </svg>
       </div>
-      <h3 class="serif" contenteditable="true" spellcheck="false">차별점</h3>
-      <p contenteditable="true" spellcheck="false">고난도 3D 그래픽 숙련도가 필요한 CLO·Marvelous Designer와 달리, 2D 벡터 왜곡 + AI 라인 분리 하이브리드 방식으로 패션 지식이 없어도 누구나 쉽게 디자인할 수 있습니다.</p>
-      <div class="detail-img-slot"></div>
+      <h3 class="serif">차별점</h3>
+      <p>고난도 3D 그래픽 숙련도가 필요한 CLO·Marvelous Designer와 달리, 2D 벡터 왜곡 + AI 라인 분리 하이브리드 방식으로 패션 지식이 없어도 누구나 쉽게 디자인할 수 있습니다.</p>
     </div>
   </div>
-  <p class="detail-hint">제목과 설명을 클릭하면 바로 수정할 수 있고, "+ 이미지 추가"로 사진이나 그림을 넣을 수 있어요.</p>
-
+  
   <div class="mock-wrap" style="margin-top:56px;">
     <div class="mock-copy">
       <div class="eyebrow" style="color:#8FD1D8;">PRODUCT PREVIEW</div>
@@ -571,6 +816,7 @@
            data-logo_alignment="left">
       </div>
     </div>
+    <button class="btn btn-ghost-dark" id="privacy-settings-btn" type="button" hidden>개인정보 설정</button>
     <button class="btn btn-ghost-dark" id="google-logout-btn" type="button" hidden>로그아웃</button>
   </div>
 
@@ -618,118 +864,319 @@
     </div>
   </div>
   <p class="plan-selected-note" id="plan-selected-note"></p>
-
-  <div class="sec-head" style="margin-top:72px;">
-    <div class="eyebrow">PRODUCT ESTIMATE</div>
-    <h2 class="serif">완제품 가격은 별도 — 옵션에 따라 계산돼요</h2>
-    <p>구독료와 무관하게, 실제 제작 비용은 원단·디테일·완성도에 따라 달라집니다. 아래에서 직접 옵션을 눌러보세요.</p>
-  </div>
-
-  <div class="calc-wrap">
-    <div class="calc-options">
-      <div class="calc-group">
-        <div class="calc-label">원단 등급</div>
-        <div class="calc-choices" data-group="fabric">
-          <button class="calc-chip active" data-value="0">베이직 · +0원</button>
-          <button class="calc-chip" data-value="20000">프리미엄 · +20,000원</button>
-          <button class="calc-chip" data-value="40000">스페셜(가죽/특수직물) · +40,000원</button>
-          <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
-        </div>
-        <div class="calc-custom" id="calc-custom-fabric" hidden>
-          <label for="custom-fabric-note">원하시는 원단·재질이나 디자인 방식을 자유롭게 적어주세요</label>
-          <textarea id="custom-fabric-note" placeholder="예: 리사이클 폴리에스터로 제작하고 싶어요 / 특정 원단 샘플 참고 가능 / 발수 가공 원단 원해요"></textarea>
-          <label class="calc-custom-file-label">
-            + 참고 이미지 첨부
-            <input type="file" accept="image/*" id="custom-fabric-file" hidden>
-          </label>
-          <div class="calc-custom-file-preview" id="custom-fabric-file-preview"></div>
-          <div class="calc-custom-note">직접 요청 원단은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
-        </div>
-      </div>
-      <div class="calc-group">
-        <div class="calc-label">디테일 옵션 (중복 선택 가능)</div>
-        <div class="calc-choices" data-group="detail" data-multi="true">
-          <button class="calc-chip" data-value="10000">자수/나염 · +10,000원</button>
-          <button class="calc-chip" data-value="15000">특수 재단(드레이핑 등) · +15,000원</button>
-          <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
-        </div>
-        <div class="calc-custom" id="calc-custom-detail" hidden>
-          <label for="custom-detail-note">원하시는 디테일이나 나만의 디자인을 자유롭게 적어주세요</label>
-          <textarea id="custom-detail-note" placeholder="예: 소매 끝단에 레이스 추가 / 뒷면 지퍼 대신 단추로 변경 / 안감 추가 / 직접 그린 디자인 참고"></textarea>
-          <label class="calc-custom-file-label">
-            + 디자인 이미지 첨부
-            <input type="file" accept="image/*" id="custom-detail-file" hidden>
-          </label>
-          <div class="calc-custom-file-preview" id="custom-detail-file-preview"></div>
-          <div class="calc-custom-note">직접 요청 디테일·디자인은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
-        </div>
-      </div>
-      <div class="calc-group">
-        <div class="calc-label">완성 형태</div>
-        <div class="calc-choices" data-group="finish">
-          <button class="calc-chip active" data-value="0">패턴 PDF만 · +0원</button>
-          <button class="calc-chip" data-value="30000">완제품 도어투도어 배송 · +30,000원</button>
-        </div>
-      </div>
-    </div>
-    <div class="calc-total">
-      <div class="calc-total-label">예상 제작 견적</div>
-      <div class="calc-total-amount serif" id="calc-total">30,000원</div>
-      <div class="calc-total-note">기본 제작비 30,000원 + 선택 옵션</div>
-    </div>
-  </div>
 </section>
 
 <section id="scan">
   <div class="sec-head">
-    <div class="eyebrow">BODY SCAN DEMO</div>
-    <h2 class="serif">카메라로 체형 스캔해보기</h2>
-    <p>정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
+    <div class="eyebrow">DESIGN YOUR OWN</div>
+    <h2 class="serif">스캔부터 원단 선택까지, 한 번에</h2>
+    <p>버튼 하나로 시작해서 ① 몸 스캔·키 입력 → ② 원단·디테일 선택 순서로 진행돼요. 마지막에 예상 제작 견적까지 바로 확인할 수 있어요.</p>
   </div>
-  <div class="scan-wrap">
-    <div class="scan-camera">
-      <video id="scan-video" autoplay playsinline muted></video>
-      <canvas id="scan-canvas" hidden></canvas>
-      <div class="scan-camera-actions">
-        <button id="scan-start-btn" class="btn btn-primary" type="button">카메라 켜기</button>
-        <button id="scan-capture-btn" class="btn btn-ghost-dark" type="button" hidden>사진 촬영</button>
-        <button id="scan-record-btn" class="btn btn-ghost-dark" type="button" hidden>동영상 녹화 (5초)</button>
-        <label class="scan-upload-label">
-          사진 업로드
-          <input type="file" accept="image/*" id="scan-file-input" hidden>
-        </label>
-        <label class="scan-upload-label">
-          동영상 업로드
-          <input type="file" accept="video/*" id="scan-video-file-input" hidden>
-        </label>
-      </div>
-      <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담겨요. 카메라를 쓸 수 없다면 파일을 업로드해도 돼요.</p>
+  <div class="design-cta-box">
+    <div class="design-cta-icon">
+      <svg viewBox="0 0 80 80">
+        <ellipse cx="40" cy="18" rx="11" ry="13" fill="#0F2E2C"/>
+        <path d="M22 40 C22 32 30 28 40 28 C50 28 58 32 58 40 L55 66 C55 70 51 72 40 72 C29 72 25 70 25 66 Z" fill="#0F2E2C"/>
+        <circle cx="63" cy="60" r="13" fill="none" stroke="#D8663F" stroke-width="3"/>
+        <path d="M58 60 L61.5 63.5 L68 56.5" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </div>
-    <div class="scan-result">
-      <div class="scan-photo-slot" id="scan-photo-slot">
-        <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시돼요</span>
-      </div>
-      <div class="scan-height-row">
-        <label for="scan-height-input">키 (cm)</label>
-        <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
-      </div>
-      <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
-      <div class="scan-avatar-box">
-        <div id="scan-avatar-3d"></div>
-        <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
-        <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
-      </div>
-      <p class="scan-status" id="scan-status"></p>
-    </div>
+    <h3 class="serif">내 체형으로 디자인 시작하기</h3>
+    <p>스캔 → 키 입력 → 원단/디테일 선택까지 하나의 화면에서 이어서 진행돼요.</p>
+    <button class="btn btn-primary" id="open-design-flow-btn" type="button">스캔하고 디자인 시작하기</button>
   </div>
 </section>
 
 <footer>
   <div>
     <div class="brand" style="font-weight:600; margin-bottom:6px;">UNEXPOSED</div>
-    PentaCorp.
+    PentaCorp. · 아 코딩 하기 싫다.
+  </div>
+  <div class="footer-social">
+    <a href="https://www.instagram.com/jaehoon703/?hl=ko" target="_blank" rel="noopener noreferrer">Instagram</a>
+    <span class="dot">·</span>
+    <a href="https://github.com/mal-ba" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <span class="dot">·</span>
+    <a href="https://www.meshy.ai/ko/@s17789845805bd65" target="_blank" rel="noopener noreferrer">Meshy AI</a>
   </div>
 </footer>
+
+<div class="modal-overlay wizard-overlay" id="design-modal" hidden>
+  <div class="modal-box wizard-box">
+    <div class="wizard-header">
+      <div class="wizard-steps">
+        <span class="wizard-step active" id="wizard-step-indicator-1">1. 스캔</span>
+        <span class="wizard-step-arrow">→</span>
+        <span class="wizard-step" id="wizard-step-indicator-2">2. 원단·디테일 선택</span>
+      </div>
+      <button class="wizard-close" id="design-modal-close" type="button" aria-label="닫기">✕</button>
+    </div>
+
+    <div class="wizard-panel" id="wizard-panel-scan">
+      <div class="sec-head" style="text-align:left; margin-bottom:20px;">
+        <div class="eyebrow">STEP 1</div>
+        <h2 class="serif" style="font-size:26px;">카메라로 체형 스캔해보기</h2>
+        <p>정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
+      </div>
+      <div class="scan-wrap">
+        <div class="scan-camera">
+          <video id="scan-video" autoplay playsinline muted></video>
+          <canvas id="scan-canvas" hidden></canvas>
+          <div class="scan-camera-actions">
+            <button id="scan-start-btn" class="btn btn-primary" type="button">카메라 켜기</button>
+            <button id="scan-capture-btn" class="btn btn-ghost-dark" type="button" hidden>사진 촬영</button>
+            <button id="scan-record-btn" class="btn btn-ghost-dark" type="button" hidden>동영상 녹화 (5초)</button>
+            <label class="scan-upload-label">
+              사진 업로드
+              <input type="file" accept="image/*" id="scan-file-input" hidden>
+            </label>
+            <label class="scan-upload-label">
+              동영상 업로드
+              <input type="file" accept="video/*" id="scan-video-file-input" hidden>
+            </label>
+          </div>
+          <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담겨요. 카메라를 쓸 수 없다면 파일을 업로드해도 돼요.</p>
+        </div>
+        <div class="scan-result">
+          <div class="scan-photo-slot" id="scan-photo-slot">
+            <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시돼요</span>
+          </div>
+          <div class="scan-height-row">
+            <label for="scan-height-input">키 (cm)</label>
+            <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
+          </div>
+          <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
+          <div class="scan-avatar-box">
+            <div id="scan-avatar-3d"></div>
+            <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
+            <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
+          </div>
+          <p class="scan-status" id="scan-status"></p>
+
+          <div class="wardrobe-box">
+            <div class="calc-label">옷장 &amp; 꾸미기</div>
+            <div class="wardrobe-tabs">
+              <button class="wardrobe-tab active" data-tab="recommend" type="button">추천받기</button>
+              <button class="wardrobe-tab" data-tab="browse" type="button">옷장 둘러보기</button>
+              <button class="wardrobe-tab" data-tab="upload" type="button">내 아이템 올리기</button>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-recommend">
+              <div class="wardrobe-recommend-row">
+                <select id="recommend-age-select">
+                  <option value="">연령대 선택</option>
+                  <option value="10s">10대</option>
+                  <option value="20s">20대</option>
+                  <option value="30s40s">30~40대</option>
+                  <option value="50s+">50대 이상</option>
+                </select>
+                <select id="recommend-occasion-select">
+                  <option value="">상황 (선택)</option>
+                  <option value="casual">캐주얼</option>
+                  <option value="formal">포멀</option>
+                  <option value="sporty">스포티</option>
+                  <option value="street">스트릿</option>
+                </select>
+                <button class="btn btn-primary" id="recommend-btn" type="button">추천받기</button>
+              </div>
+              <p class="wardrobe-hint">태그 매칭 기반 추천이에요 (생성형 AI 추천은 추후 연동 가능해요).</p>
+              <div class="wardrobe-grid" id="recommend-results"></div>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-browse" hidden>
+              <div class="wardrobe-filter-row">
+                <button class="wardrobe-filter-chip active" data-category="">전체</button>
+                <button class="wardrobe-filter-chip" data-category="top">상의</button>
+                <button class="wardrobe-filter-chip" data-category="bottom">하의</button>
+                <button class="wardrobe-filter-chip" data-category="outer">아우터</button>
+                <button class="wardrobe-filter-chip" data-category="accessory">장신구</button>
+                <button class="wardrobe-filter-chip" data-category="shoes">신발</button>
+              </div>
+              <div class="wardrobe-grid" id="wardrobe-browse-results"></div>
+              <div class="wardrobe-edit-box" id="wardrobe-edit-box" hidden>
+                <div class="calc-label">"<span id="wardrobe-edit-name"></span>"에 사진·3D 파일 채우기</div>
+                <label>썸네일 이미지
+                  <input type="file" accept="image/*" id="wardrobe-edit-thumbnail">
+                </label>
+                <label>3D 파일 .glb
+                  <input type="file" accept=".glb,.gltf" id="wardrobe-edit-glb">
+                </label>
+                <div class="wardrobe-edit-actions">
+                  <button class="btn btn-ghost-dark" type="button" id="wardrobe-edit-cancel-btn">취소</button>
+                  <button class="btn btn-primary" type="button" id="wardrobe-edit-save-btn">저장하기</button>
+                </div>
+                <p class="wardrobe-hint" id="wardrobe-edit-status"></p>
+              </div>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-upload" hidden>
+              <p class="wardrobe-hint" id="wardrobe-upload-login-notice">아이템을 올리려면 먼저 Google 계정으로 로그인해주세요.</p>
+              <form class="wardrobe-upload-form" id="wardrobe-upload-form" hidden>
+                <label>이름
+                  <input type="text" id="upload-item-name" maxlength="60" placeholder="예: 스트라이프 니트">
+                </label>
+                <label>카테고리
+                  <select id="upload-item-category">
+                    <option value="top">상의</option>
+                    <option value="bottom">하의</option>
+                    <option value="outer">아우터</option>
+                    <option value="accessory">장신구</option>
+                    <option value="shoes">신발</option>
+                  </select>
+                </label>
+                <label>색상
+                  <input type="text" id="upload-item-color" maxlength="20" placeholder="예: 네이비">
+                </label>
+                <div class="upload-checkbox-group">
+                  <span class="upload-group-label">어울리는 상황</span>
+                  <label><input type="checkbox" value="casual" class="upload-occasion"> 캐주얼</label>
+                  <label><input type="checkbox" value="formal" class="upload-occasion"> 포멀</label>
+                  <label><input type="checkbox" value="sporty" class="upload-occasion"> 스포티</label>
+                  <label><input type="checkbox" value="street" class="upload-occasion"> 스트릿</label>
+                </div>
+                <div class="upload-checkbox-group">
+                  <span class="upload-group-label">추천 연령대 (1개 이상)</span>
+                  <label><input type="checkbox" value="10s" class="upload-agegroup"> 10대</label>
+                  <label><input type="checkbox" value="20s" class="upload-agegroup"> 20대</label>
+                  <label><input type="checkbox" value="30s40s" class="upload-agegroup"> 30~40대</label>
+                  <label><input type="checkbox" value="50s+" class="upload-agegroup"> 50대 이상</label>
+                </div>
+                <label>썸네일 이미지 (필수)
+                  <input type="file" accept="image/*" id="upload-item-thumbnail">
+                </label>
+                <label>3D 파일 .glb (선택 — 없으면 카탈로그에만 표시돼요)
+                  <input type="file" accept=".glb,.gltf" id="upload-item-glb">
+                </label>
+                <button class="btn btn-primary" type="button" id="upload-item-submit-btn">옷장에 올리기</button>
+                <p class="wardrobe-hint" id="upload-status"></p>
+              </form>
+            </div>
+
+            <div class="garment-fit-controls" id="garment-controls" hidden>
+              <div class="calc-label">입은 아이템 위치 맞추기</div>
+              <label>앞뒤 <input type="range" id="garment-x" min="-0.5" max="0.5" step="0.01" value="0"></label>
+              <label>높이 <input type="range" id="garment-y" min="-0.5" max="0.5" step="0.01" value="0"></label>
+              <label>좌우 <input type="range" id="garment-z" min="-0.5" max="0.5" step="0.01" value="0"></label>
+              <label>크기 <input type="range" id="garment-scale" min="0.3" max="2" step="0.01" value="1"></label>
+              <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
+            </div>
+            <p class="garment-status" id="garment-status"></p>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-actions">
+        <span></span>
+        <button class="btn btn-primary" id="wizard-to-step2-btn" type="button">다음: 원단·디테일 선택하기 →</button>
+      </div>
+    </div>
+
+    <div class="wizard-panel" id="wizard-panel-customize" hidden>
+      <div class="sec-head" style="text-align:left; margin-bottom:20px;">
+        <div class="eyebrow">STEP 2</div>
+        <h2 class="serif" style="font-size:26px;">원단·디테일을 선택해보세요</h2>
+        <p>실제 제작 비용은 원단·디테일·완성도에 따라 달라집니다. 아래에서 직접 옵션을 눌러보세요.</p>
+      </div>
+      <div class="calc-wrap">
+        <div class="calc-options">
+          <div class="calc-group">
+            <div class="calc-label">원단 등급</div>
+            <div class="calc-choices" data-group="fabric">
+              <button class="calc-chip active" data-value="0">베이직 · +0원</button>
+              <button class="calc-chip" data-value="20000">프리미엄 · +20,000원</button>
+              <button class="calc-chip" data-value="40000">스페셜(가죽/특수직물) · +40,000원</button>
+              <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
+            </div>
+            <div class="calc-custom" id="calc-custom-fabric" hidden>
+              <label for="custom-fabric-note">원하시는 원단·재질이나 디자인 방식을 자유롭게 적어주세요</label>
+              <textarea id="custom-fabric-note" placeholder="예: 리사이클 폴리에스터로 제작하고 싶어요 / 특정 원단 샘플 참고 가능 / 발수 가공 원단 원해요"></textarea>
+              <label class="calc-custom-file-label">
+                + 참고 이미지 첨부
+                <input type="file" accept="image/*" id="custom-fabric-file" hidden>
+              </label>
+              <div class="calc-custom-file-preview" id="custom-fabric-file-preview"></div>
+              <div class="calc-custom-note">직접 요청 원단은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+            </div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-label">디테일 옵션 (중복 선택 가능)</div>
+            <div class="calc-choices" data-group="detail" data-multi="true">
+              <button class="calc-chip" data-value="10000">자수/나염 · +10,000원</button>
+              <button class="calc-chip" data-value="15000">특수 재단(드레이핑 등) · +15,000원</button>
+              <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
+            </div>
+            <div class="calc-custom" id="calc-custom-detail" hidden>
+              <label for="custom-detail-note">원하시는 디테일이나 나만의 디자인을 자유롭게 적어주세요</label>
+              <textarea id="custom-detail-note" placeholder="예: 소매 끝단에 레이스 추가 / 뒷면 지퍼 대신 단추로 변경 / 안감 추가 / 직접 그린 디자인 참고"></textarea>
+              <label class="calc-custom-file-label">
+                + 디자인 이미지 첨부
+                <input type="file" accept="image/*" id="custom-detail-file" hidden>
+              </label>
+              <div class="calc-custom-file-preview" id="custom-detail-file-preview"></div>
+              <div class="calc-custom-note">직접 요청 디테일·디자인은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+            </div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-label">완성 형태</div>
+            <div class="calc-choices" data-group="finish">
+              <button class="calc-chip active" data-value="0">패턴 PDF만 · +0원</button>
+              <button class="calc-chip" data-value="30000">완제품 도어투도어 배송 · +30,000원</button>
+            </div>
+          </div>
+        </div>
+        <div class="calc-total">
+          <div class="calc-total-label">예상 제작 견적</div>
+          <div class="calc-total-amount serif" id="calc-total">30,000원</div>
+          <div class="calc-total-note">기본 제작비 30,000원 + 선택 옵션</div>
+        </div>
+      </div>
+      <div class="wizard-actions">
+        <button class="btn btn-ghost-dark" id="wizard-to-step1-btn" type="button">← 이전: 스캔으로 돌아가기</button>
+        <button class="btn btn-primary" id="wizard-finish-btn" type="button">완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="consent-modal" hidden>
+  <div class="modal-box consent-box">
+    <h3 class="serif">서비스 이용약관 · 신체 데이터 동의</h3>
+
+    <div class="consent-section">
+      <div class="consent-scroll">
+        UNEXPOSED는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
+        (1) 본 서비스는 데모 버전이며 실제 약관은 추후 정식 서비스 출시 시 변호사 검토를 거쳐 제공됩니다.
+        (2) 이용자는 본인의 신체 정보를 자발적으로 입력합니다.
+        (3) 계정 및 결제 정보는 관련 법령에 따라 안전하게 관리됩니다.
+      </div>
+      <label class="consent-check">
+        <input type="checkbox" id="consent-tos-checkbox">
+        <span>이용약관에 동의합니다 <b>(필수)</b></span>
+      </label>
+    </div>
+
+    <div class="consent-section">
+      <div class="consent-label-row">
+        <span class="consent-title">신체 데이터 수집·보관 동의 <span class="consent-optional">(선택)</span></span>
+      </div>
+      <p class="consent-desc">
+        동의하면 촬영한 사진과 입력한 키 정보가 서버에 저장되어, 아바타 정확도 개선 등 서비스 향상에 활용돼요.
+        <b>동의하지 않아도 스캔·아바타 생성 기능은 그대로 사용할 수 있고</b>, 이 경우 데이터는 화면에만 표시되고 저장되지 않아요.
+        동의는 언제든 이 화면에서 다시 바꿀 수 있고, 철회하면 그동안 저장된 데이터도 즉시 삭제돼요.
+      </p>
+      <label class="consent-check">
+        <input type="checkbox" id="consent-bodydata-checkbox">
+        <span>신체 스캔 사진·키 정보를 저장하고 활용하는 데 동의합니다</span>
+      </label>
+      <p class="consent-history" id="consent-history-text"></p>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost-dark" id="consent-later-btn" type="button">나중에 결정하기</button>
+      <button class="btn btn-primary" id="consent-save-btn" type="button" disabled>저장하기</button>
+    </div>
+    <p class="modal-note" id="consent-save-note"></p>
+  </div>
+</div>
 
 <div class="modal-overlay" id="payment-modal" hidden>
   <div class="modal-box">
@@ -746,7 +1193,198 @@
   </div>
 </div>
 
+<div class="support-overlay-bg" id="support-overlay-bg" hidden></div>
+<div class="support-panel" id="support-panel">
+  <div class="support-header">
+    <div>
+      <h4>UNEXPOSED 문의하기</h4>
+      <p>자주 묻는 질문에 바로 답해드려요</p>
+    </div>
+    <button class="support-close-btn" id="support-close-btn" type="button" aria-label="닫기">✕</button>
+  </div>
+  <div class="support-messages" id="support-messages"></div>
+  <div class="support-suggestions" id="support-suggestions"></div>
+  <div class="support-input-row">
+    <input type="text" id="support-input" placeholder="궁금한 걸 물어보세요 (예: 결제, 로그인, 스캔...)">
+    <button id="support-send-btn" type="button">전송</button>
+  </div>
+</div>
+
 <script>
+  /* ---------- 텍스트 복사 방지 ---------- */
+  document.addEventListener('copy', e => e.preventDefault());
+  document.addEventListener('cut', e => e.preventDefault());
+
+  /* ---------- 문의 챗봇 (규칙 기반 FAQ) ---------- */
+  (function initSupportChat(){
+    const KNOWLEDGE_BASE = [
+      {
+        keywords: ['스캔', '카메라', '촬영', '녹화'],
+        answer: '스캔은 "scan demo" 섹션의 "스캔하고 디자인 시작하기" 버튼을 누르면 시작돼요. 카메라 권한을 허용하면 사진 촬영이나 5초 동영상 녹화를 할 수 있고, 카메라를 쓸 수 없으면 사진·동영상 파일을 업로드해도 돼요.',
+      },
+      {
+        keywords: ['로그인', '구글', '인앱', '카카오톡', '403', 'disallowed'],
+        answer: 'Google 계정으로 로그인해서 유료 플랜 구독이나 결제를 할 수 있어요. 카카오톡·클로드 앱 같은 인앱 브라우저에서는 구글 보안 정책상 로그인이 막혀 있어서, 화면 위 배너의 "외부 브라우저로 열기"를 눌러서 크롬·사파리로 열어주세요.',
+      },
+      {
+        keywords: ['결제', '구독', '돈', '카드', '토스', '요금', '가격', '플랜'],
+        answer: '지금은 테스트 결제로 연동되어 있어서, 실제 카드를 입력해도 진짜 돈은 빠져나가지 않아요. Free/Basic/Standard/Pro 플랜이 있고, 유료 플랜은 로그인 후 구독하기를 누르면 결제창으로 이동해요.',
+      },
+      {
+        keywords: ['원단', '소재', '디테일', '견적', '제작비'],
+        answer: '원단 등급(베이직/프리미엄/스페셜), 디테일 옵션(자수·특수재단), 완성 형태(패턴 PDF/완제품 배송)를 골라서 실시간으로 예상 제작 견적을 확인할 수 있어요. "기타(직접 요청)"를 선택하면 원하는 원단·디자인을 자유롭게 적을 수도 있어요.',
+      },
+      {
+        keywords: ['옷장', '입혀', '꾸미기', '장신구', '아이템', '추천'],
+        answer: '스캔 화면 안 "옷장 & 꾸미기"에서 기본 제공 아이템을 둘러보거나, 연령대·상황에 맞춰 추천받거나, 직접 만든 옷·장신구(.glb 파일)를 올려서 마네킹에 입혀볼 수 있어요.',
+      },
+      {
+        keywords: ['마네킹', '키', '아바타', '3d', '전신'],
+        answer: '키(cm)를 입력하고 "아바타 생성하기"를 누르면 3D 마네킹 크기가 그 비율에 맞게 조정돼요. 마우스나 손가락으로 드래그하면 360도로 돌려볼 수 있어요.',
+      },
+      {
+        keywords: ['제작', '배송', '실제', '받을', '완제품', '기간'],
+        answer: '지금은 데모 버전이라 실제 제작·배송은 아직 연결되어 있지 않아요. 정식 서비스에서는 완성한 디자인을 파트너 제작사에 도면(PDF)으로 넘기거나, 완제품으로 배송받는 옵션을 고를 수 있게 될 예정이에요.',
+      },
+      {
+        keywords: ['개인정보', '사진', '저장', '삭제', '동의', '프라이버시'],
+        answer: '신체 데이터(사진·키)는 로그인 후 "신체 데이터 수집·보관"에 직접 동의한 경우에만 저장돼요. 동의하지 않으면 화면에만 보이고 서버에는 저장되지 않고, 언제든 우측 상단 "개인정보 설정"에서 동의를 바꾸거나 저장된 데이터를 삭제할 수 있어요.',
+      },
+      {
+        keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'pentacorp', '펜타콘'],
+        answer: 'UNEXPOSED는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
+      },
+    ];
+
+    const SUGGESTIONS = [
+      '스캔은 어떻게 해요?',
+      '결제하면 진짜 돈 나가나요?',
+      '구글 로그인이 안 돼요',
+      '내 사진이 저장되나요?',
+    ];
+
+    const openBtn = document.getElementById('support-open-btn');
+    const closeBtn = document.getElementById('support-close-btn');
+    const panel = document.getElementById('support-panel');
+    const overlay = document.getElementById('support-overlay-bg');
+    const messages = document.getElementById('support-messages');
+    const suggestionsBox = document.getElementById('support-suggestions');
+    const input = document.getElementById('support-input');
+    const sendBtn = document.getElementById('support-send-btn');
+
+    function addMessage(text, from){
+      const div = document.createElement('div');
+      div.className = `support-msg ${from}`;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function renderSuggestions(){
+      suggestionsBox.innerHTML = '';
+      SUGGESTIONS.forEach(text => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'support-suggestion-chip';
+        chip.textContent = text;
+        chip.addEventListener('click', () => handleUserMessage(text));
+        suggestionsBox.appendChild(chip);
+      });
+    }
+
+    function findAnswer(message){
+      const lower = message.toLowerCase();
+      let best = null;
+      let bestScore = 0;
+      KNOWLEDGE_BASE.forEach(entry => {
+        const score = entry.keywords.reduce((acc, kw) => acc + (lower.includes(kw.toLowerCase()) ? 1 : 0), 0);
+        if(score > bestScore){
+          bestScore = score;
+          best = entry;
+        }
+      });
+      if(best) return best.answer;
+      return '죄송해요, 정확히 이해하지 못했어요. 아래 추천 질문 중 하나를 눌러보시거나, 스캔·로그인·결제·원단·옷장 중 어떤 부분이 궁금한지 다시 말씀해주시겠어요?';
+    }
+
+    function handleUserMessage(text){
+      const trimmed = text.trim();
+      if(!trimmed) return;
+      addMessage(trimmed, 'user');
+      input.value = '';
+      setTimeout(() => {
+        addMessage(findAnswer(trimmed), 'bot');
+      }, 300);
+    }
+
+    function openPanel(){
+      panel.classList.add('open');
+      overlay.hidden = false;
+      if(messages.children.length === 0){
+        addMessage('안녕하세요! UNEXPOSED에 대해 궁금한 걸 물어보세요. 스캔, 로그인, 결제, 원단, 옷장 등 무엇이든 답해드릴게요. (규칙 기반 FAQ 챗봇이에요)', 'bot');
+        renderSuggestions();
+      }
+      input.focus();
+    }
+    function closePanel(){
+      panel.classList.remove('open');
+      overlay.hidden = true;
+    }
+
+    openBtn.addEventListener('click', openPanel);
+    closeBtn.addEventListener('click', closePanel);
+    overlay.addEventListener('click', closePanel);
+    sendBtn.addEventListener('click', () => handleUserMessage(input.value));
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Enter') handleUserMessage(input.value);
+    });
+  })();
+
+  /* ---------- 인앱 브라우저 감지 (카카오톡, 클로드 앱 등) ---------- */
+  (function detectInAppBrowser(){
+    const ua = navigator.userAgent || '';
+    const isKakao = /KAKAOTALK/i.test(ua);
+    const isLine = /Line\//i.test(ua);
+    const isInstagram = /Instagram/i.test(ua);
+    const isFacebook = /FBAN|FBAV/i.test(ua);
+    const isNaver = /NAVER\(/i.test(ua);
+    // 클로드 앱을 포함한 일반적인 인앱 웹뷰 신호: 안드로이드는 "; wv" 마커, iOS는 별도 브라우저 식별자가 없는 WKWebView
+    const isGenericAndroidWebview = /Android/i.test(ua) && /; ?wv\)/i.test(ua);
+    const isIOSWebview = /iPhone|iPad|iPod/i.test(ua) && !/Safari/i.test(ua) && !/CriOS/i.test(ua) && !/FxiOS/i.test(ua);
+    const isClaudeApp = /Claude/i.test(ua);
+
+    const inApp = isKakao || isLine || isInstagram || isFacebook || isNaver || isGenericAndroidWebview || isIOSWebview || isClaudeApp;
+    if(!inApp) return;
+
+    const banner = document.getElementById('inapp-banner');
+    const bannerText = document.getElementById('inapp-banner-text');
+    const openBtn = document.getElementById('inapp-open-external-btn');
+    const closeBtn = document.getElementById('inapp-banner-close');
+    if(!banner) return;
+
+    banner.hidden = false;
+
+    if(isKakao){
+      bannerText.textContent = '카카오톡 인앱 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.';
+    } else {
+      bannerText.textContent = '지금 앱 내장 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.';
+    }
+
+    openBtn.addEventListener('click', () => {
+      const currentUrl = window.location.href;
+      if(isKakao){
+        window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
+      } else {
+        // 카카오 외 앱들은 공식 외부 브라우저 전환 스킴이 제각각이라, 우선 새 탭 시도 후
+        // 안내 문구로 "우측 상단 메뉴에서 다른 브라우저로 열기"를 안내해요.
+        window.open(currentUrl, '_blank');
+        bannerText.textContent = '새 탭이 안 열리면, 우측 상단 메뉴(⋯)에서 "다른 브라우저로 열기"를 선택해주세요.';
+      }
+    });
+
+    closeBtn.addEventListener('click', () => { banner.hidden = true; });
+  })();
+
   const BASE = 30000;
   const state = { fabric: 0, detail: 0, finish: 0 };
   const customActive = { fabric: false, detail: false };
@@ -818,34 +1456,17 @@
     });
   });
 
-  document.querySelectorAll('.detail-block').forEach(block => {
-    const btn = block.querySelector('.detail-img-btn');
-    const input = block.querySelector('.detail-img-input');
-    const slot = block.querySelector('.detail-img-slot');
-    btn.addEventListener('click', () => input.click());
-    input.addEventListener('change', () => {
-      const file = input.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        slot.innerHTML = '';
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        slot.appendChild(img);
-        btn.textContent = '+ 이미지 바꾸기';
-      };
-      reader.readAsDataURL(file);
-    });
-  });
-
   /* ---------- AUTH (real Google login) ---------- */
   const TOSS_CLIENT_KEY = "%%TOSS_CLIENT_KEY%%";
   const authState = { loggedIn: false, email: null, name: null };
+  window.authState = authState; // 옷장 기능이 들어있는 별도 모듈 스크립트에서도 로그인 상태를 볼 수 있게 공유해요.
   const authBar = document.getElementById('auth-bar');
   const authStatusText = document.getElementById('auth-status-text');
   const googleSigninContainer = document.getElementById('google-signin-container');
   const googleLogoutBtn = document.getElementById('google-logout-btn');
+  const privacySettingsBtn = document.getElementById('privacy-settings-btn');
   const planNote = document.getElementById('plan-selected-note');
+  let bodyDataConsentGranted = null; // null = 아직 선택 안 함, true/false = 선택함
 
   function setLoggedIn(user){
     authState.loggedIn = true;
@@ -855,15 +1476,20 @@
     authStatusText.textContent = `${user.name} (${user.email}) 로 로그인됨`;
     googleSigninContainer.hidden = true;
     googleLogoutBtn.hidden = false;
+    privacySettingsBtn.hidden = false;
+    if(typeof refreshWardrobeUploadAccess === 'function') refreshWardrobeUploadAccess();
   }
   function setLoggedOut(){
     authState.loggedIn = false;
     authState.email = null;
     authState.name = null;
+    bodyDataConsentGranted = null;
     authBar.classList.remove('logged-in');
     authStatusText.textContent = '로그인하지 않았어요 · 유료 플랜은 로그인 후 결제할 수 있어요';
     googleSigninContainer.hidden = false;
     googleLogoutBtn.hidden = true;
+    privacySettingsBtn.hidden = true;
+    if(typeof refreshWardrobeUploadAccess === 'function') refreshWardrobeUploadAccess();
   }
 
   // Google Identity Services가 로그인 성공 시 호출하는 콜백
@@ -878,6 +1504,12 @@
       if(data.ok){
         setLoggedIn(data.user);
         planNote.textContent = `${data.user.name}님, 환영해요!`;
+        if(data.bodyDataConsent){
+          bodyDataConsentGranted = data.bodyDataConsent.consent;
+        } else {
+          // 아직 한 번도 선택한 적이 없으면 동의 화면을 띄워요.
+          openConsentModal();
+        }
       } else {
         planNote.textContent = data.error || '로그인에 실패했어요.';
       }
@@ -902,6 +1534,9 @@
       const data = await res.json();
       if(data.user){
         setLoggedIn(data.user);
+        if(data.bodyDataConsent){
+          bodyDataConsentGranted = data.bodyDataConsent.consent;
+        }
         if(data.subscription){
           const card = document.querySelector(`.price-card[data-plan="${data.subscription.plan}"]`);
           if(card){
@@ -914,6 +1549,68 @@
     } catch(err){ /* 서버가 아직 안 켜져 있을 수 있어요 */ }
   }
   checkAuthOnLoad();
+
+  /* ---------- 신체 데이터 수집 동의 ---------- */
+  const consentModal = document.getElementById('consent-modal');
+  const consentTosCheckbox = document.getElementById('consent-tos-checkbox');
+  const consentBodydataCheckbox = document.getElementById('consent-bodydata-checkbox');
+  const consentSaveBtn = document.getElementById('consent-save-btn');
+  const consentLaterBtn = document.getElementById('consent-later-btn');
+  const consentHistoryText = document.getElementById('consent-history-text');
+  const consentSaveNote = document.getElementById('consent-save-note');
+
+  consentTosCheckbox.addEventListener('change', () => {
+    consentSaveBtn.disabled = !consentTosCheckbox.checked;
+  });
+
+  async function openConsentModal(){
+    if(!authState.loggedIn) return;
+    consentTosCheckbox.checked = false;
+    consentSaveBtn.disabled = true;
+    consentBodydataCheckbox.checked = bodyDataConsentGranted === true;
+    consentSaveNote.textContent = '';
+    consentHistoryText.textContent = '';
+    try{
+      const res = await fetch('/api/scan/history');
+      const data = await res.json();
+      if(data.count > 0){
+        consentHistoryText.textContent = `지금까지 저장된 스캔 기록: ${data.count}개 (동의를 철회하면 즉시 삭제돼요)`;
+      }
+    } catch(err){ /* 무시해도 괜찮아요 */ }
+    consentModal.hidden = false;
+  }
+
+  privacySettingsBtn.addEventListener('click', openConsentModal);
+  consentLaterBtn.addEventListener('click', () => { consentModal.hidden = true; });
+
+  consentSaveBtn.addEventListener('click', async () => {
+    if(!consentTosCheckbox.checked) return;
+    const consent = consentBodydataCheckbox.checked;
+    consentSaveBtn.disabled = true;
+    consentSaveBtn.textContent = '저장 중...';
+    try{
+      const res = await fetch('/api/consent/body-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        bodyDataConsentGranted = data.consent;
+        consentSaveNote.textContent = consent
+          ? '저장됐어요. 앞으로 스캔한 사진·키 정보가 서버에 저장돼요.'
+          : '저장됐어요. 스캔 데이터는 저장되지 않고 화면에만 표시돼요.';
+        setTimeout(() => { consentModal.hidden = true; }, 900);
+      } else {
+        consentSaveNote.textContent = data.error || '저장에 실패했어요.';
+      }
+    } catch(err){
+      consentSaveNote.textContent = '저장 중 오류가 발생했어요.';
+    } finally {
+      consentSaveBtn.disabled = false;
+      consentSaveBtn.textContent = '저장하기';
+    }
+  });
 
   /* ---------- PLAN SELECT + 실제 토스페이먼츠 결제 ---------- */
   const paymentModal = document.getElementById('payment-modal');
@@ -1008,6 +1705,48 @@
       paymentConfirmBtn.disabled = false;
       paymentConfirmBtn.textContent = '결제하기';
     }
+  });
+
+  /* ---------- DESIGN WIZARD MODAL ---------- */
+  const designModal = document.getElementById('design-modal');
+  const openDesignFlowBtn = document.getElementById('open-design-flow-btn');
+  const designModalCloseBtn = document.getElementById('design-modal-close');
+  const wizardPanelScan = document.getElementById('wizard-panel-scan');
+  const wizardPanelCustomize = document.getElementById('wizard-panel-customize');
+  const wizardStepIndicator1 = document.getElementById('wizard-step-indicator-1');
+  const wizardStepIndicator2 = document.getElementById('wizard-step-indicator-2');
+  const wizardToStep2Btn = document.getElementById('wizard-to-step2-btn');
+  const wizardToStep1Btn = document.getElementById('wizard-to-step1-btn');
+  const wizardFinishBtn = document.getElementById('wizard-finish-btn');
+
+  function showWizardStep(step){
+    const onStep1 = step === 1;
+    wizardPanelScan.hidden = !onStep1;
+    wizardPanelCustomize.hidden = onStep1;
+    wizardStepIndicator1.classList.toggle('active', onStep1);
+    wizardStepIndicator2.classList.toggle('active', !onStep1);
+    designModal.querySelector('.wizard-header').scrollIntoView({ block: 'nearest' });
+  }
+
+  function openDesignModal(){
+    designModal.hidden = false;
+    showWizardStep(1);
+    if(typeof window.startMannequinViewerOnce === 'function'){
+      window.startMannequinViewerOnce();
+    }
+  }
+
+  function closeDesignModal(){
+    designModal.hidden = true;
+  }
+
+  openDesignFlowBtn.addEventListener('click', openDesignModal);
+  designModalCloseBtn.addEventListener('click', closeDesignModal);
+  wizardToStep2Btn.addEventListener('click', () => showWizardStep(2));
+  wizardToStep1Btn.addEventListener('click', () => showWizardStep(1));
+  wizardFinishBtn.addEventListener('click', closeDesignModal);
+  designModal.addEventListener('click', e => {
+    if(e.target === designModal) closeDesignModal();
   });
 
   /* ---------- SCAN DEMO ---------- */
@@ -1160,7 +1899,29 @@
     scanStatus.textContent = height
       ? `${validHeight}cm 체형 데이터 기반 아바타 생성 완료 (데모)`
       : '키를 입력하지 않아 기본값(165cm) 비율로 생성했어요.';
+    saveScanDataIfConsented(validHeight);
   });
+
+  // 로그인 + 신체 데이터 수집에 동의한 경우에만, 방금 찍은 사진과 키를 서버에 저장해요.
+  async function saveScanDataIfConsented(heightCm){
+    if(!authState.loggedIn || bodyDataConsentGranted !== true) return;
+    const imgEl = scanPhotoSlot.querySelector('img');
+    let photoThumbnail = null;
+    if(imgEl && imgEl.src && imgEl.src.startsWith('data:') && imgEl.src.length < 380000){
+      photoThumbnail = imgEl.src;
+    }
+    try{
+      const res = await fetch('/api/scan/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ heightCm, photoThumbnail }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        scanStatus.textContent += ' · 동의하신 대로 서버에 저장됐어요.';
+      }
+    } catch(err){ /* 저장 실패해도 아바타 생성 자체엔 영향 없어요 */ }
+  }
 </script>
 
 <script type="module">
@@ -1175,6 +1936,7 @@
   let scanScene, scanCamera, scanRenderer, scanControls;
   let scanMannequin = null;
   let scanMannequinDefaultHeight = 0; // 원본(스케일 1) 상태의 모델 높이(scene 단위)
+  let scanMannequinWidthRatio = 1; // 모델 너비(팔 벌린 폭) / 키 비율
 
   function initMannequinViewer(){
     const container = document.getElementById('scan-avatar-3d');
@@ -1186,7 +1948,7 @@
     const height = container.clientHeight || 320;
 
     scanScene = new THREE.Scene();
-    scanCamera = new THREE.PerspectiveCamera(32, width / height, 0.1, 100);
+    scanCamera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
     scanCamera.position.set(0, 1.3, 3.4);
 
     scanRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -1202,8 +1964,8 @@
     scanControls = new OrbitControls(scanCamera, scanRenderer.domElement);
     scanControls.enableDamping = true;
     scanControls.enablePan = false;
-    scanControls.minDistance = 1.6;
-    scanControls.maxDistance = 6;
+    scanControls.minDistance = 1.2;
+    scanControls.maxDistance = 14;
     scanControls.target.set(0, 1, 0);
 
     const loader = new GLTFLoader();
@@ -1215,6 +1977,8 @@
 
         const box0 = new THREE.Box3().setFromObject(scanMannequin);
         scanMannequinDefaultHeight = box0.max.y - box0.min.y;
+        const defaultWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
+        scanMannequinWidthRatio = defaultWidth / scanMannequinDefaultHeight;
 
         applyHeightToMannequin(165);
         if(scanAvatarLoading) scanAvatarLoading.hidden = true;
@@ -1239,7 +2003,31 @@
       scanCamera.aspect = w / h;
       scanCamera.updateProjectionMatrix();
       scanRenderer.setSize(w, h);
+      // 화면 크기가 바뀌면 지금 모델 키에 맞춰 카메라 거리도 다시 계산해요.
+      if(scanMannequin) frameCameraToFullBody(lastAppliedHeightMeters);
     });
+  }
+
+  let lastAppliedHeightMeters = 1.65;
+
+  // 모델 키(head-to-toe)와 팔 벌린 폭이 화면 안에 항상 여유 있게 다 들어오도록,
+  // 세로 기준 거리와 가로(T포즈 폭) 기준 거리를 각각 계산해서 더 넉넉한 쪽을 써요.
+  // (고정 값이면 화면이 좁고 길 때 팔이나 머리가 잘려 보일 수 있어요)
+  function frameCameraToFullBody(heightMeters){
+    if(!scanCamera || !scanControls) return;
+    const vFovRad = THREE.MathUtils.degToRad(scanCamera.fov);
+    const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * scanCamera.aspect);
+    const margin = 1.7; // 위아래·좌우 여유 공간
+
+    const widthMeters = heightMeters * scanMannequinWidthRatio;
+    const distanceForHeight = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
+    const distanceForWidth = (widthMeters * margin) / (2 * Math.tan(hFovRad / 2));
+    const distance = Math.max(distanceForHeight, distanceForWidth);
+
+    const camHeight = heightMeters * 0.58; // 살짝 위에서 내려다보는 자연스러운 각도
+    scanCamera.position.set(0, camHeight, distance);
+    scanControls.target.set(0, heightMeters / 2, 0);
+    scanCamera.updateProjectionMatrix();
   }
 
   function applyHeightToMannequin(heightCm){
@@ -1252,14 +2040,310 @@
     const box = new THREE.Box3().setFromObject(scanMannequin);
     scanMannequin.position.y -= box.min.y;
 
-    if(scanControls){
-      const newHeight = targetMeters;
-      scanControls.target.set(0, newHeight / 2, 0);
-    }
+    lastAppliedHeightMeters = targetMeters;
+    frameCameraToFullBody(targetMeters);
   }
 
   window.applyHeightToMannequin = applyHeightToMannequin;
-  initMannequinViewer();
+
+  // 모달이 처음 열릴 때만 3D 뷰어를 초기화해요 (숨겨진 상태에서 초기화하면
+  // 컨테이너 크기가 0이라 렌더러가 깨지기 때문에, 실제로 보일 때 시작해요)
+  let mannequinViewerStarted = false;
+  window.startMannequinViewerOnce = function(){
+    if(mannequinViewerStarted) return;
+    mannequinViewerStarted = true;
+    initMannequinViewer();
+  };
+
+  /* ---------- 옷/장신구 입혀보기 (파일 URL 기반, 옷장 아이템 공용) ---------- */
+  let currentGarment = null;
+  const garmentControls = document.getElementById('garment-controls');
+  const garmentStatus = document.getElementById('garment-status');
+  const garmentX = document.getElementById('garment-x');
+  const garmentY = document.getElementById('garment-y');
+  const garmentZ = document.getElementById('garment-z');
+  const garmentScaleInput = document.getElementById('garment-scale');
+  const garmentRemoveBtn = document.getElementById('garment-remove-btn');
+
+  function updateGarmentTransform(){
+    if(!currentGarment) return;
+    currentGarment.position.set(
+      parseFloat(garmentX.value),
+      parseFloat(garmentY.value),
+      parseFloat(garmentZ.value)
+    );
+    const s = parseFloat(garmentScaleInput.value);
+    currentGarment.scale.set(s, s, s);
+  }
+
+  function wearGarmentFromUrl(url, label){
+    if(!scanMannequin){
+      garmentStatus.textContent = '먼저 마네킹이 다 불러와질 때까지 잠시 기다려주세요.';
+      return;
+    }
+    garmentStatus.textContent = `${label || '아이템'}을(를) 불러오는 중...`;
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      gltf => {
+        if(currentGarment) scanMannequin.remove(currentGarment);
+        currentGarment = gltf.scene;
+        // 마네킹의 자식으로 붙여서, 키 조정으로 마네킹 크기가 바뀌면 옷도 같이 커지고 작아져요.
+        scanMannequin.add(currentGarment);
+        garmentX.value = 0;
+        garmentY.value = 0;
+        garmentZ.value = 0;
+        garmentScaleInput.value = 1;
+        updateGarmentTransform();
+        garmentControls.hidden = false;
+        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 위치가 안 맞으면 슬라이더로 맞춰보세요.`;
+        garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      },
+      undefined,
+      () => {
+        garmentStatus.textContent = '아이템을 불러오지 못했어요. .glb 파일이 맞는지 확인해주세요.';
+      }
+    );
+  }
+
+  [garmentX, garmentY, garmentZ, garmentScaleInput].forEach(el => {
+    el.addEventListener('input', updateGarmentTransform);
+  });
+
+  garmentRemoveBtn.addEventListener('click', () => {
+    if(currentGarment){
+      scanMannequin.remove(currentGarment);
+      currentGarment = null;
+    }
+    garmentControls.hidden = true;
+    garmentStatus.textContent = '';
+  });
+
+  /* ---------- 옷장: 탭 전환 ---------- */
+  const wardrobeTabs = document.querySelectorAll('.wardrobe-tab');
+  const wardrobePanels = {
+    recommend: document.getElementById('wardrobe-panel-recommend'),
+    browse: document.getElementById('wardrobe-panel-browse'),
+    upload: document.getElementById('wardrobe-panel-upload'),
+  };
+  wardrobeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      wardrobeTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.entries(wardrobePanels).forEach(([key, panel]) => {
+        panel.hidden = key !== tab.dataset.tab;
+      });
+      if(tab.dataset.tab === 'browse' && !wardrobeBrowseLoaded) loadWardrobeBrowse('');
+    });
+  });
+
+  const CATEGORY_LABEL = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발' };
+
+  function wardrobeCardHTML(item, reason){
+    const thumb = item.thumbnailUrl
+      ? `<img src="${item.thumbnailUrl}" alt="${item.name}">`
+      : `<span>${CATEGORY_LABEL[item.category] || item.category}</span>`;
+    const wearable = !!item.glbUrl;
+    const officialBadge = item.isOfficial ? `<span class="wardrobe-official-badge">공식</span>` : '';
+    const editBtn = item.canEdit
+      ? `<button type="button" class="wardrobe-edit-btn" data-edit-item-id="${item.id}" data-edit-item-name="${item.name}">사진·3D 파일 채우기</button>`
+      : '';
+    return `
+      <div class="wardrobe-card">
+        <div class="wardrobe-card-thumb">${thumb}${officialBadge}</div>
+        <div class="wardrobe-card-name">${item.name}</div>
+        <div class="wardrobe-card-meta">${CATEGORY_LABEL[item.category] || item.category}${item.color ? ' · ' + item.color : ''}</div>
+        ${reason ? `<div class="wardrobe-card-reason">${reason}</div>` : ''}
+        <button type="button" data-item-id="${item.id}" ${wearable ? '' : 'disabled'}>
+          ${wearable ? '입혀보기' : '3D 모델 준비 중'}
+        </button>
+        ${editBtn}
+      </div>`;
+  }
+
+  function wireWearButtons(container, items){
+    container.querySelectorAll('button[data-item-id]').forEach(btn => {
+      const item = items.find(it => it.id === btn.dataset.itemId);
+      if(!item || !item.glbUrl) return;
+      btn.addEventListener('click', () => wearGarmentFromUrl(item.glbUrl, item.name));
+    });
+    container.querySelectorAll('.wardrobe-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => openWardrobeEditBox(btn.dataset.editItemId, btn.dataset.editItemName));
+    });
+  }
+
+  /* ---------- 이미 있는 아이템에 사진·3D 파일 채워 넣기 ---------- */
+  const wardrobeEditBox = document.getElementById('wardrobe-edit-box');
+  const wardrobeEditName = document.getElementById('wardrobe-edit-name');
+  const wardrobeEditThumbnail = document.getElementById('wardrobe-edit-thumbnail');
+  const wardrobeEditGlb = document.getElementById('wardrobe-edit-glb');
+  const wardrobeEditStatus = document.getElementById('wardrobe-edit-status');
+  let editingItemId = null;
+
+  function openWardrobeEditBox(itemId, itemName){
+    editingItemId = itemId;
+    wardrobeEditName.textContent = itemName;
+    wardrobeEditThumbnail.value = '';
+    wardrobeEditGlb.value = '';
+    wardrobeEditStatus.textContent = '';
+    wardrobeEditBox.hidden = false;
+    wardrobeEditBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('wardrobe-edit-cancel-btn').addEventListener('click', () => {
+    wardrobeEditBox.hidden = true;
+    editingItemId = null;
+  });
+
+  document.getElementById('wardrobe-edit-save-btn').addEventListener('click', async () => {
+    if(!editingItemId) return;
+    const thumbnailFile = wardrobeEditThumbnail.files[0];
+    const glbFile = wardrobeEditGlb.files[0];
+    if(!thumbnailFile && !glbFile){
+      wardrobeEditStatus.textContent = '사진이나 3D 파일 중 하나는 선택해주세요.';
+      return;
+    }
+    wardrobeEditStatus.textContent = '저장하는 중...';
+    try{
+      const thumbnailBase64 = thumbnailFile ? await readFileAsDataUrl(thumbnailFile) : null;
+      const glbFileBase64 = glbFile ? await readFileAsDataUrl(glbFile) : null;
+      const res = await fetch(`/api/wardrobe/${editingItemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thumbnailBase64, glbFileBase64 }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        wardrobeEditStatus.textContent = '저장됐어요!';
+        setTimeout(() => {
+          wardrobeEditBox.hidden = true;
+          editingItemId = null;
+          loadWardrobeBrowse(document.querySelector('.wardrobe-filter-chip.active')?.dataset.category || '');
+        }, 700);
+      } else {
+        wardrobeEditStatus.textContent = data.error || '저장에 실패했어요.';
+      }
+    } catch(err){
+      wardrobeEditStatus.textContent = '저장 중 오류가 발생했어요.';
+    }
+  });
+
+  /* ---------- 옷장 둘러보기 ---------- */
+  let wardrobeBrowseLoaded = false;
+  const wardrobeBrowseResults = document.getElementById('wardrobe-browse-results');
+  document.querySelectorAll('.wardrobe-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.wardrobe-filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      loadWardrobeBrowse(chip.dataset.category);
+    });
+  });
+
+  async function loadWardrobeBrowse(category){
+    wardrobeBrowseLoaded = true;
+    wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">불러오는 중...</p>';
+    try{
+      const url = category ? `/api/wardrobe?category=${encodeURIComponent(category)}` : '/api/wardrobe';
+      const res = await fetch(url);
+      const data = await res.json();
+      if(!data.items || data.items.length === 0){
+        wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">아직 등록된 아이템이 없어요.</p>';
+        return;
+      }
+      wardrobeBrowseResults.innerHTML = data.items.map(it => wardrobeCardHTML(it)).join('');
+      wireWearButtons(wardrobeBrowseResults, data.items);
+    } catch(err){
+      wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">옷장을 불러오지 못했어요.</p>';
+    }
+  }
+
+  /* ---------- 추천받기 ---------- */
+  const recommendResults = document.getElementById('recommend-results');
+  document.getElementById('recommend-btn').addEventListener('click', async () => {
+    const ageGroup = document.getElementById('recommend-age-select').value;
+    const occasion = document.getElementById('recommend-occasion-select').value;
+    if(!ageGroup){
+      recommendResults.innerHTML = '<p class="wardrobe-hint">연령대를 먼저 선택해주세요.</p>';
+      return;
+    }
+    recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 계산하는 중...</p>';
+    try{
+      const params = new URLSearchParams({ ageGroup });
+      if(occasion) params.set('occasion', occasion);
+      const res = await fetch(`/api/wardrobe/recommend?${params.toString()}`);
+      const data = await res.json();
+      if(!data.recommended || data.recommended.length === 0){
+        recommendResults.innerHTML = '<p class="wardrobe-hint">조건에 맞는 추천 아이템이 아직 없어요.</p>';
+        return;
+      }
+      recommendResults.innerHTML = data.recommended.map(it => wardrobeCardHTML(it, it.reason)).join('');
+      wireWearButtons(recommendResults, data.recommended);
+    } catch(err){
+      recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 불러오지 못했어요.</p>';
+    }
+  });
+
+  /* ---------- 내 아이템 올리기 ---------- */
+  const wardrobeUploadLoginNotice = document.getElementById('wardrobe-upload-login-notice');
+  const wardrobeUploadForm = document.getElementById('wardrobe-upload-form');
+  const uploadStatus = document.getElementById('upload-status');
+
+  function refreshWardrobeUploadAccess(){
+    const canUpload = !!(window.authState && window.authState.loggedIn);
+    wardrobeUploadLoginNotice.hidden = canUpload;
+    wardrobeUploadForm.hidden = !canUpload;
+  }
+  window.refreshWardrobeUploadAccess = refreshWardrobeUploadAccess; // 로그인 스크립트(classic script)에서도 호출할 수 있게 공유해요.
+
+  function readFileAsDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('upload-item-submit-btn').addEventListener('click', async () => {
+    const name = document.getElementById('upload-item-name').value.trim();
+    const category = document.getElementById('upload-item-category').value;
+    const color = document.getElementById('upload-item-color').value.trim();
+    const tags = Array.from(document.querySelectorAll('.upload-occasion:checked')).map(el => el.value);
+    const ageGroups = Array.from(document.querySelectorAll('.upload-agegroup:checked')).map(el => el.value);
+    const thumbnailFile = document.getElementById('upload-item-thumbnail').files[0];
+    const glbFile = document.getElementById('upload-item-glb').files[0];
+
+    if(!name){ uploadStatus.textContent = '이름을 입력해주세요.'; return; }
+    if(ageGroups.length === 0){ uploadStatus.textContent = '추천 연령대를 1개 이상 선택해주세요.'; return; }
+    if(!thumbnailFile){ uploadStatus.textContent = '썸네일 이미지를 선택해주세요.'; return; }
+
+    uploadStatus.textContent = '업로드하는 중...';
+    try{
+      const thumbnailBase64 = await readFileAsDataUrl(thumbnailFile);
+      const glbFileBase64 = glbFile ? await readFileAsDataUrl(glbFile) : null;
+      const res = await fetch('/api/wardrobe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, category, color, tags, ageGroups, thumbnailBase64, glbFileBase64 }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        uploadStatus.textContent = '옷장에 올렸어요! "옷장 둘러보기" 탭에서 확인할 수 있어요.';
+        document.getElementById('upload-item-name').value = '';
+        document.getElementById('upload-item-color').value = '';
+        document.querySelectorAll('.upload-occasion, .upload-agegroup').forEach(el => { el.checked = false; });
+        document.getElementById('upload-item-thumbnail').value = '';
+        document.getElementById('upload-item-glb').value = '';
+        wardrobeBrowseLoaded = false;
+      } else {
+        uploadStatus.textContent = data.error || '업로드에 실패했어요.';
+      }
+    } catch(err){
+      uploadStatus.textContent = '업로드 중 오류가 발생했어요.';
+    }
+  });
+
+  refreshWardrobeUploadAccess();
 </script>
 </body>
 </html>
