@@ -234,6 +234,43 @@
   .modal-plan-summary .mp-price{ font-family:'Fraunces',serif; font-size:22px; color:var(--star-dark); }
   .modal-note{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
 
+  /* ---------- DESIGN WIZARD MODAL ---------- */
+  .design-cta-box{
+    background:var(--mist); border:1px solid var(--line); border-radius:var(--radius);
+    padding:44px 32px; text-align:center; max-width:560px; margin:0 auto;
+  }
+  .design-cta-icon{
+    width:64px; height:64px; margin:0 auto 18px; background:var(--paper);
+    border-radius:16px; display:flex; align-items:center; justify-content:center;
+  }
+  .design-cta-icon svg{ width:38px; height:38px; }
+  .design-cta-box h3{ font-size:20px; font-weight:500; margin-bottom:8px; }
+  .design-cta-box p{ font-size:14px; color:var(--ink-soft); margin-bottom:22px; }
+
+  .wizard-box{
+    max-width:920px; width:96%; max-height:92vh; overflow-y:auto;
+    padding:24px 22px 30px;
+  }
+  @media(min-width:640px){ .wizard-box{ padding:30px 36px 38px; } }
+  .wizard-header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:22px; position:sticky; top:0; background:var(--paper); z-index:2;
+  }
+  .wizard-steps{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft); flex-wrap:wrap; }
+  .wizard-step{ padding:6px 12px; border-radius:999px; background:var(--mist); }
+  .wizard-step.active{ background:var(--deep); color:var(--paper); font-weight:600; }
+  .wizard-step-arrow{ color:var(--line); }
+  .wizard-close{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+    background:var(--paper); font-size:14px; cursor:pointer; flex-shrink:0;
+  }
+  .wizard-close:hover{ border-color:var(--star-dark); }
+  .wizard-panel[hidden]{ display:none; }
+  .wizard-actions{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin-top:24px; flex-wrap:wrap;
+  }
+
   /* ---------- SCAN DEMO ---------- */
   .scan-wrap{
     display:grid; gap:24px; grid-template-columns:1fr;
@@ -625,109 +662,26 @@
     </div>
   </div>
   <p class="plan-selected-note" id="plan-selected-note"></p>
-
-  <div class="sec-head" style="margin-top:72px;">
-    <div class="eyebrow">PRODUCT ESTIMATE</div>
-    <h2 class="serif">완제품 가격은 별도 — 옵션에 따라 계산돼요</h2>
-    <p>구독료와 무관하게, 실제 제작 비용은 원단·디테일·완성도에 따라 달라집니다. 아래에서 직접 옵션을 눌러보세요.</p>
-  </div>
-
-  <div class="calc-wrap">
-    <div class="calc-options">
-      <div class="calc-group">
-        <div class="calc-label">원단 등급</div>
-        <div class="calc-choices" data-group="fabric">
-          <button class="calc-chip active" data-value="0">베이직 · +0원</button>
-          <button class="calc-chip" data-value="20000">프리미엄 · +20,000원</button>
-          <button class="calc-chip" data-value="40000">스페셜(가죽/특수직물) · +40,000원</button>
-          <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
-        </div>
-        <div class="calc-custom" id="calc-custom-fabric" hidden>
-          <label for="custom-fabric-note">원하시는 원단·재질이나 디자인 방식을 자유롭게 적어주세요</label>
-          <textarea id="custom-fabric-note" placeholder="예: 리사이클 폴리에스터로 제작하고 싶어요 / 특정 원단 샘플 참고 가능 / 발수 가공 원단 원해요"></textarea>
-          <label class="calc-custom-file-label">
-            + 참고 이미지 첨부
-            <input type="file" accept="image/*" id="custom-fabric-file" hidden>
-          </label>
-          <div class="calc-custom-file-preview" id="custom-fabric-file-preview"></div>
-          <div class="calc-custom-note">직접 요청 원단은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
-        </div>
-      </div>
-      <div class="calc-group">
-        <div class="calc-label">디테일 옵션 (중복 선택 가능)</div>
-        <div class="calc-choices" data-group="detail" data-multi="true">
-          <button class="calc-chip" data-value="10000">자수/나염 · +10,000원</button>
-          <button class="calc-chip" data-value="15000">특수 재단(드레이핑 등) · +15,000원</button>
-          <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
-        </div>
-        <div class="calc-custom" id="calc-custom-detail" hidden>
-          <label for="custom-detail-note">원하시는 디테일이나 나만의 디자인을 자유롭게 적어주세요</label>
-          <textarea id="custom-detail-note" placeholder="예: 소매 끝단에 레이스 추가 / 뒷면 지퍼 대신 단추로 변경 / 안감 추가 / 직접 그린 디자인 참고"></textarea>
-          <label class="calc-custom-file-label">
-            + 디자인 이미지 첨부
-            <input type="file" accept="image/*" id="custom-detail-file" hidden>
-          </label>
-          <div class="calc-custom-file-preview" id="custom-detail-file-preview"></div>
-          <div class="calc-custom-note">직접 요청 디테일·디자인은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
-        </div>
-      </div>
-      <div class="calc-group">
-        <div class="calc-label">완성 형태</div>
-        <div class="calc-choices" data-group="finish">
-          <button class="calc-chip active" data-value="0">패턴 PDF만 · +0원</button>
-          <button class="calc-chip" data-value="30000">완제품 도어투도어 배송 · +30,000원</button>
-        </div>
-      </div>
-    </div>
-    <div class="calc-total">
-      <div class="calc-total-label">예상 제작 견적</div>
-      <div class="calc-total-amount serif" id="calc-total">30,000원</div>
-      <div class="calc-total-note">기본 제작비 30,000원 + 선택 옵션</div>
-    </div>
-  </div>
 </section>
 
 <section id="scan">
   <div class="sec-head">
-    <div class="eyebrow">BODY SCAN DEMO</div>
-    <h2 class="serif">카메라로 체형 스캔해보기</h2>
-    <p>정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
+    <div class="eyebrow">DESIGN YOUR OWN</div>
+    <h2 class="serif">스캔부터 원단 선택까지, 한 번에</h2>
+    <p>버튼 하나로 시작해서 ① 몸 스캔·키 입력 → ② 원단·디테일 선택 순서로 진행돼요. 마지막에 예상 제작 견적까지 바로 확인할 수 있어요.</p>
   </div>
-  <div class="scan-wrap">
-    <div class="scan-camera">
-      <video id="scan-video" autoplay playsinline muted></video>
-      <canvas id="scan-canvas" hidden></canvas>
-      <div class="scan-camera-actions">
-        <button id="scan-start-btn" class="btn btn-primary" type="button">카메라 켜기</button>
-        <button id="scan-capture-btn" class="btn btn-ghost-dark" type="button" hidden>사진 촬영</button>
-        <button id="scan-record-btn" class="btn btn-ghost-dark" type="button" hidden>동영상 녹화 (5초)</button>
-        <label class="scan-upload-label">
-          사진 업로드
-          <input type="file" accept="image/*" id="scan-file-input" hidden>
-        </label>
-        <label class="scan-upload-label">
-          동영상 업로드
-          <input type="file" accept="video/*" id="scan-video-file-input" hidden>
-        </label>
-      </div>
-      <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담겨요. 카메라를 쓸 수 없다면 파일을 업로드해도 돼요.</p>
+  <div class="design-cta-box">
+    <div class="design-cta-icon">
+      <svg viewBox="0 0 80 80">
+        <ellipse cx="40" cy="18" rx="11" ry="13" fill="#0F2E2C"/>
+        <path d="M22 40 C22 32 30 28 40 28 C50 28 58 32 58 40 L55 66 C55 70 51 72 40 72 C29 72 25 70 25 66 Z" fill="#0F2E2C"/>
+        <circle cx="63" cy="60" r="13" fill="none" stroke="#D8663F" stroke-width="3"/>
+        <path d="M58 60 L61.5 63.5 L68 56.5" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </div>
-    <div class="scan-result">
-      <div class="scan-photo-slot" id="scan-photo-slot">
-        <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시돼요</span>
-      </div>
-      <div class="scan-height-row">
-        <label for="scan-height-input">키 (cm)</label>
-        <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
-      </div>
-      <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
-      <div class="scan-avatar-box">
-        <div id="scan-avatar-3d"></div>
-        <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
-        <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
-      </div>
-      <p class="scan-status" id="scan-status"></p>
-    </div>
+    <h3 class="serif">내 체형으로 디자인 시작하기</h3>
+    <p>스캔 → 키 입력 → 원단/디테일 선택까지 하나의 화면에서 이어서 진행돼요.</p>
+    <button class="btn btn-primary" id="open-design-flow-btn" type="button">스캔하고 디자인 시작하기</button>
   </div>
 </section>
 
@@ -737,6 +691,132 @@
     PentaCorp.
   </div>
 </footer>
+
+<div class="modal-overlay wizard-overlay" id="design-modal" hidden>
+  <div class="modal-box wizard-box">
+    <div class="wizard-header">
+      <div class="wizard-steps">
+        <span class="wizard-step active" id="wizard-step-indicator-1">1. 스캔</span>
+        <span class="wizard-step-arrow">→</span>
+        <span class="wizard-step" id="wizard-step-indicator-2">2. 원단·디테일 선택</span>
+      </div>
+      <button class="wizard-close" id="design-modal-close" type="button" aria-label="닫기">✕</button>
+    </div>
+
+    <div class="wizard-panel" id="wizard-panel-scan">
+      <div class="sec-head" style="text-align:left; margin-bottom:20px;">
+        <div class="eyebrow">STEP 1</div>
+        <h2 class="serif" style="font-size:26px;">카메라로 체형 스캔해보기</h2>
+        <p>정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
+      </div>
+      <div class="scan-wrap">
+        <div class="scan-camera">
+          <video id="scan-video" autoplay playsinline muted></video>
+          <canvas id="scan-canvas" hidden></canvas>
+          <div class="scan-camera-actions">
+            <button id="scan-start-btn" class="btn btn-primary" type="button">카메라 켜기</button>
+            <button id="scan-capture-btn" class="btn btn-ghost-dark" type="button" hidden>사진 촬영</button>
+            <button id="scan-record-btn" class="btn btn-ghost-dark" type="button" hidden>동영상 녹화 (5초)</button>
+            <label class="scan-upload-label">
+              사진 업로드
+              <input type="file" accept="image/*" id="scan-file-input" hidden>
+            </label>
+            <label class="scan-upload-label">
+              동영상 업로드
+              <input type="file" accept="video/*" id="scan-video-file-input" hidden>
+            </label>
+          </div>
+          <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담겨요. 카메라를 쓸 수 없다면 파일을 업로드해도 돼요.</p>
+        </div>
+        <div class="scan-result">
+          <div class="scan-photo-slot" id="scan-photo-slot">
+            <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시돼요</span>
+          </div>
+          <div class="scan-height-row">
+            <label for="scan-height-input">키 (cm)</label>
+            <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
+          </div>
+          <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
+          <div class="scan-avatar-box">
+            <div id="scan-avatar-3d"></div>
+            <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
+            <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
+          </div>
+          <p class="scan-status" id="scan-status"></p>
+        </div>
+      </div>
+      <div class="wizard-actions">
+        <span></span>
+        <button class="btn btn-primary" id="wizard-to-step2-btn" type="button">다음: 원단·디테일 선택하기 →</button>
+      </div>
+    </div>
+
+    <div class="wizard-panel" id="wizard-panel-customize" hidden>
+      <div class="sec-head" style="text-align:left; margin-bottom:20px;">
+        <div class="eyebrow">STEP 2</div>
+        <h2 class="serif" style="font-size:26px;">원단·디테일을 선택해보세요</h2>
+        <p>실제 제작 비용은 원단·디테일·완성도에 따라 달라집니다. 아래에서 직접 옵션을 눌러보세요.</p>
+      </div>
+      <div class="calc-wrap">
+        <div class="calc-options">
+          <div class="calc-group">
+            <div class="calc-label">원단 등급</div>
+            <div class="calc-choices" data-group="fabric">
+              <button class="calc-chip active" data-value="0">베이직 · +0원</button>
+              <button class="calc-chip" data-value="20000">프리미엄 · +20,000원</button>
+              <button class="calc-chip" data-value="40000">스페셜(가죽/특수직물) · +40,000원</button>
+              <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
+            </div>
+            <div class="calc-custom" id="calc-custom-fabric" hidden>
+              <label for="custom-fabric-note">원하시는 원단·재질이나 디자인 방식을 자유롭게 적어주세요</label>
+              <textarea id="custom-fabric-note" placeholder="예: 리사이클 폴리에스터로 제작하고 싶어요 / 특정 원단 샘플 참고 가능 / 발수 가공 원단 원해요"></textarea>
+              <label class="calc-custom-file-label">
+                + 참고 이미지 첨부
+                <input type="file" accept="image/*" id="custom-fabric-file" hidden>
+              </label>
+              <div class="calc-custom-file-preview" id="custom-fabric-file-preview"></div>
+              <div class="calc-custom-note">직접 요청 원단은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+            </div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-label">디테일 옵션 (중복 선택 가능)</div>
+            <div class="calc-choices" data-group="detail" data-multi="true">
+              <button class="calc-chip" data-value="10000">자수/나염 · +10,000원</button>
+              <button class="calc-chip" data-value="15000">특수 재단(드레이핑 등) · +15,000원</button>
+              <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
+            </div>
+            <div class="calc-custom" id="calc-custom-detail" hidden>
+              <label for="custom-detail-note">원하시는 디테일이나 나만의 디자인을 자유롭게 적어주세요</label>
+              <textarea id="custom-detail-note" placeholder="예: 소매 끝단에 레이스 추가 / 뒷면 지퍼 대신 단추로 변경 / 안감 추가 / 직접 그린 디자인 참고"></textarea>
+              <label class="calc-custom-file-label">
+                + 디자인 이미지 첨부
+                <input type="file" accept="image/*" id="custom-detail-file" hidden>
+              </label>
+              <div class="calc-custom-file-preview" id="custom-detail-file-preview"></div>
+              <div class="calc-custom-note">직접 요청 디테일·디자인은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+            </div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-label">완성 형태</div>
+            <div class="calc-choices" data-group="finish">
+              <button class="calc-chip active" data-value="0">패턴 PDF만 · +0원</button>
+              <button class="calc-chip" data-value="30000">완제품 도어투도어 배송 · +30,000원</button>
+            </div>
+          </div>
+        </div>
+        <div class="calc-total">
+          <div class="calc-total-label">예상 제작 견적</div>
+          <div class="calc-total-amount serif" id="calc-total">30,000원</div>
+          <div class="calc-total-note">기본 제작비 30,000원 + 선택 옵션</div>
+        </div>
+      </div>
+      <div class="wizard-actions">
+        <button class="btn btn-ghost-dark" id="wizard-to-step1-btn" type="button">← 이전: 스캔으로 돌아가기</button>
+        <button class="btn btn-primary" id="wizard-finish-btn" type="button">완료</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="payment-modal" hidden>
   <div class="modal-box">
@@ -997,6 +1077,48 @@
     }
   });
 
+  /* ---------- DESIGN WIZARD MODAL ---------- */
+  const designModal = document.getElementById('design-modal');
+  const openDesignFlowBtn = document.getElementById('open-design-flow-btn');
+  const designModalCloseBtn = document.getElementById('design-modal-close');
+  const wizardPanelScan = document.getElementById('wizard-panel-scan');
+  const wizardPanelCustomize = document.getElementById('wizard-panel-customize');
+  const wizardStepIndicator1 = document.getElementById('wizard-step-indicator-1');
+  const wizardStepIndicator2 = document.getElementById('wizard-step-indicator-2');
+  const wizardToStep2Btn = document.getElementById('wizard-to-step2-btn');
+  const wizardToStep1Btn = document.getElementById('wizard-to-step1-btn');
+  const wizardFinishBtn = document.getElementById('wizard-finish-btn');
+
+  function showWizardStep(step){
+    const onStep1 = step === 1;
+    wizardPanelScan.hidden = !onStep1;
+    wizardPanelCustomize.hidden = onStep1;
+    wizardStepIndicator1.classList.toggle('active', onStep1);
+    wizardStepIndicator2.classList.toggle('active', !onStep1);
+    designModal.querySelector('.wizard-header').scrollIntoView({ block: 'nearest' });
+  }
+
+  function openDesignModal(){
+    designModal.hidden = false;
+    showWizardStep(1);
+    if(typeof window.startMannequinViewerOnce === 'function'){
+      window.startMannequinViewerOnce();
+    }
+  }
+
+  function closeDesignModal(){
+    designModal.hidden = true;
+  }
+
+  openDesignFlowBtn.addEventListener('click', openDesignModal);
+  designModalCloseBtn.addEventListener('click', closeDesignModal);
+  wizardToStep2Btn.addEventListener('click', () => showWizardStep(2));
+  wizardToStep1Btn.addEventListener('click', () => showWizardStep(1));
+  wizardFinishBtn.addEventListener('click', closeDesignModal);
+  designModal.addEventListener('click', e => {
+    if(e.target === designModal) closeDesignModal();
+  });
+
   /* ---------- SCAN DEMO ---------- */
   const scanVideo = document.getElementById('scan-video');
   const scanCanvas = document.getElementById('scan-canvas');
@@ -1246,7 +1368,15 @@
   }
 
   window.applyHeightToMannequin = applyHeightToMannequin;
-  initMannequinViewer();
+
+  // 모달이 처음 열릴 때만 3D 뷰어를 초기화해요 (숨겨진 상태에서 초기화하면
+  // 컨테이너 크기가 0이라 렌더러가 깨지기 때문에, 실제로 보일 때 시작해요)
+  let mannequinViewerStarted = false;
+  window.startMannequinViewerOnce = function(){
+    if(mannequinViewerStarted) return;
+    mannequinViewerStarted = true;
+    initMannequinViewer();
+  };
 </script>
 </body>
 </html>
