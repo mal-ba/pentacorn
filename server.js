@@ -255,7 +255,14 @@ function isOfficialUploader(uploadedBy) {
   return ADMIN_EMAILS.includes(String(uploadedBy).toLowerCase());
 }
 
-function toPublicWardrobeItem(item) {
+function canEditItem(item, viewerEmail) {
+  if (!viewerEmail) return false;
+  if (item.uploadedBy === viewerEmail) return true; // 본인이 올린 아이템
+  if (item.uploadedBy === 'builtin' && ADMIN_EMAILS.includes(viewerEmail.toLowerCase())) return true; // 관리자는 기본 제공 아이템도 수정 가능
+  return false;
+}
+
+function toPublicWardrobeItem(item, viewerEmail) {
   return {
     id: item.id,
     name: item.name,
@@ -268,6 +275,7 @@ function toPublicWardrobeItem(item) {
     isBuiltin: item.uploadedBy === 'builtin',
     isOfficial: isOfficialUploader(item.uploadedBy),
     uploadedBy: item.uploadedBy === 'builtin' ? null : item.uploadedBy,
+    canEdit: canEditItem(item, viewerEmail),
     createdAt: item.createdAt,
   };
 }
@@ -276,6 +284,7 @@ function toPublicWardrobeItem(item) {
 // 공식(관리자·기본 제공) 아이템을 먼저 보여주고, 그다음 최신순으로 정렬해요.
 app.get('/api/wardrobe', (req, res) => {
   const { category } = req.query;
+  const viewer = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]); // 로그인 안 했으면 null이어도 괜찮아요.
   let list = Array.from(wardrobeItems.values());
   if (category) list = list.filter(it => it.category === category);
   list.sort((a, b) => {
@@ -283,7 +292,7 @@ app.get('/api/wardrobe', (req, res) => {
     if (officialDiff !== 0) return officialDiff;
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
-  res.json({ items: list.map(toPublicWardrobeItem) });
+  res.json({ items: list.map(it => toPublicWardrobeItem(it, viewer && viewer.email)) });
 });
 
 // 로그인한 사용자가 자신이 만든 옷/장신구를 옷장에 올려요.
@@ -348,7 +357,7 @@ app.post('/api/wardrobe', requireLogin, (req, res) => {
   };
   wardrobeItems.set(id, item);
 
-  res.json({ ok: true, item: toPublicWardrobeItem(item) });
+  res.json({ ok: true, item: toPublicWardrobeItem(item, req.user.email) });
 });
 
 // 본인이 올린 아이템만 삭제할 수 있어요.
@@ -365,6 +374,49 @@ app.delete('/api/wardrobe/:id', requireLogin, (req, res) => {
   });
   wardrobeItems.delete(req.params.id);
   res.json({ ok: true });
+});
+
+// 이미 있는 아이템(기본 제공 카탈로그 포함)에 나중에 3D 파일·사진을 채워 넣을 때 써요.
+// 본인이 올린 아이템은 누구나, 기본 제공(builtin) 아이템은 관리자(ADMIN_EMAILS)만 수정할 수 있어요.
+app.put('/api/wardrobe/:id', requireLogin, (req, res) => {
+  const item = wardrobeItems.get(req.params.id);
+  if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없어요.' });
+  if (!canEditItem(item, req.user.email)) {
+    return res.status(403).json({ ok: false, error: '이 아이템을 수정할 권한이 없어요.' });
+  }
+
+  const { glbFileBase64, thumbnailBase64 } = req.body || {};
+  if (glbFileBase64 && glbFileBase64.length > 14 * 1024 * 1024) {
+    return res.status(400).json({ ok: false, error: '3D 파일 용량이 너무 커요 (최대 약 10MB).' });
+  }
+  if (thumbnailBase64 && thumbnailBase64.length > 700000) {
+    return res.status(400).json({ ok: false, error: '썸네일 이미지 용량이 너무 커요.' });
+  }
+
+  try {
+    if (glbFileBase64) {
+      if (item.glbUrl) fs.unlink(path.join(__dirname, 'public', item.glbUrl), () => {});
+      const glbBuffer = Buffer.from(glbFileBase64.split(',').pop(), 'base64');
+      const glbPath = path.join(WARDROBE_UPLOAD_DIR, `${item.id}.glb`);
+      fs.writeFileSync(glbPath, glbBuffer);
+      item.glbUrl = `/uploads/wardrobe/${item.id}.glb`;
+    }
+    if (thumbnailBase64) {
+      const match = /^data:image\/(png|jpeg|jpg|webp);base64,/.exec(thumbnailBase64);
+      const ext = match ? (match[1] === 'jpeg' ? 'jpg' : match[1]) : 'png';
+      if (item.thumbnailUrl) fs.unlink(path.join(__dirname, 'public', item.thumbnailUrl), () => {});
+      const imgBuffer = Buffer.from(thumbnailBase64.split(',').pop(), 'base64');
+      const imgPath = path.join(WARDROBE_UPLOAD_DIR, `${item.id}.${ext}`);
+      fs.writeFileSync(imgPath, imgBuffer);
+      item.thumbnailUrl = `/uploads/wardrobe/${item.id}.${ext}`;
+    }
+  } catch (err) {
+    console.error('옷장 파일 수정 실패:', err);
+    return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했어요.' });
+  }
+
+  wardrobeItems.set(item.id, item);
+  res.json({ ok: true, item: toPublicWardrobeItem(item, req.user.email) });
 });
 
 // 나이대·상황(캐주얼/포멀/스포티/스트릿)에 맞춰 규칙 기반으로 옷장 아이템을 추천해요.
