@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { createClient } = require('@supabase/supabase-js');
+const multer = require('multer');
 
 const PORT = process.env.PORT || 3000;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
@@ -73,8 +74,8 @@ function sanitizeFilename(originalName) {
 
 // Supabase Storage에 파일을 올리고, 누구나 접근 가능한 공개 URL을 돌려줘요.
 // itemId로 폴더를 나눠서, 서로 다른 아이템끼리 파일 이름이 겹쳐도 안전해요.
-async function uploadToWardrobeBucket(itemId, base64Data, desiredFileName, defaultContentType) {
-  const buffer = Buffer.from(base64Data.split(',').pop(), 'base64');
+// buffer는 원본 바이너리 그대로 받아요 (base64로 부풀리지 않아서 대용량 파일에도 안전해요).
+async function uploadToWardrobeBucket(itemId, buffer, desiredFileName, defaultContentType) {
   const safeName = sanitizeFilename(desiredFileName);
   const storagePath = `${itemId}/${Date.now()}_${safeName}`;
   const contentType = guessContentType(safeName) || defaultContentType;
@@ -182,8 +183,14 @@ function toPublicWardrobeItem(row, viewerEmail) {
 
 const app = express();
 app.set('trust proxy', 1); // Render/Railway 같은 리버스 프록시 뒤에서 secure 쿠키가 정상 동작하도록
-app.use(express.json({ limit: '20mb' })); // 옷/장신구 .glb + 썸네일을 합친 업로드 용량을 여유 있게 허용
+app.use(express.json({ limit: '2mb' })); // 신체 스캔 썸네일 등 작은 JSON 요청용 (큰 파일은 multer로 따로 처리)
 app.use(cookieParser());
+
+// 옷/장신구 파일 업로드용: base64 대신 원본 바이너리 그대로 받아서 용량 부풀림 없이 처리해요.
+const wardrobeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 35 * 1024 * 1024 }, // 파일 하나당 최대 35MB
+});
 
 // index.html 안의 %%GOOGLE_CLIENT_ID%%, %%TOSS_CLIENT_KEY%% 를
 // 실제 값으로 치환해서 내려줍니다. (express.static보다 먼저 등록해야
@@ -386,8 +393,16 @@ app.get('/api/wardrobe', async (req, res) => {
 
 // 로그인한 사용자가 자신이 만든 옷/장신구를 옷장에 올려요.
 // glbFile은 선택(없으면 "입혀보기"는 안 되고 카탈로그에만 표시돼요), thumbnail은 필수예요.
-app.post('/api/wardrobe', requireLogin, async (req, res) => {
-  const { name, category, color, tags, ageGroups, glbFileBase64, thumbnailBase64, glbFileName, thumbnailFileName } = req.body || {};
+app.post('/api/wardrobe', requireLogin, wardrobeUpload.fields([{ name: 'glbFile', maxCount: 1 }, { name: 'thumbnailFile', maxCount: 1 }]), async (req, res) => {
+  const { name, category, color } = req.body || {};
+  let tags = [];
+  let ageGroups = [];
+  try {
+    tags = JSON.parse(req.body.tags || '[]');
+    ageGroups = JSON.parse(req.body.ageGroups || '[]');
+  } catch (err) {
+    return res.status(400).json({ ok: false, error: '요청 형식이 올바르지 않아요.' });
+  }
 
   if (!name || typeof name !== 'string' || name.length > 60) {
     return res.status(400).json({ ok: false, error: '이름을 1~60자로 입력해주세요.' });
@@ -400,24 +415,21 @@ app.post('/api/wardrobe', requireLogin, async (req, res) => {
   if (ageGroupList.length === 0) {
     return res.status(400).json({ ok: false, error: '추천 연령대를 1개 이상 선택해주세요.' });
   }
-  if (glbFileBase64 && glbFileBase64.length > 14 * 1024 * 1024) {
-    return res.status(400).json({ ok: false, error: '3D 파일 용량이 너무 커요 (최대 약 10MB).' });
-  }
-  if (thumbnailBase64 && thumbnailBase64.length > 700000) {
-    return res.status(400).json({ ok: false, error: '썸네일 이미지 용량이 너무 커요.' });
-  }
+
+  const glbFile = req.files && req.files.glbFile && req.files.glbFile[0];
+  const thumbnailFile = req.files && req.files.thumbnailFile && req.files.thumbnailFile[0];
 
   const id = crypto.randomUUID();
   let glbUrl = null;
   let thumbnailUrl = null;
 
   try {
-    if (glbFileBase64) {
-      const uploaded = await uploadToWardrobeBucket(id, glbFileBase64, glbFileName || `${id}.glb`, 'model/gltf-binary');
+    if (glbFile) {
+      const uploaded = await uploadToWardrobeBucket(id, glbFile.buffer, glbFile.originalname || `${id}.glb`, 'model/gltf-binary');
       glbUrl = uploaded.publicUrl;
     }
-    if (thumbnailBase64) {
-      const uploaded = await uploadToWardrobeBucket(id, thumbnailBase64, thumbnailFileName || `${id}.png`, 'image/png');
+    if (thumbnailFile) {
+      const uploaded = await uploadToWardrobeBucket(id, thumbnailFile.buffer, thumbnailFile.originalname || `${id}.png`, 'image/png');
       thumbnailUrl = uploaded.publicUrl;
     }
   } catch (err) {
@@ -459,31 +471,26 @@ app.delete('/api/wardrobe/:id', requireLogin, async (req, res) => {
 
 // 이미 있는 아이템(기본 제공 카탈로그 포함)에 나중에 3D 파일·사진을 채워 넣을 때 써요.
 // 본인이 올린 아이템은 누구나, 기본 제공(builtin) 아이템은 관리자(ADMIN_EMAILS)만 수정할 수 있어요.
-app.put('/api/wardrobe/:id', requireLogin, async (req, res) => {
+app.put('/api/wardrobe/:id', requireLogin, wardrobeUpload.fields([{ name: 'glbFile', maxCount: 1 }, { name: 'thumbnailFile', maxCount: 1 }]), async (req, res) => {
   const { data: item } = await supabase.from('wardrobe_items').select('*').eq('id', req.params.id).maybeSingle();
   if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없어요.' });
   if (!canEditItem(item, req.user.email)) {
     return res.status(403).json({ ok: false, error: '이 아이템을 수정할 권한이 없어요.' });
   }
 
-  const { glbFileBase64, thumbnailBase64, glbFileName, thumbnailFileName } = req.body || {};
-  if (glbFileBase64 && glbFileBase64.length > 14 * 1024 * 1024) {
-    return res.status(400).json({ ok: false, error: '3D 파일 용량이 너무 커요 (최대 약 10MB).' });
-  }
-  if (thumbnailBase64 && thumbnailBase64.length > 700000) {
-    return res.status(400).json({ ok: false, error: '썸네일 이미지 용량이 너무 커요.' });
-  }
+  const glbFile = req.files && req.files.glbFile && req.files.glbFile[0];
+  const thumbnailFile = req.files && req.files.thumbnailFile && req.files.thumbnailFile[0];
 
   const updates = {};
   try {
-    if (glbFileBase64) {
+    if (glbFile) {
       await deleteFromWardrobeBucketIfManaged(item.glb_url);
-      const uploaded = await uploadToWardrobeBucket(item.id, glbFileBase64, glbFileName || `${item.id}.glb`, 'model/gltf-binary');
+      const uploaded = await uploadToWardrobeBucket(item.id, glbFile.buffer, glbFile.originalname || `${item.id}.glb`, 'model/gltf-binary');
       updates.glb_url = uploaded.publicUrl;
     }
-    if (thumbnailBase64) {
+    if (thumbnailFile) {
       await deleteFromWardrobeBucketIfManaged(item.thumbnail_url);
-      const uploaded = await uploadToWardrobeBucket(item.id, thumbnailBase64, thumbnailFileName || `${item.id}.png`, 'image/png');
+      const uploaded = await uploadToWardrobeBucket(item.id, thumbnailFile.buffer, thumbnailFile.originalname || `${item.id}.png`, 'image/png');
       updates.thumbnail_url = uploaded.publicUrl;
     }
   } catch (err) {
@@ -613,6 +620,18 @@ app.get('/api/subscription', requireLogin, async (req, res) => {
       ? { plan: sub.plan, amount: sub.amount, subscribedAt: sub.subscribed_at, paymentKey: sub.payment_key, orderId: sub.order_id }
       : null,
   });
+});
+
+// 업로드 용량 초과 등 multer 에러를 깔끔한 JSON으로 응답해요.
+app.use((err, req, res, next) => {
+  if (err && err.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ ok: false, error: '파일 용량이 너무 커요 (최대 35MB).' });
+    }
+    return res.status(400).json({ ok: false, error: '파일 업로드 중 오류가 발생했어요.' });
+  }
+  console.error('처리되지 않은 서버 오류:', err);
+  res.status(500).json({ ok: false, error: '서버 오류가 발생했어요.' });
 });
 
 async function start() {
