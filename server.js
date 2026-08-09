@@ -182,7 +182,7 @@ function toPublicWardrobeItem(row, viewerEmail) {
 
 const app = express();
 app.set('trust proxy', 1); // Render/Railway 같은 리버스 프록시 뒤에서 secure 쿠키가 정상 동작하도록
-app.use(express.json({ limit: '15mb' })); // 옷/장신구 .glb 업로드(base64)를 위해 넉넉하게 설정
+app.use(express.json({ limit: '20mb' })); // 옷/장신구 .glb + 썸네일을 합친 업로드 용량을 여유 있게 허용
 app.use(cookieParser());
 
 // index.html 안의 %%GOOGLE_CLIENT_ID%%, %%TOSS_CLIENT_KEY%% 를
