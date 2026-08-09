@@ -60,6 +60,25 @@ const PLAN_PRICES = {
 const WARDROBE_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'wardrobe');
 fs.mkdirSync(WARDROBE_UPLOAD_DIR, { recursive: true });
 
+// 업로드한 파일의 원래 이름을 최대한 그대로 살려서 저장해요 (경로 조작 방지를 위한
+// 최소한의 문자만 걸러내요). 같은 이름 파일이 이미 있으면 뒤에 번호를 붙여요.
+function sanitizeFilename(originalName) {
+  const base = path.basename(String(originalName));
+  const cleaned = base.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+  return cleaned.slice(0, 150) || 'file';
+}
+function uniqueFilenameInDir(dir, desiredName) {
+  const ext = path.extname(desiredName);
+  const stem = desiredName.slice(0, desiredName.length - ext.length);
+  let candidate = desiredName;
+  let counter = 1;
+  while (fs.existsSync(path.join(dir, candidate))) {
+    candidate = `${stem}(${counter})${ext}`;
+    counter += 1;
+  }
+  return candidate;
+}
+
 const AGE_GROUPS = ['10s', '20s', '30s40s', '50s+'];
 const OCCASIONS = ['casual', 'formal', 'sporty', 'street'];
 
@@ -298,7 +317,7 @@ app.get('/api/wardrobe', (req, res) => {
 // 로그인한 사용자가 자신이 만든 옷/장신구를 옷장에 올려요.
 // glbFile은 선택(없으면 "입혀보기"는 안 되고 카탈로그에만 표시돼요), thumbnail은 필수예요.
 app.post('/api/wardrobe', requireLogin, (req, res) => {
-  const { name, category, color, tags, ageGroups, glbFileBase64, thumbnailBase64 } = req.body || {};
+  const { name, category, color, tags, ageGroups, glbFileBase64, thumbnailBase64, glbFileName, thumbnailFileName } = req.body || {};
 
   if (!name || typeof name !== 'string' || name.length > 60) {
     return res.status(400).json({ ok: false, error: '이름을 1~60자로 입력해주세요.' });
@@ -326,17 +345,19 @@ app.post('/api/wardrobe', requireLogin, (req, res) => {
   try {
     if (glbFileBase64) {
       const glbBuffer = Buffer.from(glbFileBase64.split(',').pop(), 'base64');
-      const glbPath = path.join(WARDROBE_UPLOAD_DIR, `${id}.glb`);
-      fs.writeFileSync(glbPath, glbBuffer);
-      glbUrl = `/uploads/wardrobe/${id}.glb`;
+      const desiredName = glbFileName ? sanitizeFilename(glbFileName) : `${id}.glb`;
+      const finalName = uniqueFilenameInDir(WARDROBE_UPLOAD_DIR, desiredName);
+      fs.writeFileSync(path.join(WARDROBE_UPLOAD_DIR, finalName), glbBuffer);
+      glbUrl = `/uploads/wardrobe/${finalName}`;
     }
     if (thumbnailBase64) {
       const match = /^data:image\/(png|jpeg|jpg|webp);base64,/.exec(thumbnailBase64);
       const ext = match ? (match[1] === 'jpeg' ? 'jpg' : match[1]) : 'png';
       const imgBuffer = Buffer.from(thumbnailBase64.split(',').pop(), 'base64');
-      const imgPath = path.join(WARDROBE_UPLOAD_DIR, `${id}.${ext}`);
-      fs.writeFileSync(imgPath, imgBuffer);
-      thumbnailUrl = `/uploads/wardrobe/${id}.${ext}`;
+      const desiredName = thumbnailFileName ? sanitizeFilename(thumbnailFileName) : `${id}.${ext}`;
+      const finalName = uniqueFilenameInDir(WARDROBE_UPLOAD_DIR, desiredName);
+      fs.writeFileSync(path.join(WARDROBE_UPLOAD_DIR, finalName), imgBuffer);
+      thumbnailUrl = `/uploads/wardrobe/${finalName}`;
     }
   } catch (err) {
     console.error('옷장 파일 저장 실패:', err);
@@ -385,7 +406,7 @@ app.put('/api/wardrobe/:id', requireLogin, (req, res) => {
     return res.status(403).json({ ok: false, error: '이 아이템을 수정할 권한이 없어요.' });
   }
 
-  const { glbFileBase64, thumbnailBase64 } = req.body || {};
+  const { glbFileBase64, thumbnailBase64, glbFileName, thumbnailFileName } = req.body || {};
   if (glbFileBase64 && glbFileBase64.length > 14 * 1024 * 1024) {
     return res.status(400).json({ ok: false, error: '3D 파일 용량이 너무 커요 (최대 약 10MB).' });
   }
@@ -397,18 +418,20 @@ app.put('/api/wardrobe/:id', requireLogin, (req, res) => {
     if (glbFileBase64) {
       if (item.glbUrl) fs.unlink(path.join(__dirname, 'public', item.glbUrl), () => {});
       const glbBuffer = Buffer.from(glbFileBase64.split(',').pop(), 'base64');
-      const glbPath = path.join(WARDROBE_UPLOAD_DIR, `${item.id}.glb`);
-      fs.writeFileSync(glbPath, glbBuffer);
-      item.glbUrl = `/uploads/wardrobe/${item.id}.glb`;
+      const desiredName = glbFileName ? sanitizeFilename(glbFileName) : `${item.id}.glb`;
+      const finalName = uniqueFilenameInDir(WARDROBE_UPLOAD_DIR, desiredName);
+      fs.writeFileSync(path.join(WARDROBE_UPLOAD_DIR, finalName), glbBuffer);
+      item.glbUrl = `/uploads/wardrobe/${finalName}`;
     }
     if (thumbnailBase64) {
       const match = /^data:image\/(png|jpeg|jpg|webp);base64,/.exec(thumbnailBase64);
       const ext = match ? (match[1] === 'jpeg' ? 'jpg' : match[1]) : 'png';
       if (item.thumbnailUrl) fs.unlink(path.join(__dirname, 'public', item.thumbnailUrl), () => {});
       const imgBuffer = Buffer.from(thumbnailBase64.split(',').pop(), 'base64');
-      const imgPath = path.join(WARDROBE_UPLOAD_DIR, `${item.id}.${ext}`);
-      fs.writeFileSync(imgPath, imgBuffer);
-      item.thumbnailUrl = `/uploads/wardrobe/${item.id}.${ext}`;
+      const desiredName = thumbnailFileName ? sanitizeFilename(thumbnailFileName) : `${item.id}.${ext}`;
+      const finalName = uniqueFilenameInDir(WARDROBE_UPLOAD_DIR, desiredName);
+      fs.writeFileSync(path.join(WARDROBE_UPLOAD_DIR, finalName), imgBuffer);
+      item.thumbnailUrl = `/uploads/wardrobe/${finalName}`;
     }
   } catch (err) {
     console.error('옷장 파일 수정 실패:', err);
