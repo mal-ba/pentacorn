@@ -93,6 +93,7 @@
     transition:transform .15s ease;
   }
   .btn:hover{transform:translateY(-1px);}
+  .btn[hidden]{ display:none; }
   .btn-primary{background:var(--star); color:var(--deep);}
   .btn-ghost{background:transparent; color:var(--paper); border-color:rgba(255,255,255,0.35);}
 
@@ -205,6 +206,7 @@
   .auth-bar-info{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft); }
   .auth-bar.logged-in{ background:#EAF3F1; border-color:var(--star-dark); }
   #google-signin-container{ display:inline-flex; }
+  #google-signin-container[hidden]{ display:none; }
 
   /* ---------- MODAL ---------- */
   .modal-overlay{
@@ -1206,7 +1208,7 @@
 
     const loader = new GLTFLoader();
     loader.load(
-      '/models/mannequin.glb',
+      '/models/mannequin.glb?v=3',
       gltf => {
         scanMannequin = gltf.scene;
         scanScene.add(scanMannequin);
