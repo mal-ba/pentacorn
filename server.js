@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,26 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .filter(Boolean);
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+// ── 로그인 유지 방식 ──────────────────────────────────────────
+// express-session(서버 메모리 저장) 대신, 서명된 JWT를 쿠키에 담아서 로그인 상태를
+// 유지해요. 이렇게 하면 Render 무료 서버가 15분 넘게 안 쓰여서 잠들었다가 다시
+// 깨어나도(=서버 재시작) 로그인이 풀리지 않고, 사용자가 직접 로그아웃하기 전까지
+// 계속 로그인 상태가 유지돼요.
+const AUTH_COOKIE_NAME = 'unexposed_auth';
+const AUTH_TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365; // 1년
+
+function signAuthToken(user) {
+  return jwt.sign(user, SESSION_SECRET, { expiresIn: '365d' });
+}
+function verifyAuthToken(token) {
+  try {
+    const decoded = jwt.verify(token, SESSION_SECRET);
+    return { email: decoded.email, name: decoded.name, picture: decoded.picture };
+  } catch (err) {
+    return null;
+  }
+}
 
 // 실제 서비스에서는 DB(예: SQLite, PostgreSQL)를 쓰세요.
 // 지금은 데모용으로 서버 메모리 + 로컬 파일에만 저장하기 때문에,
@@ -76,19 +97,7 @@ seedBuiltinWardrobe();
 const app = express();
 app.set('trust proxy', 1); // Render/Railway 같은 리버스 프록시 뒤에서 secure 쿠키가 정상 동작하도록
 app.use(express.json({ limit: '15mb' })); // 옷/장신구 .glb 업로드(base64)를 위해 넉넉하게 설정
-app.use(
-  session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production', // 배포 환경(HTTPS)에서는 자동으로 true가 돼요.
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7일
-    },
-  })
-);
+app.use(cookieParser());
 
 // index.html 안의 %%GOOGLE_CLIENT_ID%%, %%TOSS_CLIENT_KEY%% 를
 // 실제 값으로 치환해서 내려줍니다. (express.static보다 먼저 등록해야
@@ -130,13 +139,20 @@ app.post('/api/auth/google', async (req, res) => {
     });
     const payload = ticket.getPayload();
 
-    req.session.user = {
+    const user = {
       email: payload.email,
       name: payload.name,
       picture: payload.picture,
     };
+    const token = signAuthToken(user);
+    res.cookie(AUTH_COOKIE_NAME, token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: AUTH_TOKEN_MAX_AGE_MS,
+    });
 
-    return res.json({ ok: true, user: req.session.user });
+    return res.json({ ok: true, user });
   } catch (err) {
     console.error('Google 토큰 검증 실패:', err.message);
     return res.status(401).json({ ok: false, error: '로그인 검증에 실패했어요.' });
@@ -144,25 +160,26 @@ app.post('/api/auth/google', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie('connect.sid');
-    res.json({ ok: true });
-  });
+  res.clearCookie(AUTH_COOKIE_NAME);
+  res.json({ ok: true });
 });
 
 app.get('/api/me', (req, res) => {
-  if (!req.session.user) return res.json({ user: null });
-  const sub = subscriptions.get(req.session.user.email) || null;
-  const consent = bodyDataConsents.get(req.session.user.email) || null;
-  res.json({ user: req.session.user, subscription: sub, bodyDataConsent: consent });
+  const user = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
+  if (!user) return res.json({ user: null });
+  const sub = subscriptions.get(user.email) || null;
+  const consent = bodyDataConsents.get(user.email) || null;
+  res.json({ user, subscription: sub, bodyDataConsent: consent });
 });
 
 /* ---------------- 신체 데이터 수집 동의 ---------------- */
 
 function requireLogin(req, res, next) {
-  if (!req.session.user) {
+  const user = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
+  if (!user) {
     return res.status(401).json({ ok: false, error: '로그인이 필요해요.' });
   }
+  req.user = user;
   next();
 }
 
@@ -172,25 +189,25 @@ app.post('/api/consent/body-data', requireLogin, (req, res) => {
   if (typeof consent !== 'boolean') {
     return res.status(400).json({ ok: false, error: 'consent 값은 true/false여야 해요.' });
   }
-  bodyDataConsents.set(req.session.user.email, {
+  bodyDataConsents.set(req.user.email, {
     consent,
     updatedAt: new Date().toISOString(),
   });
   // 동의를 철회하면(false), 그동안 쌓인 데이터도 즉시 삭제해요.
   if (!consent) {
-    bodyScanRecords.delete(req.session.user.email);
+    bodyScanRecords.delete(req.user.email);
   }
   res.json({ ok: true, consent });
 });
 
 app.get('/api/consent/body-data', requireLogin, (req, res) => {
-  const consent = bodyDataConsents.get(req.session.user.email) || null;
+  const consent = bodyDataConsents.get(req.user.email) || null;
   res.json({ consent });
 });
 
 // 동의한 사용자에 한해서만, 스캔한 신체 데이터(키 + 사진 썸네일)를 서버에 쌓아요.
 app.post('/api/scan/save', requireLogin, (req, res) => {
-  const consentRecord = bodyDataConsents.get(req.session.user.email);
+  const consentRecord = bodyDataConsents.get(req.user.email);
   if (!consentRecord || !consentRecord.consent) {
     return res.status(403).json({ ok: false, error: '신체 데이터 수집에 동의하지 않아서 저장할 수 없어요.' });
   }
@@ -203,7 +220,7 @@ app.post('/api/scan/save', requireLogin, (req, res) => {
     return res.status(400).json({ ok: false, error: '이미지 용량이 너무 커요.' });
   }
 
-  const email = req.session.user.email;
+  const email = req.user.email;
   const list = bodyScanRecords.get(email) || [];
   list.push({
     heightCm: Number(heightCm),
@@ -218,7 +235,7 @@ app.post('/api/scan/save', requireLogin, (req, res) => {
 
 // 내가 지금까지 쌓은 스캔 기록 목록 (본인만 조회 가능)
 app.get('/api/scan/history', requireLogin, (req, res) => {
-  const list = bodyScanRecords.get(req.session.user.email) || [];
+  const list = bodyScanRecords.get(req.user.email) || [];
   res.json({
     count: list.length,
     records: list.map(r => ({ heightCm: r.heightCm, capturedAt: r.capturedAt })),
@@ -227,7 +244,7 @@ app.get('/api/scan/history', requireLogin, (req, res) => {
 
 // 지금까지 쌓인 내 스캔 데이터를 전부 삭제 (동의 여부와 무관하게 언제든 가능)
 app.delete('/api/scan/history', requireLogin, (req, res) => {
-  bodyScanRecords.delete(req.session.user.email);
+  bodyScanRecords.delete(req.user.email);
   res.json({ ok: true });
 });
 
@@ -326,7 +343,7 @@ app.post('/api/wardrobe', requireLogin, (req, res) => {
     ageGroups: ageGroupList,
     glbUrl,
     thumbnailUrl,
-    uploadedBy: req.session.user.email,
+    uploadedBy: req.user.email,
     createdAt: new Date().toISOString(),
   };
   wardrobeItems.set(id, item);
@@ -338,7 +355,7 @@ app.post('/api/wardrobe', requireLogin, (req, res) => {
 app.delete('/api/wardrobe/:id', requireLogin, (req, res) => {
   const item = wardrobeItems.get(req.params.id);
   if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없어요.' });
-  if (item.uploadedBy !== req.session.user.email) {
+  if (item.uploadedBy !== req.user.email) {
     return res.status(403).json({ ok: false, error: '본인이 올린 아이템만 삭제할 수 있어요.' });
   }
   [item.glbUrl, item.thumbnailUrl].forEach(url => {
@@ -436,7 +453,7 @@ app.post('/api/payments/confirm', requireLogin, async (req, res) => {
       return res.status(400).json({ ok: false, error: data.message || '결제 승인에 실패했어요.' });
     }
 
-    subscriptions.set(req.session.user.email, {
+    subscriptions.set(req.user.email, {
       plan: plan.name,
       amount: plan.amount,
       subscribedAt: new Date().toISOString(),
@@ -452,7 +469,7 @@ app.post('/api/payments/confirm', requireLogin, async (req, res) => {
 });
 
 app.get('/api/subscription', requireLogin, (req, res) => {
-  const sub = subscriptions.get(req.session.user.email) || null;
+  const sub = subscriptions.get(req.user.email) || null;
   res.json({ subscription: sub });
 });
 
