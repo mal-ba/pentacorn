@@ -957,7 +957,7 @@
           </div>
           <div class="scan-height-row">
             <label for="scan-nickname-input">머리 위 이름</label>
-            <input type="text" id="scan-nickname-input" maxlength="16" placeholder="예: 재훈">
+            <input type="text" id="scan-nickname-input" maxlength="16" placeholder="예: 홍길동">
           </div>
           <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
           <div class="scan-avatar-box">
@@ -2069,7 +2069,7 @@
 
     // 머리 위 이름표: 입력한 이름이 있으면 그걸, 없으면 로그인한 이름을, 그것도 없으면 "게스트"를 표시해요.
     const typedName = scanNicknameInput ? scanNicknameInput.value.trim() : '';
-    const fallbackName = (window.authState && window.authState.loggedIn && window.authState.name) || '게스트';
+    const fallbackName = '홍길동'; // 로그인 계정의 실제 이름을 자동으로 노출하지 않고, 이름을 안 적으면 예시 이름을 보여줘요.
     if(scanNameplate){
       scanNameplate.textContent = typedName || fallbackName;
       scanNameplate.hidden = false;
