@@ -1057,7 +1057,7 @@
               <label>앞뒤 <input type="range" id="garment-x" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>높이 <input type="range" id="garment-y" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>좌우 <input type="range" id="garment-z" min="-0.5" max="0.5" step="0.01" value="0"></label>
-              <label>크기 <input type="range" id="garment-scale" min="0.3" max="2" step="0.01" value="1"></label>
+              <label>크기 <input type="range" id="garment-scale" min="0.02" max="5" step="0.01" value="1"></label>
               <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
             </div>
             <p class="garment-status" id="garment-status"></p>
@@ -2088,15 +2088,30 @@
       gltf => {
         if(currentGarment) scanMannequin.remove(currentGarment);
         currentGarment = gltf.scene;
+        currentGarment.scale.set(1, 1, 1);
+        currentGarment.position.set(0, 0, 0);
         // 마네킹의 자식으로 붙여서, 키 조정으로 마네킹 크기가 바뀌면 옷도 같이 커지고 작아져요.
         scanMannequin.add(currentGarment);
+
+        // 옷마다 Meshy에서 만들어진 원래 크기 단위가 제각각이라(예: 몸통보다 훨씬 크게 나올 수 있어요),
+        // 마네킹 키를 기준으로 대략 맞는 크기부터 자동으로 시작하게 해요. 정확하진 않아서
+        // 슬라이더로 미세 조정하는 건 여전히 필요할 수 있어요.
+        const garmentBox = new THREE.Box3().setFromObject(currentGarment);
+        const garmentHeight = garmentBox.max.y - garmentBox.min.y;
+        let autoScale = 1;
+        if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
+          const targetFraction = 0.5; // 몸 키의 절반 정도 크기로 시작하는 대략적인 기준값
+          autoScale = (scanMannequinDefaultHeight * targetFraction) / garmentHeight;
+          autoScale = Math.min(Math.max(autoScale, 0.02), 5);
+        }
+
         garmentX.value = 0;
         garmentY.value = 0;
         garmentZ.value = 0;
-        garmentScaleInput.value = 1;
+        garmentScaleInput.value = autoScale.toFixed(2);
         updateGarmentTransform();
         garmentControls.hidden = false;
-        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 위치가 안 맞으면 슬라이더로 맞춰보세요.`;
+        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 크기·위치가 안 맞으면 슬라이더로 맞춰보세요.`;
         garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       },
       undefined,
