@@ -43,6 +43,24 @@
   a{color:inherit; text-decoration:none;}
   img,svg{display:block; max-width:100%;}
 
+  /* ---------- IN-APP BROWSER BANNER ---------- */
+  .inapp-banner{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:#D8663F; color:#FBFAF6;
+    padding:10px 16px; font-size:13px; font-weight:500;
+  }
+  .inapp-banner[hidden]{ display:none; }
+  .inapp-banner span{ flex:1; min-width:180px; }
+  .inapp-banner button{
+    font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
+    border-radius:999px; border:none; padding:8px 16px;
+    background:#FBFAF6; color:#0F2E2C;
+  }
+  .inapp-banner-close{
+    background:transparent !important; color:#FBFAF6 !important;
+    padding:6px 8px !important; font-weight:400 !important;
+  }
+
   /* ---------- NAV ---------- */
   nav{
     position:sticky; top:0; z-index:50;
@@ -414,6 +432,12 @@
 </style>
 </head>
 <body>
+
+<div class="inapp-banner" id="inapp-banner" hidden>
+  <span id="inapp-banner-text">인앱 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.</span>
+  <button id="inapp-open-external-btn" type="button">외부 브라우저로 열기</button>
+  <button class="inapp-banner-close" id="inapp-banner-close" type="button" aria-label="닫기">✕</button>
+</div>
 
 <nav>
   <div class="brand">
@@ -857,6 +881,51 @@
 </div>
 
 <script>
+  /* ---------- 인앱 브라우저 감지 (카카오톡, 클로드 앱 등) ---------- */
+  (function detectInAppBrowser(){
+    const ua = navigator.userAgent || '';
+    const isKakao = /KAKAOTALK/i.test(ua);
+    const isLine = /Line\//i.test(ua);
+    const isInstagram = /Instagram/i.test(ua);
+    const isFacebook = /FBAN|FBAV/i.test(ua);
+    const isNaver = /NAVER\(/i.test(ua);
+    // 클로드 앱을 포함한 일반적인 인앱 웹뷰 신호: 안드로이드는 "; wv" 마커, iOS는 별도 브라우저 식별자가 없는 WKWebView
+    const isGenericAndroidWebview = /Android/i.test(ua) && /; ?wv\)/i.test(ua);
+    const isIOSWebview = /iPhone|iPad|iPod/i.test(ua) && !/Safari/i.test(ua) && !/CriOS/i.test(ua) && !/FxiOS/i.test(ua);
+    const isClaudeApp = /Claude/i.test(ua);
+
+    const inApp = isKakao || isLine || isInstagram || isFacebook || isNaver || isGenericAndroidWebview || isIOSWebview || isClaudeApp;
+    if(!inApp) return;
+
+    const banner = document.getElementById('inapp-banner');
+    const bannerText = document.getElementById('inapp-banner-text');
+    const openBtn = document.getElementById('inapp-open-external-btn');
+    const closeBtn = document.getElementById('inapp-banner-close');
+    if(!banner) return;
+
+    banner.hidden = false;
+
+    if(isKakao){
+      bannerText.textContent = '카카오톡 인앱 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.';
+    } else {
+      bannerText.textContent = '지금 앱 내장 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.';
+    }
+
+    openBtn.addEventListener('click', () => {
+      const currentUrl = window.location.href;
+      if(isKakao){
+        window.location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(currentUrl);
+      } else {
+        // 카카오 외 앱들은 공식 외부 브라우저 전환 스킴이 제각각이라, 우선 새 탭 시도 후
+        // 안내 문구로 "우측 상단 메뉴에서 다른 브라우저로 열기"를 안내해요.
+        window.open(currentUrl, '_blank');
+        bannerText.textContent = '새 탭이 안 열리면, 우측 상단 메뉴(⋯)에서 "다른 브라우저로 열기"를 선택해주세요.';
+      }
+    });
+
+    closeBtn.addEventListener('click', () => { banner.hidden = true; });
+  })();
+
   const BASE = 30000;
   const state = { fabric: 0, detail: 0, finish: 0 };
   const customActive = { fabric: false, detail: false };
