@@ -12,6 +12,11 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const TOSS_CLIENT_KEY = process.env.TOSS_CLIENT_KEY || '';
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-only-secret-change-me';
+// 쉼표로 여러 개 등록 가능: 이 이메일로 로그인해서 올린 옷장 아이템은 "공식" 배지가 붙어요.
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -228,6 +233,11 @@ app.delete('/api/scan/history', requireLogin, (req, res) => {
 
 /* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
 
+function isOfficialUploader(uploadedBy) {
+  if (uploadedBy === 'builtin') return true;
+  return ADMIN_EMAILS.includes(String(uploadedBy).toLowerCase());
+}
+
 function toPublicWardrobeItem(item) {
   return {
     id: item.id,
@@ -239,17 +249,23 @@ function toPublicWardrobeItem(item) {
     glbUrl: item.glbUrl,
     thumbnailUrl: item.thumbnailUrl,
     isBuiltin: item.uploadedBy === 'builtin',
+    isOfficial: isOfficialUploader(item.uploadedBy),
     uploadedBy: item.uploadedBy === 'builtin' ? null : item.uploadedBy,
     createdAt: item.createdAt,
   };
 }
 
 // 옷장 전체 목록 (로그인 없이도 누구나 둘러볼 수 있어요)
+// 공식(관리자·기본 제공) 아이템을 먼저 보여주고, 그다음 최신순으로 정렬해요.
 app.get('/api/wardrobe', (req, res) => {
   const { category } = req.query;
   let list = Array.from(wardrobeItems.values());
   if (category) list = list.filter(it => it.category === category);
-  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  list.sort((a, b) => {
+    const officialDiff = Number(isOfficialUploader(b.uploadedBy)) - Number(isOfficialUploader(a.uploadedBy));
+    if (officialDiff !== 0) return officialDiff;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
   res.json({ items: list.map(toPublicWardrobeItem) });
 });
 
@@ -347,6 +363,7 @@ app.get('/api/wardrobe/recommend', (req, res) => {
     if (item.ageGroups.includes(ageGroup)) score += 2;
     if (occasion && item.tags.includes(occasion)) score += 2;
     if (item.glbUrl) score += 1; // 실제로 입혀볼 수 있는 아이템을 살짝 우대해요.
+    if (isOfficialUploader(item.uploadedBy)) score += 1; // 공식 아이템을 살짝 우대해요.
     return { item, score };
   });
   const recommended = scored
