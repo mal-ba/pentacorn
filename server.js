@@ -71,7 +71,7 @@ function seedBuiltinWardrobe() {
   const items = [
     { name: '화이트 반팔 티셔츠', category: 'top', color: '화이트', tags: ['casual', 'sporty'], ageGroups: ['10s', '20s'] },
     { name: '데님 청바지', category: 'bottom', color: '다크그레이 워시', tags: ['casual', 'street'], ageGroups: ['10s', '20s', '30s40s'], glbUrl: '/wardrobe-assets/Meshy_AI_Dark_Wash_Wide_Leg_Je_0809163812_texture.glb', thumbnailUrl: '/wardrobe-assets/0e71311f-8f10-40b9-9b95-68f19b2a548c.jpg' },
-    { name: '블랙 후드 집업', category: 'outer', color: '블랙', tags: ['street', 'casual'], ageGroups: ['10s', '20s'], glbUrl: '/wardrobe-assets/Meshy_AI_Black_Zip_Hoodie_with_0809164436_texture.glb', thumbnailUrl: '/wardrobe-assets/images.jpg' },
+    { name: '블랙 후드 집업', category: 'outer', color: '블랙', tags: ['street', 'casual'], ageGroups: ['10s', '20s'], glbUrl: '/wardrobe-assets/Meshy_AI_Black_Zip_Hoodie_with_0809173452_texture.glb', thumbnailUrl: '/wardrobe-assets/images.jpg' },
     { name: '체크 셔츠', category: 'top', color: '멀티', tags: ['casual', 'formal'], ageGroups: ['20s', '30s40s'] },
     { name: '베이직 볼캡', category: 'accessory', color: '블랙', tags: ['casual', 'street', 'sporty'], ageGroups: ['10s', '20s'] },
     { name: '골드 도트 목걸이', category: 'accessory', color: '골드', tags: ['formal', 'casual'], ageGroups: ['20s', '30s40s', '50s+'] },
