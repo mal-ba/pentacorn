@@ -303,7 +303,7 @@ app.post('/api/wardrobe', requireLogin, (req, res) => {
   if (!name || typeof name !== 'string' || name.length > 60) {
     return res.status(400).json({ ok: false, error: '이름을 1~60자로 입력해주세요.' });
   }
-  const allowedCategories = ['top', 'bottom', 'outer', 'accessory', 'shoes'];
+  const allowedCategories = ['top', 'bottom', 'outer', 'accessory', 'shoes', 'hair'];
   if (!allowedCategories.includes(category)) {
     return res.status(400).json({ ok: false, error: '카테고리가 올바르지 않아요.' });
   }
