@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const session = require('express-session');
 const { OAuth2Client } = require('google-auth-library');
@@ -15,7 +16,8 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-only-secret-change-me'
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // 실제 서비스에서는 DB(예: SQLite, PostgreSQL)를 쓰세요.
-// 지금은 데모용으로 서버 메모리에만 저장하기 때문에 서버를 재시작하면 사라져요.
+// 지금은 데모용으로 서버 메모리 + 로컬 파일에만 저장하기 때문에,
+// Render 같은 호스팅에서는 재배포/재시작 시 업로드한 파일이 사라질 수 있어요.
 const subscriptions = new Map(); // key: email -> { plan, amount, subscribedAt, paymentKey, orderId }
 const bodyDataConsents = new Map(); // key: email -> { consent: boolean, updatedAt }
 const bodyScanRecords = new Map(); // key: email -> [{ heightCm, photoThumbnail, capturedAt }, ...]
@@ -27,9 +29,48 @@ const PLAN_PRICES = {
   pro: { name: 'Pro', amount: 89000 },
 };
 
+/* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
+
+const WARDROBE_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'wardrobe');
+fs.mkdirSync(WARDROBE_UPLOAD_DIR, { recursive: true });
+
+const AGE_GROUPS = ['10s', '20s', '30s40s', '50s+'];
+const OCCASIONS = ['casual', 'formal', 'sporty', 'street'];
+
+// key: id -> { id, name, category, color, tags:[occasion...], ageGroups:[...],
+//              glbUrl: '/uploads/wardrobe/xxx.glb' | null, thumbnailUrl, uploadedBy: 'builtin'|email, createdAt }
+const wardrobeItems = new Map();
+
+function seedBuiltinWardrobe() {
+  const items = [
+    { name: '화이트 반팔 티셔츠', category: 'top', color: '화이트', tags: ['casual', 'sporty'], ageGroups: ['10s', '20s'] },
+    { name: '데님 청바지', category: 'bottom', color: '블루', tags: ['casual', 'street'], ageGroups: ['10s', '20s', '30s40s'] },
+    { name: '블랙 후드 집업', category: 'outer', color: '블랙', tags: ['street', 'casual'], ageGroups: ['10s', '20s'] },
+    { name: '체크 셔츠', category: 'top', color: '멀티', tags: ['casual', 'formal'], ageGroups: ['20s', '30s40s'] },
+    { name: '베이직 볼캡', category: 'accessory', color: '블랙', tags: ['casual', 'street', 'sporty'], ageGroups: ['10s', '20s'] },
+    { name: '골드 도트 목걸이', category: 'accessory', color: '골드', tags: ['formal', 'casual'], ageGroups: ['20s', '30s40s', '50s+'] },
+  ];
+  items.forEach(it => {
+    const id = crypto.randomUUID();
+    wardrobeItems.set(id, {
+      id,
+      name: it.name,
+      category: it.category,
+      color: it.color,
+      tags: it.tags,
+      ageGroups: it.ageGroups,
+      glbUrl: null, // 기본 제공 아이템은 아직 실제 3D 모델이 없는 카탈로그 항목이에요.
+      thumbnailUrl: null,
+      uploadedBy: 'builtin',
+      createdAt: new Date().toISOString(),
+    });
+  });
+}
+seedBuiltinWardrobe();
+
 const app = express();
 app.set('trust proxy', 1); // Render/Railway 같은 리버스 프록시 뒤에서 secure 쿠키가 정상 동작하도록
-app.use(express.json({ limit: '1mb' })); // 신체 스캔 썸네일(base64) 전송을 위해 기본 100kb보다 넉넉하게 설정
+app.use(express.json({ limit: '15mb' })); // 옷/장신구 .glb 업로드(base64)를 위해 넉넉하게 설정
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -184,6 +225,149 @@ app.delete('/api/scan/history', requireLogin, (req, res) => {
   bodyScanRecords.delete(req.session.user.email);
   res.json({ ok: true });
 });
+
+/* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
+
+function toPublicWardrobeItem(item) {
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    color: item.color,
+    tags: item.tags,
+    ageGroups: item.ageGroups,
+    glbUrl: item.glbUrl,
+    thumbnailUrl: item.thumbnailUrl,
+    isBuiltin: item.uploadedBy === 'builtin',
+    uploadedBy: item.uploadedBy === 'builtin' ? null : item.uploadedBy,
+    createdAt: item.createdAt,
+  };
+}
+
+// 옷장 전체 목록 (로그인 없이도 누구나 둘러볼 수 있어요)
+app.get('/api/wardrobe', (req, res) => {
+  const { category } = req.query;
+  let list = Array.from(wardrobeItems.values());
+  if (category) list = list.filter(it => it.category === category);
+  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json({ items: list.map(toPublicWardrobeItem) });
+});
+
+// 로그인한 사용자가 자신이 만든 옷/장신구를 옷장에 올려요.
+// glbFile은 선택(없으면 "입혀보기"는 안 되고 카탈로그에만 표시돼요), thumbnail은 필수예요.
+app.post('/api/wardrobe', requireLogin, (req, res) => {
+  const { name, category, color, tags, ageGroups, glbFileBase64, thumbnailBase64 } = req.body || {};
+
+  if (!name || typeof name !== 'string' || name.length > 60) {
+    return res.status(400).json({ ok: false, error: '이름을 1~60자로 입력해주세요.' });
+  }
+  const allowedCategories = ['top', 'bottom', 'outer', 'accessory', 'shoes'];
+  if (!allowedCategories.includes(category)) {
+    return res.status(400).json({ ok: false, error: '카테고리가 올바르지 않아요.' });
+  }
+  const tagList = Array.isArray(tags) ? tags.filter(t => OCCASIONS.includes(t)) : [];
+  const ageGroupList = Array.isArray(ageGroups) ? ageGroups.filter(a => AGE_GROUPS.includes(a)) : [];
+  if (ageGroupList.length === 0) {
+    return res.status(400).json({ ok: false, error: '추천 연령대를 1개 이상 선택해주세요.' });
+  }
+  if (glbFileBase64 && glbFileBase64.length > 14 * 1024 * 1024) {
+    return res.status(400).json({ ok: false, error: '3D 파일 용량이 너무 커요 (최대 약 10MB).' });
+  }
+  if (thumbnailBase64 && thumbnailBase64.length > 700000) {
+    return res.status(400).json({ ok: false, error: '썸네일 이미지 용량이 너무 커요.' });
+  }
+
+  const id = crypto.randomUUID();
+  let glbUrl = null;
+  let thumbnailUrl = null;
+
+  try {
+    if (glbFileBase64) {
+      const glbBuffer = Buffer.from(glbFileBase64.split(',').pop(), 'base64');
+      const glbPath = path.join(WARDROBE_UPLOAD_DIR, `${id}.glb`);
+      fs.writeFileSync(glbPath, glbBuffer);
+      glbUrl = `/uploads/wardrobe/${id}.glb`;
+    }
+    if (thumbnailBase64) {
+      const match = /^data:image\/(png|jpeg|jpg|webp);base64,/.exec(thumbnailBase64);
+      const ext = match ? (match[1] === 'jpeg' ? 'jpg' : match[1]) : 'png';
+      const imgBuffer = Buffer.from(thumbnailBase64.split(',').pop(), 'base64');
+      const imgPath = path.join(WARDROBE_UPLOAD_DIR, `${id}.${ext}`);
+      fs.writeFileSync(imgPath, imgBuffer);
+      thumbnailUrl = `/uploads/wardrobe/${id}.${ext}`;
+    }
+  } catch (err) {
+    console.error('옷장 파일 저장 실패:', err);
+    return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했어요.' });
+  }
+
+  const item = {
+    id,
+    name,
+    category,
+    color: typeof color === 'string' ? color.slice(0, 20) : '',
+    tags: tagList,
+    ageGroups: ageGroupList,
+    glbUrl,
+    thumbnailUrl,
+    uploadedBy: req.session.user.email,
+    createdAt: new Date().toISOString(),
+  };
+  wardrobeItems.set(id, item);
+
+  res.json({ ok: true, item: toPublicWardrobeItem(item) });
+});
+
+// 본인이 올린 아이템만 삭제할 수 있어요.
+app.delete('/api/wardrobe/:id', requireLogin, (req, res) => {
+  const item = wardrobeItems.get(req.params.id);
+  if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없어요.' });
+  if (item.uploadedBy !== req.session.user.email) {
+    return res.status(403).json({ ok: false, error: '본인이 올린 아이템만 삭제할 수 있어요.' });
+  }
+  [item.glbUrl, item.thumbnailUrl].forEach(url => {
+    if (!url) return;
+    const filePath = path.join(__dirname, 'public', url);
+    fs.unlink(filePath, () => {}); // 실패해도 조용히 넘어가요.
+  });
+  wardrobeItems.delete(req.params.id);
+  res.json({ ok: true });
+});
+
+// 나이대·상황(캐주얼/포멀/스포티/스트릿)에 맞춰 규칙 기반으로 옷장 아이템을 추천해요.
+// (진짜 생성형 AI 추천이 아니라, 태그 매칭 기반의 단순 추천이에요)
+app.get('/api/wardrobe/recommend', (req, res) => {
+  const { ageGroup, occasion } = req.query;
+  if (!AGE_GROUPS.includes(ageGroup)) {
+    return res.status(400).json({ ok: false, error: '연령대를 올바르게 선택해주세요.' });
+  }
+  const list = Array.from(wardrobeItems.values());
+  const scored = list.map(item => {
+    let score = 0;
+    if (item.ageGroups.includes(ageGroup)) score += 2;
+    if (occasion && item.tags.includes(occasion)) score += 2;
+    if (item.glbUrl) score += 1; // 실제로 입혀볼 수 있는 아이템을 살짝 우대해요.
+    return { item, score };
+  });
+  const recommended = scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+    .map(s => ({
+      ...toPublicWardrobeItem(s.item),
+      reason: buildRecommendReason(s.item, ageGroup, occasion),
+    }));
+
+  res.json({ ageGroup, occasion: occasion || null, recommended });
+});
+
+function buildRecommendReason(item, ageGroup, occasion) {
+  const ageLabel = { '10s': '10대', '20s': '20대', '30s40s': '30~40대', '50s+': '50대 이상' }[ageGroup];
+  const occasionLabel = { casual: '캐주얼', formal: '포멀', sporty: '스포티', street: '스트릿' }[occasion];
+  const parts = [`${ageLabel}에게 잘 어울리는 스타일`];
+  if (occasionLabel) parts.push(`${occasionLabel} 상황에 맞음`);
+  return parts.join(' · ');
+}
 
 /* ---------------- 토스페이먼츠 결제 ---------------- */
 
