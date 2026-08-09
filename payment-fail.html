@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>결제 실패 — UNEXPOSED</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{
+    font-family:'Noto Sans KR', sans-serif; background:#FBFAF6; color:#14201E;
+    display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:20px;
+  }
+  .box{ max-width:420px; text-align:center; }
+  h1{ font-family:'Fraunces', serif; font-weight:500; font-size:24px; margin-bottom:14px; color:#D8663F; }
+  p{ color:#4A5654; font-size:14.5px; line-height:1.6; margin-bottom:24px; }
+  code{ background:#F5F2EA; padding:2px 6px; border-radius:6px; font-size:13px; }
+  a.btn{
+    display:inline-block; margin-top:8px; padding:12px 26px; border-radius:999px;
+    background:#0F2E2C; color:#FBFAF6; text-decoration:none; font-size:14px; font-weight:600;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>결제가 완료되지 않았어요</h1>
+    <p id="message">결제가 취소되었거나 오류가 발생했어요.</p>
+    <a class="btn" href="/#pricing">요금제 페이지로 돌아가기</a>
+  </div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const msg = params.get('message');
+  if(msg){
+    document.getElementById('message').innerHTML =
+      `${decodeURIComponent(msg)} ${code ? `<br><code>${code}</code>` : ''}`;
+  }
+</script>
+</body>
+</html>
