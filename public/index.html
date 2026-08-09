@@ -1403,8 +1403,8 @@
     scanControls = new OrbitControls(scanCamera, scanRenderer.domElement);
     scanControls.enableDamping = true;
     scanControls.enablePan = false;
-    scanControls.minDistance = 1.6;
-    scanControls.maxDistance = 6;
+    scanControls.minDistance = 1.2;
+    scanControls.maxDistance = 8;
     scanControls.target.set(0, 1, 0);
 
     const loader = new GLTFLoader();
@@ -1440,7 +1440,25 @@
       scanCamera.aspect = w / h;
       scanCamera.updateProjectionMatrix();
       scanRenderer.setSize(w, h);
+      // 화면 크기가 바뀌면 지금 모델 키에 맞춰 카메라 거리도 다시 계산해요.
+      if(scanMannequin) frameCameraToFullBody(lastAppliedHeightMeters);
     });
+  }
+
+  let lastAppliedHeightMeters = 1.65;
+
+  // 모델 키(head-to-toe)가 화면(세로)에 항상 여유 있게 다 들어오도록
+  // 카메라 거리를 매번 다시 계산해요. (고정 거리로 두면 키가 커지거나
+  // 화면 비율이 바뀔 때 머리나 발이 잘려 보일 수 있어요)
+  function frameCameraToFullBody(heightMeters){
+    if(!scanCamera || !scanControls) return;
+    const vFovRad = THREE.MathUtils.degToRad(scanCamera.fov);
+    const margin = 1.45; // 위아래 여유 공간(전신 + 여백)
+    const distance = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
+    const camHeight = heightMeters * 0.58; // 살짝 위에서 내려다보는 자연스러운 각도
+    scanCamera.position.set(0, camHeight, distance);
+    scanControls.target.set(0, heightMeters / 2, 0);
+    scanCamera.updateProjectionMatrix();
   }
 
   function applyHeightToMannequin(heightCm){
@@ -1453,10 +1471,8 @@
     const box = new THREE.Box3().setFromObject(scanMannequin);
     scanMannequin.position.y -= box.min.y;
 
-    if(scanControls){
-      const newHeight = targetMeters;
-      scanControls.target.set(0, newHeight / 2, 0);
-    }
+    lastAppliedHeightMeters = targetMeters;
+    frameCameraToFullBody(targetMeters);
   }
 
   window.applyHeightToMannequin = applyHeightToMannequin;
