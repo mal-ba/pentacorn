@@ -2295,7 +2295,11 @@
       const res = await fetch(`/api/wardrobe/${editingItemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thumbnailBase64, glbFileBase64 }),
+        body: JSON.stringify({
+          thumbnailBase64, glbFileBase64,
+          thumbnailFileName: thumbnailFile ? thumbnailFile.name : null,
+          glbFileName: glbFile ? glbFile.name : null,
+        }),
       });
       const data = await res.json();
       if(data.ok){
@@ -2409,7 +2413,11 @@
       const res = await fetch('/api/wardrobe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, category, color, tags, ageGroups, thumbnailBase64, glbFileBase64 }),
+        body: JSON.stringify({
+          name, category, color, tags, ageGroups, thumbnailBase64, glbFileBase64,
+          thumbnailFileName: thumbnailFile.name,
+          glbFileName: glbFile ? glbFile.name : null,
+        }),
       });
       const data = await res.json();
       if(data.ok){
