@@ -323,6 +323,17 @@
   }
   .scan-status{ font-size:13px; color:var(--star-dark); font-weight:600; min-height:18px; }
 
+  .garment-box{
+    margin-top:22px; padding-top:22px; border-top:1px dashed var(--line);
+  }
+  .garment-box .scan-upload-label{ margin-top:8px; }
+  .garment-controls{ margin-top:14px; display:flex; flex-direction:column; gap:10px; }
+  .garment-controls label{
+    display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .garment-controls input[type="range"]{ flex:1; }
+  .garment-status{ font-size:12.5px; color:var(--star-dark); font-weight:600; margin-top:8px; min-height:16px; }
+
   .calc-custom{
     margin-top:12px; padding:16px 18px; background:var(--mist);
     border:1px solid var(--line); border-radius:12px;
@@ -743,6 +754,23 @@
             <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
           </div>
           <p class="scan-status" id="scan-status"></p>
+
+          <div class="garment-box">
+            <div class="calc-label">내가 만든 옷 입혀보기 (선택)</div>
+            <label class="scan-upload-label">
+              옷 3D 파일 업로드 (.glb)
+              <input type="file" accept=".glb,.gltf" id="garment-file-input" hidden>
+            </label>
+            <p class="scan-hint">Meshy 등에서 만든 옷 .glb 파일을 올리면 마네킹 위에 얹어져요. 위치가 안 맞으면 아래 슬라이더로 직접 맞춰보세요.</p>
+            <div class="garment-controls" id="garment-controls" hidden>
+              <label>앞뒤 <input type="range" id="garment-x" min="-0.5" max="0.5" step="0.01" value="0"></label>
+              <label>높이 <input type="range" id="garment-y" min="-0.5" max="0.5" step="0.01" value="0"></label>
+              <label>좌우 <input type="range" id="garment-z" min="-0.5" max="0.5" step="0.01" value="0"></label>
+              <label>크기 <input type="range" id="garment-scale" min="0.3" max="2" step="0.01" value="1"></label>
+              <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">옷 벗기기</button>
+            </div>
+            <p class="garment-status" id="garment-status"></p>
+          </div>
         </div>
       </div>
       <div class="wizard-actions">
@@ -1377,6 +1405,77 @@
     mannequinViewerStarted = true;
     initMannequinViewer();
   };
+
+  /* ---------- 내가 만든 옷(.glb) 입혀보기 ---------- */
+  let currentGarment = null;
+  const garmentFileInput = document.getElementById('garment-file-input');
+  const garmentControls = document.getElementById('garment-controls');
+  const garmentStatus = document.getElementById('garment-status');
+  const garmentX = document.getElementById('garment-x');
+  const garmentY = document.getElementById('garment-y');
+  const garmentZ = document.getElementById('garment-z');
+  const garmentScaleInput = document.getElementById('garment-scale');
+  const garmentRemoveBtn = document.getElementById('garment-remove-btn');
+
+  function updateGarmentTransform(){
+    if(!currentGarment) return;
+    currentGarment.position.set(
+      parseFloat(garmentX.value),
+      parseFloat(garmentY.value),
+      parseFloat(garmentZ.value)
+    );
+    const s = parseFloat(garmentScaleInput.value);
+    currentGarment.scale.set(s, s, s);
+  }
+
+  if(garmentFileInput){
+    garmentFileInput.addEventListener('change', () => {
+      const file = garmentFileInput.files[0];
+      if(!file) return;
+      if(!scanMannequin){
+        garmentStatus.textContent = '먼저 마네킹이 다 불러와질 때까지 잠시 기다려주세요.';
+        garmentFileInput.value = '';
+        return;
+      }
+      garmentStatus.textContent = '옷 파일을 불러오는 중...';
+      const url = URL.createObjectURL(file);
+      const loader = new GLTFLoader();
+      loader.load(
+        url,
+        gltf => {
+          if(currentGarment) scanMannequin.remove(currentGarment);
+          currentGarment = gltf.scene;
+          // 마네킹의 자식으로 붙여서, 키 조정으로 마네킹 크기가 바뀌면 옷도 같이 커지고 작아져요.
+          scanMannequin.add(currentGarment);
+          garmentX.value = 0;
+          garmentY.value = 0;
+          garmentZ.value = 0;
+          garmentScaleInput.value = 1;
+          updateGarmentTransform();
+          garmentControls.hidden = false;
+          garmentStatus.textContent = '옷을 입혔어요! 위치가 안 맞으면 슬라이더로 맞춰보세요.';
+        },
+        undefined,
+        () => {
+          garmentStatus.textContent = '옷 파일을 불러오지 못했어요. .glb 파일이 맞는지 확인해주세요.';
+        }
+      );
+    });
+
+    [garmentX, garmentY, garmentZ, garmentScaleInput].forEach(el => {
+      el.addEventListener('input', updateGarmentTransform);
+    });
+
+    garmentRemoveBtn.addEventListener('click', () => {
+      if(currentGarment){
+        scanMannequin.remove(currentGarment);
+        currentGarment = null;
+      }
+      garmentControls.hidden = true;
+      garmentStatus.textContent = '';
+      garmentFileInput.value = '';
+    });
+  }
 </script>
 </body>
 </html>
