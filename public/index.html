@@ -78,6 +78,61 @@
   .brand .mark{width:26px; height:26px;}
   .nav-links{display:none; gap:32px; font-size:14px; color:var(--ink-soft);}
   @media(min-width:820px){ .nav-links{display:flex;} }
+  .nav-support-btn{
+    font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
+    border-radius:999px; border:1px solid var(--deep); background:var(--deep); color:var(--paper);
+    padding:9px 16px; flex-shrink:0;
+  }
+  .nav-support-btn:hover{ background:var(--deep-2); }
+
+  /* ---------- 문의 챗봇 ---------- */
+  .support-panel{
+    position:fixed; top:0; right:0; height:100%; width:100%; max-width:380px;
+    background:var(--paper); z-index:300; box-shadow:-16px 0 40px rgba(0,0,0,0.18);
+    display:flex; flex-direction:column;
+    transform:translateX(100%); transition:transform .25s ease;
+  }
+  .support-panel.open{ transform:translateX(0); }
+  .support-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 18px; border-bottom:1px solid var(--line); background:var(--deep); color:var(--paper);
+  }
+  .support-header h4{ font-size:15px; font-weight:600; }
+  .support-header p{ font-size:11.5px; color:#CFE0DD; margin-top:2px; }
+  .support-close-btn{
+    width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
+    background:transparent; color:var(--paper); font-size:13px; cursor:pointer; flex-shrink:0;
+  }
+  .support-messages{
+    flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;
+  }
+  .support-msg{
+    max-width:85%; padding:10px 13px; border-radius:14px; font-size:13px; line-height:1.55;
+  }
+  .support-msg.bot{ background:var(--mist); align-self:flex-start; border-bottom-left-radius:4px; }
+  .support-msg.user{ background:var(--deep); color:var(--paper); align-self:flex-end; border-bottom-right-radius:4px; }
+  .support-suggestions{ display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px; }
+  .support-suggestion-chip{
+    font-family:inherit; font-size:11.5px; padding:7px 12px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer;
+  }
+  .support-suggestion-chip:hover{ border-color:var(--star-dark); color:var(--ink); }
+  .support-input-row{
+    display:flex; gap:8px; padding:14px 16px; border-top:1px solid var(--line);
+  }
+  .support-input-row input{
+    flex:1; padding:11px 13px; border-radius:999px; border:1px solid var(--line);
+    font-family:inherit; font-size:13px; outline:none;
+  }
+  .support-input-row input:focus{ border-color:var(--star-dark); }
+  .support-input-row button{
+    font-family:inherit; font-size:12.5px; font-weight:700; padding:0 18px;
+    border-radius:999px; border:none; background:var(--deep); color:var(--paper); cursor:pointer;
+  }
+  .support-overlay-bg{
+    position:fixed; inset:0; background:rgba(15,46,44,0.35); z-index:290;
+  }
+  .support-overlay-bg[hidden], .support-panel[hidden]{ display:none; }
 
   /* ---------- HERO ---------- */
   .hero{
@@ -537,6 +592,7 @@
     <a href="#pricing">pricing</a>
     <a href="#scan">scan demo</a>
   </div>
+  <button class="nav-support-btn" id="support-open-btn" type="button">문의하기</button>
 </nav>
 
 <section class="hero">
@@ -1088,10 +1144,152 @@
   </div>
 </div>
 
+<div class="support-overlay-bg" id="support-overlay-bg" hidden></div>
+<div class="support-panel" id="support-panel">
+  <div class="support-header">
+    <div>
+      <h4>UNEXPOSED 문의하기</h4>
+      <p>자주 묻는 질문에 바로 답해드려요</p>
+    </div>
+    <button class="support-close-btn" id="support-close-btn" type="button" aria-label="닫기">✕</button>
+  </div>
+  <div class="support-messages" id="support-messages"></div>
+  <div class="support-suggestions" id="support-suggestions"></div>
+  <div class="support-input-row">
+    <input type="text" id="support-input" placeholder="궁금한 걸 물어보세요 (예: 결제, 로그인, 스캔...)">
+    <button id="support-send-btn" type="button">전송</button>
+  </div>
+</div>
+
 <script>
   /* ---------- 텍스트 복사 방지 ---------- */
   document.addEventListener('copy', e => e.preventDefault());
   document.addEventListener('cut', e => e.preventDefault());
+
+  /* ---------- 문의 챗봇 (규칙 기반 FAQ) ---------- */
+  (function initSupportChat(){
+    const KNOWLEDGE_BASE = [
+      {
+        keywords: ['스캔', '카메라', '촬영', '녹화'],
+        answer: '스캔은 "scan demo" 섹션의 "스캔하고 디자인 시작하기" 버튼을 누르면 시작돼요. 카메라 권한을 허용하면 사진 촬영이나 5초 동영상 녹화를 할 수 있고, 카메라를 쓸 수 없으면 사진·동영상 파일을 업로드해도 돼요.',
+      },
+      {
+        keywords: ['로그인', '구글', '인앱', '카카오톡', '403', 'disallowed'],
+        answer: 'Google 계정으로 로그인해서 유료 플랜 구독이나 결제를 할 수 있어요. 카카오톡·클로드 앱 같은 인앱 브라우저에서는 구글 보안 정책상 로그인이 막혀 있어서, 화면 위 배너의 "외부 브라우저로 열기"를 눌러서 크롬·사파리로 열어주세요.',
+      },
+      {
+        keywords: ['결제', '구독', '돈', '카드', '토스', '요금', '가격', '플랜'],
+        answer: '지금은 테스트 결제로 연동되어 있어서, 실제 카드를 입력해도 진짜 돈은 빠져나가지 않아요. Free/Basic/Standard/Pro 플랜이 있고, 유료 플랜은 로그인 후 구독하기를 누르면 결제창으로 이동해요.',
+      },
+      {
+        keywords: ['원단', '소재', '디테일', '견적', '제작비'],
+        answer: '원단 등급(베이직/프리미엄/스페셜), 디테일 옵션(자수·특수재단), 완성 형태(패턴 PDF/완제품 배송)를 골라서 실시간으로 예상 제작 견적을 확인할 수 있어요. "기타(직접 요청)"를 선택하면 원하는 원단·디자인을 자유롭게 적을 수도 있어요.',
+      },
+      {
+        keywords: ['옷장', '입혀', '꾸미기', '장신구', '아이템', '추천'],
+        answer: '스캔 화면 안 "옷장 & 꾸미기"에서 기본 제공 아이템을 둘러보거나, 연령대·상황에 맞춰 추천받거나, 직접 만든 옷·장신구(.glb 파일)를 올려서 마네킹에 입혀볼 수 있어요.',
+      },
+      {
+        keywords: ['마네킹', '키', '아바타', '3d', '전신'],
+        answer: '키(cm)를 입력하고 "아바타 생성하기"를 누르면 3D 마네킹 크기가 그 비율에 맞게 조정돼요. 마우스나 손가락으로 드래그하면 360도로 돌려볼 수 있어요.',
+      },
+      {
+        keywords: ['제작', '배송', '실제', '받을', '완제품', '기간'],
+        answer: '지금은 데모 버전이라 실제 제작·배송은 아직 연결되어 있지 않아요. 정식 서비스에서는 완성한 디자인을 파트너 제작사에 도면(PDF)으로 넘기거나, 완제품으로 배송받는 옵션을 고를 수 있게 될 예정이에요.',
+      },
+      {
+        keywords: ['개인정보', '사진', '저장', '삭제', '동의', '프라이버시'],
+        answer: '신체 데이터(사진·키)는 로그인 후 "신체 데이터 수집·보관"에 직접 동의한 경우에만 저장돼요. 동의하지 않으면 화면에만 보이고 서버에는 저장되지 않고, 언제든 우측 상단 "개인정보 설정"에서 동의를 바꾸거나 저장된 데이터를 삭제할 수 있어요.',
+      },
+      {
+        keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'pentacorp', '펜타콘'],
+        answer: 'UNEXPOSED는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
+      },
+    ];
+
+    const SUGGESTIONS = [
+      '스캔은 어떻게 해요?',
+      '결제하면 진짜 돈 나가나요?',
+      '구글 로그인이 안 돼요',
+      '내 사진이 저장되나요?',
+    ];
+
+    const openBtn = document.getElementById('support-open-btn');
+    const closeBtn = document.getElementById('support-close-btn');
+    const panel = document.getElementById('support-panel');
+    const overlay = document.getElementById('support-overlay-bg');
+    const messages = document.getElementById('support-messages');
+    const suggestionsBox = document.getElementById('support-suggestions');
+    const input = document.getElementById('support-input');
+    const sendBtn = document.getElementById('support-send-btn');
+
+    function addMessage(text, from){
+      const div = document.createElement('div');
+      div.className = `support-msg ${from}`;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function renderSuggestions(){
+      suggestionsBox.innerHTML = '';
+      SUGGESTIONS.forEach(text => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'support-suggestion-chip';
+        chip.textContent = text;
+        chip.addEventListener('click', () => handleUserMessage(text));
+        suggestionsBox.appendChild(chip);
+      });
+    }
+
+    function findAnswer(message){
+      const lower = message.toLowerCase();
+      let best = null;
+      let bestScore = 0;
+      KNOWLEDGE_BASE.forEach(entry => {
+        const score = entry.keywords.reduce((acc, kw) => acc + (lower.includes(kw.toLowerCase()) ? 1 : 0), 0);
+        if(score > bestScore){
+          bestScore = score;
+          best = entry;
+        }
+      });
+      if(best) return best.answer;
+      return '죄송해요, 정확히 이해하지 못했어요. 아래 추천 질문 중 하나를 눌러보시거나, 스캔·로그인·결제·원단·옷장 중 어떤 부분이 궁금한지 다시 말씀해주시겠어요?';
+    }
+
+    function handleUserMessage(text){
+      const trimmed = text.trim();
+      if(!trimmed) return;
+      addMessage(trimmed, 'user');
+      input.value = '';
+      setTimeout(() => {
+        addMessage(findAnswer(trimmed), 'bot');
+      }, 300);
+    }
+
+    function openPanel(){
+      panel.classList.add('open');
+      overlay.hidden = false;
+      if(messages.children.length === 0){
+        addMessage('안녕하세요! UNEXPOSED에 대해 궁금한 걸 물어보세요. 스캔, 로그인, 결제, 원단, 옷장 등 무엇이든 답해드릴게요. (규칙 기반 FAQ 챗봇이에요)', 'bot');
+        renderSuggestions();
+      }
+      input.focus();
+    }
+    function closePanel(){
+      panel.classList.remove('open');
+      overlay.hidden = true;
+    }
+
+    openBtn.addEventListener('click', openPanel);
+    closeBtn.addEventListener('click', closePanel);
+    overlay.addEventListener('click', closePanel);
+    sendBtn.addEventListener('click', () => handleUserMessage(input.value));
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Enter') handleUserMessage(input.value);
+    });
+  })();
 
   /* ---------- 인앱 브라우저 감지 (카카오톡, 클로드 앱 등) ---------- */
   (function detectInAppBrowser(){
