@@ -344,7 +344,7 @@
   .scan-height-row input:focus{ border-color:var(--star-dark); }
   .scan-avatar-box{
     background:var(--deep-2); border-radius:14px; padding:0; position:relative;
-    height:320px; overflow:hidden;
+    height:420px; overflow:hidden;
   }
   #scan-avatar-3d{ width:100%; height:100%; }
   #scan-avatar-3d canvas{ display:block; width:100%; height:100%; touch-action:none; }
@@ -359,15 +359,80 @@
   }
   .scan-status{ font-size:13px; color:var(--star-dark); font-weight:600; min-height:18px; }
 
-  .garment-box{
+  /* ---------- 옷장 & 꾸미기 ---------- */
+  .wardrobe-box{
     margin-top:22px; padding-top:22px; border-top:1px dashed var(--line);
   }
-  .garment-box .scan-upload-label{ margin-top:8px; }
-  .garment-controls{ margin-top:14px; display:flex; flex-direction:column; gap:10px; }
-  .garment-controls label{
+  .wardrobe-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .wardrobe-tab{
+    font-family:inherit; font-size:12.5px; font-weight:600; padding:8px 14px;
+    border-radius:999px; border:1px solid var(--line); background:var(--paper);
+    color:var(--ink-soft); cursor:pointer;
+  }
+  .wardrobe-tab.active{ background:var(--deep); border-color:var(--deep); color:var(--paper); }
+  .wardrobe-panel[hidden]{ display:none; }
+  .wardrobe-hint{ font-size:12px; color:var(--ink-soft); margin:6px 0 12px; line-height:1.5; }
+
+  .wardrobe-recommend-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .wardrobe-recommend-row select{
+    flex:1; min-width:120px; padding:9px 10px; border-radius:8px; border:1px solid var(--line);
+    font-family:inherit; font-size:13px; background:var(--paper);
+  }
+
+  .wardrobe-filter-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .wardrobe-filter-chip{
+    font-family:inherit; font-size:12px; padding:6px 12px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer;
+  }
+  .wardrobe-filter-chip.active{ background:var(--star-dark); border-color:var(--star-dark); color:var(--paper); }
+
+  .wardrobe-grid{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px;
+  }
+  @media(min-width:520px){ .wardrobe-grid{ grid-template-columns:repeat(3,1fr); } }
+  .wardrobe-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:12px;
+    padding:10px; display:flex; flex-direction:column; gap:6px;
+  }
+  .wardrobe-card-thumb{
+    width:100%; aspect-ratio:1; border-radius:8px; background:var(--mist);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .wardrobe-card-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .wardrobe-card-thumb span{ font-size:10.5px; color:var(--ink-soft); text-align:center; padding:0 6px; }
+  .wardrobe-card-name{ font-size:12.5px; font-weight:600; }
+  .wardrobe-card-meta{ font-size:10.5px; color:var(--ink-soft); }
+  .wardrobe-card-reason{ font-size:10.5px; color:var(--star-dark); }
+  .wardrobe-card button{
+    margin-top:2px; font-family:inherit; font-size:11.5px; font-weight:600;
+    padding:7px; border-radius:8px; border:1px solid var(--line); background:var(--mist);
+    color:var(--ink); cursor:pointer;
+  }
+  .wardrobe-card button:disabled{ opacity:0.45; cursor:not-allowed; }
+  .wardrobe-card button:not(:disabled):hover{ border-color:var(--star-dark); }
+
+  .wardrobe-upload-form{ display:flex; flex-direction:column; gap:12px; }
+  .wardrobe-upload-form[hidden]{ display:none; }
+  .wardrobe-upload-form label{
+    display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .wardrobe-upload-form input[type="text"],
+  .wardrobe-upload-form select{
+    padding:9px 10px; border-radius:8px; border:1px solid var(--line);
+    font-family:inherit; font-size:13px; background:var(--paper); color:var(--ink);
+  }
+  .upload-checkbox-group{ display:flex; flex-direction:column; gap:6px; }
+  .upload-group-label{ font-size:12.5px; color:var(--ink-soft); font-weight:600; }
+  .upload-checkbox-group label{
+    flex-direction:row; align-items:center; gap:6px; font-size:12.5px; color:var(--ink);
+  }
+
+  .garment-fit-controls{ margin-top:18px; padding-top:18px; border-top:1px dashed var(--line); display:flex; flex-direction:column; gap:10px; }
+  .garment-fit-controls[hidden]{ display:none; }
+  .garment-fit-controls label{
     display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);
   }
-  .garment-controls input[type="range"]{ flex:1; }
+  .garment-fit-controls input[type="range"]{ flex:1; }
   .garment-status{ font-size:12.5px; color:var(--star-dark); font-weight:600; margin-top:8px; min-height:16px; }
 
   .calc-custom{
@@ -793,19 +858,98 @@
           </div>
           <p class="scan-status" id="scan-status"></p>
 
-          <div class="garment-box">
-            <div class="calc-label">내가 만든 옷 입혀보기 (선택)</div>
-            <label class="scan-upload-label">
-              옷 3D 파일 업로드 (.glb)
-              <input type="file" accept=".glb,.gltf" id="garment-file-input" hidden>
-            </label>
-            <p class="scan-hint">Meshy 등에서 만든 옷 .glb 파일을 올리면 마네킹 위에 얹어져요. 위치가 안 맞으면 아래 슬라이더로 직접 맞춰보세요.</p>
-            <div class="garment-controls" id="garment-controls" hidden>
+          <div class="wardrobe-box">
+            <div class="calc-label">옷장 &amp; 꾸미기</div>
+            <div class="wardrobe-tabs">
+              <button class="wardrobe-tab active" data-tab="recommend" type="button">추천받기</button>
+              <button class="wardrobe-tab" data-tab="browse" type="button">옷장 둘러보기</button>
+              <button class="wardrobe-tab" data-tab="upload" type="button">내 아이템 올리기</button>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-recommend">
+              <div class="wardrobe-recommend-row">
+                <select id="recommend-age-select">
+                  <option value="">연령대 선택</option>
+                  <option value="10s">10대</option>
+                  <option value="20s">20대</option>
+                  <option value="30s40s">30~40대</option>
+                  <option value="50s+">50대 이상</option>
+                </select>
+                <select id="recommend-occasion-select">
+                  <option value="">상황 (선택)</option>
+                  <option value="casual">캐주얼</option>
+                  <option value="formal">포멀</option>
+                  <option value="sporty">스포티</option>
+                  <option value="street">스트릿</option>
+                </select>
+                <button class="btn btn-primary" id="recommend-btn" type="button">추천받기</button>
+              </div>
+              <p class="wardrobe-hint">태그 매칭 기반 추천이에요 (생성형 AI 추천은 추후 연동 가능해요).</p>
+              <div class="wardrobe-grid" id="recommend-results"></div>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-browse" hidden>
+              <div class="wardrobe-filter-row">
+                <button class="wardrobe-filter-chip active" data-category="">전체</button>
+                <button class="wardrobe-filter-chip" data-category="top">상의</button>
+                <button class="wardrobe-filter-chip" data-category="bottom">하의</button>
+                <button class="wardrobe-filter-chip" data-category="outer">아우터</button>
+                <button class="wardrobe-filter-chip" data-category="accessory">장신구</button>
+                <button class="wardrobe-filter-chip" data-category="shoes">신발</button>
+              </div>
+              <div class="wardrobe-grid" id="wardrobe-browse-results"></div>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-upload" hidden>
+              <p class="wardrobe-hint" id="wardrobe-upload-login-notice">아이템을 올리려면 먼저 Google 계정으로 로그인해주세요.</p>
+              <form class="wardrobe-upload-form" id="wardrobe-upload-form" hidden>
+                <label>이름
+                  <input type="text" id="upload-item-name" maxlength="60" placeholder="예: 스트라이프 니트">
+                </label>
+                <label>카테고리
+                  <select id="upload-item-category">
+                    <option value="top">상의</option>
+                    <option value="bottom">하의</option>
+                    <option value="outer">아우터</option>
+                    <option value="accessory">장신구</option>
+                    <option value="shoes">신발</option>
+                  </select>
+                </label>
+                <label>색상
+                  <input type="text" id="upload-item-color" maxlength="20" placeholder="예: 네이비">
+                </label>
+                <div class="upload-checkbox-group">
+                  <span class="upload-group-label">어울리는 상황</span>
+                  <label><input type="checkbox" value="casual" class="upload-occasion"> 캐주얼</label>
+                  <label><input type="checkbox" value="formal" class="upload-occasion"> 포멀</label>
+                  <label><input type="checkbox" value="sporty" class="upload-occasion"> 스포티</label>
+                  <label><input type="checkbox" value="street" class="upload-occasion"> 스트릿</label>
+                </div>
+                <div class="upload-checkbox-group">
+                  <span class="upload-group-label">추천 연령대 (1개 이상)</span>
+                  <label><input type="checkbox" value="10s" class="upload-agegroup"> 10대</label>
+                  <label><input type="checkbox" value="20s" class="upload-agegroup"> 20대</label>
+                  <label><input type="checkbox" value="30s40s" class="upload-agegroup"> 30~40대</label>
+                  <label><input type="checkbox" value="50s+" class="upload-agegroup"> 50대 이상</label>
+                </div>
+                <label>썸네일 이미지 (필수)
+                  <input type="file" accept="image/*" id="upload-item-thumbnail">
+                </label>
+                <label>3D 파일 .glb (선택 — 없으면 카탈로그에만 표시돼요)
+                  <input type="file" accept=".glb,.gltf" id="upload-item-glb">
+                </label>
+                <button class="btn btn-primary" type="button" id="upload-item-submit-btn">옷장에 올리기</button>
+                <p class="wardrobe-hint" id="upload-status"></p>
+              </form>
+            </div>
+
+            <div class="garment-fit-controls" id="garment-controls" hidden>
+              <div class="calc-label">입은 아이템 위치 맞추기</div>
               <label>앞뒤 <input type="range" id="garment-x" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>높이 <input type="range" id="garment-y" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>좌우 <input type="range" id="garment-z" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>크기 <input type="range" id="garment-scale" min="0.3" max="2" step="0.01" value="1"></label>
-              <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">옷 벗기기</button>
+              <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
             </div>
             <p class="garment-status" id="garment-status"></p>
           </div>
@@ -1077,6 +1221,7 @@
     googleSigninContainer.hidden = true;
     googleLogoutBtn.hidden = false;
     privacySettingsBtn.hidden = false;
+    if(typeof refreshWardrobeUploadAccess === 'function') refreshWardrobeUploadAccess();
   }
   function setLoggedOut(){
     authState.loggedIn = false;
@@ -1088,6 +1233,7 @@
     googleSigninContainer.hidden = false;
     googleLogoutBtn.hidden = true;
     privacySettingsBtn.hidden = true;
+    if(typeof refreshWardrobeUploadAccess === 'function') refreshWardrobeUploadAccess();
   }
 
   // Google Identity Services가 로그인 성공 시 호출하는 콜백
@@ -1534,6 +1680,7 @@
   let scanScene, scanCamera, scanRenderer, scanControls;
   let scanMannequin = null;
   let scanMannequinDefaultHeight = 0; // 원본(스케일 1) 상태의 모델 높이(scene 단위)
+  let scanMannequinWidthRatio = 1; // 모델 너비(팔 벌린 폭) / 키 비율
 
   function initMannequinViewer(){
     const container = document.getElementById('scan-avatar-3d');
@@ -1562,7 +1709,7 @@
     scanControls.enableDamping = true;
     scanControls.enablePan = false;
     scanControls.minDistance = 1.2;
-    scanControls.maxDistance = 8;
+    scanControls.maxDistance = 10;
     scanControls.target.set(0, 1, 0);
 
     const loader = new GLTFLoader();
@@ -1574,6 +1721,8 @@
 
         const box0 = new THREE.Box3().setFromObject(scanMannequin);
         scanMannequinDefaultHeight = box0.max.y - box0.min.y;
+        const defaultWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
+        scanMannequinWidthRatio = defaultWidth / scanMannequinDefaultHeight;
 
         applyHeightToMannequin(165);
         if(scanAvatarLoading) scanAvatarLoading.hidden = true;
@@ -1605,14 +1754,20 @@
 
   let lastAppliedHeightMeters = 1.65;
 
-  // 모델 키(head-to-toe)가 화면(세로)에 항상 여유 있게 다 들어오도록
-  // 카메라 거리를 매번 다시 계산해요. (고정 거리로 두면 키가 커지거나
-  // 화면 비율이 바뀔 때 머리나 발이 잘려 보일 수 있어요)
+  // 모델 키(head-to-toe)와 팔 벌린 폭이 화면 안에 항상 여유 있게 다 들어오도록,
+  // 세로 기준 거리와 가로(T포즈 폭) 기준 거리를 각각 계산해서 더 넉넉한 쪽을 써요.
+  // (고정 값이면 화면이 좁고 길 때 팔이나 머리가 잘려 보일 수 있어요)
   function frameCameraToFullBody(heightMeters){
     if(!scanCamera || !scanControls) return;
     const vFovRad = THREE.MathUtils.degToRad(scanCamera.fov);
-    const margin = 1.45; // 위아래 여유 공간(전신 + 여백)
-    const distance = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
+    const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * scanCamera.aspect);
+    const margin = 1.3; // 위아래·좌우 여유 공간
+
+    const widthMeters = heightMeters * scanMannequinWidthRatio;
+    const distanceForHeight = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
+    const distanceForWidth = (widthMeters * margin) / (2 * Math.tan(hFovRad / 2));
+    const distance = Math.max(distanceForHeight, distanceForWidth);
+
     const camHeight = heightMeters * 0.58; // 살짝 위에서 내려다보는 자연스러운 각도
     scanCamera.position.set(0, camHeight, distance);
     scanControls.target.set(0, heightMeters / 2, 0);
@@ -1644,9 +1799,8 @@
     initMannequinViewer();
   };
 
-  /* ---------- 내가 만든 옷(.glb) 입혀보기 ---------- */
+  /* ---------- 옷/장신구 입혀보기 (파일 URL 기반, 옷장 아이템 공용) ---------- */
   let currentGarment = null;
-  const garmentFileInput = document.getElementById('garment-file-input');
   const garmentControls = document.getElementById('garment-controls');
   const garmentStatus = document.getElementById('garment-status');
   const garmentX = document.getElementById('garment-x');
@@ -1666,54 +1820,209 @@
     currentGarment.scale.set(s, s, s);
   }
 
-  if(garmentFileInput){
-    garmentFileInput.addEventListener('change', () => {
-      const file = garmentFileInput.files[0];
-      if(!file) return;
-      if(!scanMannequin){
-        garmentStatus.textContent = '먼저 마네킹이 다 불러와질 때까지 잠시 기다려주세요.';
-        garmentFileInput.value = '';
-        return;
+  function wearGarmentFromUrl(url, label){
+    if(!scanMannequin){
+      garmentStatus.textContent = '먼저 마네킹이 다 불러와질 때까지 잠시 기다려주세요.';
+      return;
+    }
+    garmentStatus.textContent = `${label || '아이템'}을(를) 불러오는 중...`;
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      gltf => {
+        if(currentGarment) scanMannequin.remove(currentGarment);
+        currentGarment = gltf.scene;
+        // 마네킹의 자식으로 붙여서, 키 조정으로 마네킹 크기가 바뀌면 옷도 같이 커지고 작아져요.
+        scanMannequin.add(currentGarment);
+        garmentX.value = 0;
+        garmentY.value = 0;
+        garmentZ.value = 0;
+        garmentScaleInput.value = 1;
+        updateGarmentTransform();
+        garmentControls.hidden = false;
+        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 위치가 안 맞으면 슬라이더로 맞춰보세요.`;
+        garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      },
+      undefined,
+      () => {
+        garmentStatus.textContent = '아이템을 불러오지 못했어요. .glb 파일이 맞는지 확인해주세요.';
       }
-      garmentStatus.textContent = '옷 파일을 불러오는 중...';
-      const url = URL.createObjectURL(file);
-      const loader = new GLTFLoader();
-      loader.load(
-        url,
-        gltf => {
-          if(currentGarment) scanMannequin.remove(currentGarment);
-          currentGarment = gltf.scene;
-          // 마네킹의 자식으로 붙여서, 키 조정으로 마네킹 크기가 바뀌면 옷도 같이 커지고 작아져요.
-          scanMannequin.add(currentGarment);
-          garmentX.value = 0;
-          garmentY.value = 0;
-          garmentZ.value = 0;
-          garmentScaleInput.value = 1;
-          updateGarmentTransform();
-          garmentControls.hidden = false;
-          garmentStatus.textContent = '옷을 입혔어요! 위치가 안 맞으면 슬라이더로 맞춰보세요.';
-        },
-        undefined,
-        () => {
-          garmentStatus.textContent = '옷 파일을 불러오지 못했어요. .glb 파일이 맞는지 확인해주세요.';
-        }
-      );
-    });
+    );
+  }
 
-    [garmentX, garmentY, garmentZ, garmentScaleInput].forEach(el => {
-      el.addEventListener('input', updateGarmentTransform);
-    });
+  [garmentX, garmentY, garmentZ, garmentScaleInput].forEach(el => {
+    el.addEventListener('input', updateGarmentTransform);
+  });
 
-    garmentRemoveBtn.addEventListener('click', () => {
-      if(currentGarment){
-        scanMannequin.remove(currentGarment);
-        currentGarment = null;
-      }
-      garmentControls.hidden = true;
-      garmentStatus.textContent = '';
-      garmentFileInput.value = '';
+  garmentRemoveBtn.addEventListener('click', () => {
+    if(currentGarment){
+      scanMannequin.remove(currentGarment);
+      currentGarment = null;
+    }
+    garmentControls.hidden = true;
+    garmentStatus.textContent = '';
+  });
+
+  /* ---------- 옷장: 탭 전환 ---------- */
+  const wardrobeTabs = document.querySelectorAll('.wardrobe-tab');
+  const wardrobePanels = {
+    recommend: document.getElementById('wardrobe-panel-recommend'),
+    browse: document.getElementById('wardrobe-panel-browse'),
+    upload: document.getElementById('wardrobe-panel-upload'),
+  };
+  wardrobeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      wardrobeTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.entries(wardrobePanels).forEach(([key, panel]) => {
+        panel.hidden = key !== tab.dataset.tab;
+      });
+      if(tab.dataset.tab === 'browse' && !wardrobeBrowseLoaded) loadWardrobeBrowse('');
+    });
+  });
+
+  const CATEGORY_LABEL = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발' };
+
+  function wardrobeCardHTML(item, reason){
+    const thumb = item.thumbnailUrl
+      ? `<img src="${item.thumbnailUrl}" alt="${item.name}">`
+      : `<span>${CATEGORY_LABEL[item.category] || item.category}</span>`;
+    const wearable = !!item.glbUrl;
+    return `
+      <div class="wardrobe-card">
+        <div class="wardrobe-card-thumb">${thumb}</div>
+        <div class="wardrobe-card-name">${item.name}</div>
+        <div class="wardrobe-card-meta">${CATEGORY_LABEL[item.category] || item.category}${item.color ? ' · ' + item.color : ''}</div>
+        ${reason ? `<div class="wardrobe-card-reason">${reason}</div>` : ''}
+        <button type="button" data-item-id="${item.id}" ${wearable ? '' : 'disabled'}>
+          ${wearable ? '입혀보기' : '3D 모델 준비 중'}
+        </button>
+      </div>`;
+  }
+
+  function wireWearButtons(container, items){
+    container.querySelectorAll('button[data-item-id]').forEach(btn => {
+      const item = items.find(it => it.id === btn.dataset.itemId);
+      if(!item || !item.glbUrl) return;
+      btn.addEventListener('click', () => wearGarmentFromUrl(item.glbUrl, item.name));
     });
   }
+
+  /* ---------- 옷장 둘러보기 ---------- */
+  let wardrobeBrowseLoaded = false;
+  const wardrobeBrowseResults = document.getElementById('wardrobe-browse-results');
+  document.querySelectorAll('.wardrobe-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.wardrobe-filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      loadWardrobeBrowse(chip.dataset.category);
+    });
+  });
+
+  async function loadWardrobeBrowse(category){
+    wardrobeBrowseLoaded = true;
+    wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">불러오는 중...</p>';
+    try{
+      const url = category ? `/api/wardrobe?category=${encodeURIComponent(category)}` : '/api/wardrobe';
+      const res = await fetch(url);
+      const data = await res.json();
+      if(!data.items || data.items.length === 0){
+        wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">아직 등록된 아이템이 없어요.</p>';
+        return;
+      }
+      wardrobeBrowseResults.innerHTML = data.items.map(it => wardrobeCardHTML(it)).join('');
+      wireWearButtons(wardrobeBrowseResults, data.items);
+    } catch(err){
+      wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">옷장을 불러오지 못했어요.</p>';
+    }
+  }
+
+  /* ---------- 추천받기 ---------- */
+  const recommendResults = document.getElementById('recommend-results');
+  document.getElementById('recommend-btn').addEventListener('click', async () => {
+    const ageGroup = document.getElementById('recommend-age-select').value;
+    const occasion = document.getElementById('recommend-occasion-select').value;
+    if(!ageGroup){
+      recommendResults.innerHTML = '<p class="wardrobe-hint">연령대를 먼저 선택해주세요.</p>';
+      return;
+    }
+    recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 계산하는 중...</p>';
+    try{
+      const params = new URLSearchParams({ ageGroup });
+      if(occasion) params.set('occasion', occasion);
+      const res = await fetch(`/api/wardrobe/recommend?${params.toString()}`);
+      const data = await res.json();
+      if(!data.recommended || data.recommended.length === 0){
+        recommendResults.innerHTML = '<p class="wardrobe-hint">조건에 맞는 추천 아이템이 아직 없어요.</p>';
+        return;
+      }
+      recommendResults.innerHTML = data.recommended.map(it => wardrobeCardHTML(it, it.reason)).join('');
+      wireWearButtons(recommendResults, data.recommended);
+    } catch(err){
+      recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 불러오지 못했어요.</p>';
+    }
+  });
+
+  /* ---------- 내 아이템 올리기 ---------- */
+  const wardrobeUploadLoginNotice = document.getElementById('wardrobe-upload-login-notice');
+  const wardrobeUploadForm = document.getElementById('wardrobe-upload-form');
+  const uploadStatus = document.getElementById('upload-status');
+
+  function refreshWardrobeUploadAccess(){
+    const canUpload = authState.loggedIn;
+    wardrobeUploadLoginNotice.hidden = canUpload;
+    wardrobeUploadForm.hidden = !canUpload;
+  }
+
+  function readFileAsDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('upload-item-submit-btn').addEventListener('click', async () => {
+    const name = document.getElementById('upload-item-name').value.trim();
+    const category = document.getElementById('upload-item-category').value;
+    const color = document.getElementById('upload-item-color').value.trim();
+    const tags = Array.from(document.querySelectorAll('.upload-occasion:checked')).map(el => el.value);
+    const ageGroups = Array.from(document.querySelectorAll('.upload-agegroup:checked')).map(el => el.value);
+    const thumbnailFile = document.getElementById('upload-item-thumbnail').files[0];
+    const glbFile = document.getElementById('upload-item-glb').files[0];
+
+    if(!name){ uploadStatus.textContent = '이름을 입력해주세요.'; return; }
+    if(ageGroups.length === 0){ uploadStatus.textContent = '추천 연령대를 1개 이상 선택해주세요.'; return; }
+    if(!thumbnailFile){ uploadStatus.textContent = '썸네일 이미지를 선택해주세요.'; return; }
+
+    uploadStatus.textContent = '업로드하는 중...';
+    try{
+      const thumbnailBase64 = await readFileAsDataUrl(thumbnailFile);
+      const glbFileBase64 = glbFile ? await readFileAsDataUrl(glbFile) : null;
+      const res = await fetch('/api/wardrobe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, category, color, tags, ageGroups, thumbnailBase64, glbFileBase64 }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        uploadStatus.textContent = '옷장에 올렸어요! "옷장 둘러보기" 탭에서 확인할 수 있어요.';
+        document.getElementById('upload-item-name').value = '';
+        document.getElementById('upload-item-color').value = '';
+        document.querySelectorAll('.upload-occasion, .upload-agegroup').forEach(el => { el.checked = false; });
+        document.getElementById('upload-item-thumbnail').value = '';
+        document.getElementById('upload-item-glb').value = '';
+        wardrobeBrowseLoaded = false;
+      } else {
+        uploadStatus.textContent = data.error || '업로드에 실패했어요.';
+      }
+    } catch(err){
+      uploadStatus.textContent = '업로드 중 오류가 발생했어요.';
+    }
+  });
+
+  refreshWardrobeUploadAccess();
 </script>
 </body>
 </html>
