@@ -320,19 +320,17 @@
   .detail-grid{ display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; grid-template-columns:1fr; }
   @media(min-width:760px){ .detail-grid{ grid-template-columns:repeat(2,1fr); } }
   .detail-block{ background:var(--paper); padding:26px 28px; }
+  .detail-icon{
+    width:56px; height:56px; margin-bottom:16px;
+    background:var(--mist); border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .detail-icon svg{ width:34px; height:34px; }
   .detail-block h3{ font-size:17px; font-weight:500; margin-bottom:10px; border-radius:6px; }
   .detail-block p{ font-size:14px; color:var(--ink-soft); border-radius:6px; }
   .detail-block [contenteditable]{ outline:none; padding:2px 4px; margin:-2px -4px; }
   .detail-block [contenteditable]:hover{ background:var(--mist); }
   .detail-block [contenteditable]:focus{ background:var(--mist); box-shadow:0 0 0 1px var(--star-dark); }
-  .detail-tools{ display:flex; justify-content:flex-end; margin-bottom:10px; }
-  .detail-img-btn{
-    font-family:inherit; font-size:12px; padding:6px 12px; border-radius:8px;
-    background:var(--mist); border:1px solid var(--line); color:var(--ink-soft); cursor:pointer;
-  }
-  .detail-img-btn:hover{ border-color:var(--star-dark); color:var(--ink); }
-  .detail-img-slot{ margin-top:14px; }
-  .detail-img-slot img{ width:100%; border-radius:10px; display:block; }
   .detail-hint{ font-size:12px; color:var(--ink-soft); margin-top:14px; text-align:center; }
 
   /* ---------- CALCULATOR ---------- */
@@ -459,43 +457,52 @@
 
   <div class="detail-grid">
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <rect x="6" y="16" width="42" height="30" rx="3" fill="none" stroke="#0F2E2C" stroke-width="3"/>
+          <rect x="2" y="46" width="50" height="4" rx="2" fill="#0F2E2C"/>
+          <rect x="54" y="20" width="22" height="38" rx="4" fill="none" stroke="#3E7F86" stroke-width="3"/>
+          <line x1="61" y1="52" x2="69" y2="52" stroke="#3E7F86" stroke-width="3" stroke-linecap="round"/>
+          <path d="M48 30 a10 10 0 1 1 -2 -6" fill="none" stroke="#D8663F" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M46 20 l2 4 l4 -1" fill="none" stroke="#D8663F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
       <h3 class="serif" contenteditable="true" spellcheck="false">지원 환경</h3>
       <p contenteditable="true" spellcheck="false">웹 브라우저와 모바일 앱(iOS·Android)에서 동일한 프로젝트로 이어서 작업할 수 있습니다. 모바일에서는 신체 스캔·간단 수정, 데스크탑에서는 정밀 커스터마이징에 적합하게 UI가 최적화됩니다.</p>
-      <div class="detail-img-slot"></div>
     </div>
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <rect x="14" y="40" width="52" height="26" rx="4" fill="#6FB8C2"/>
+          <rect x="10" y="28" width="52" height="26" rx="4" fill="#3E7F86"/>
+          <rect x="18" y="14" width="52" height="26" rx="4" fill="#0F2E2C"/>
+        </svg>
       </div>
       <h3 class="serif" contenteditable="true" spellcheck="false">원단·소재 구성</h3>
       <p contenteditable="true" spellcheck="false">베이직(면·저지 등 기본 소재), 프리미엄(고급 원단), 스페셜(가죽·특수 직물) 3단계로 원단 등급을 나누고, 등급별로 실제 제작 견적이 달라집니다. 등급 선택은 커스터마이징 단계에서 바로 확인할 수 있어요.</p>
-      <div class="detail-img-slot"></div>
     </div>
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <path d="M40 8 L68 18 V38 C68 56 56 68 40 74 C24 68 12 56 12 38 V18 Z" fill="none" stroke="#0F2E2C" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M28 40 L37 49 L54 30" fill="none" stroke="#3E7F86" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
       <h3 class="serif" contenteditable="true" spellcheck="false">데이터 프라이버시</h3>
       <p contenteditable="true" spellcheck="false">업로드한 신체 사진과 스캔 데이터는 저장하지 않는 제로 포토 리텐션 정책을 기본 적용합니다. 아바타 생성 즉시 원본 이미지는 삭제됩니다.</p>
-      <div class="detail-img-slot"></div>
     </div>
     <div class="detail-block">
-      <div class="detail-tools">
-        <button class="detail-img-btn" type="button">+ 이미지 추가</button>
-        <input type="file" accept="image/*" class="detail-img-input" hidden>
+      <div class="detail-icon">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="30" fill="none" stroke="#D8663F" stroke-width="3"/>
+          <path d="M44 14 L26 44 H38 L34 66 L56 34 H42 Z" fill="#D8663F"/>
+        </svg>
       </div>
       <h3 class="serif" contenteditable="true" spellcheck="false">차별점</h3>
       <p contenteditable="true" spellcheck="false">고난도 3D 그래픽 숙련도가 필요한 CLO·Marvelous Designer와 달리, 2D 벡터 왜곡 + AI 라인 분리 하이브리드 방식으로 패션 지식이 없어도 누구나 쉽게 디자인할 수 있습니다.</p>
-      <div class="detail-img-slot"></div>
     </div>
   </div>
-  <p class="detail-hint">제목과 설명을 클릭하면 바로 수정할 수 있고, "+ 이미지 추가"로 사진이나 그림을 넣을 수 있어요.</p>
+  <p class="detail-hint">제목과 설명을 클릭하면 바로 수정할 수 있어요.</p>
 
   <div class="mock-wrap" style="margin-top:56px;">
     <div class="mock-copy">
@@ -813,26 +820,6 @@
         const img = document.createElement('img');
         img.src = e.target.result;
         preview.appendChild(img);
-      };
-      reader.readAsDataURL(file);
-    });
-  });
-
-  document.querySelectorAll('.detail-block').forEach(block => {
-    const btn = block.querySelector('.detail-img-btn');
-    const input = block.querySelector('.detail-img-input');
-    const slot = block.querySelector('.detail-img-slot');
-    btn.addEventListener('click', () => input.click());
-    input.addEventListener('change', () => {
-      const file = input.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        slot.innerHTML = '';
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        slot.appendChild(img);
-        btn.textContent = '+ 이미지 바꾸기';
       };
       reader.readAsDataURL(file);
     });
