@@ -250,7 +250,7 @@
     background:var(--paper); display:flex; align-items:center; justify-content:center;
     overflow:hidden; text-align:center;
   }
-  .scan-photo-slot img{ width:100%; height:100%; object-fit:cover; }
+  .scan-photo-slot img, .scan-photo-slot video{ width:100%; height:100%; object-fit:cover; }
   .scan-photo-placeholder{ font-size:12.5px; color:var(--ink-soft); padding:0 20px; }
   .scan-height-row{ display:flex; align-items:center; gap:12px; }
   .scan-height-row label{ font-size:13.5px; color:var(--ink-soft); }
@@ -672,17 +672,22 @@
       <canvas id="scan-canvas" hidden></canvas>
       <div class="scan-camera-actions">
         <button id="scan-start-btn" class="btn btn-primary" type="button">카메라 켜기</button>
-        <button id="scan-capture-btn" class="btn btn-ghost-dark" type="button" hidden>촬영하기</button>
+        <button id="scan-capture-btn" class="btn btn-ghost-dark" type="button" hidden>사진 촬영</button>
+        <button id="scan-record-btn" class="btn btn-ghost-dark" type="button" hidden>동영상 녹화 (5초)</button>
         <label class="scan-upload-label">
           사진 업로드
           <input type="file" accept="image/*" id="scan-file-input" hidden>
         </label>
+        <label class="scan-upload-label">
+          동영상 업로드
+          <input type="file" accept="video/*" id="scan-video-file-input" hidden>
+        </label>
       </div>
-      <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 카메라를 쓸 수 없다면 사진을 업로드해도 돼요.</p>
+      <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담겨요. 카메라를 쓸 수 없다면 파일을 업로드해도 돼요.</p>
     </div>
     <div class="scan-result">
       <div class="scan-photo-slot" id="scan-photo-slot">
-        <span class="scan-photo-placeholder">촬영하거나 업로드한 사진이 여기에 표시돼요</span>
+        <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시돼요</span>
       </div>
       <div class="scan-height-row">
         <label for="scan-height-input">키 (cm)</label>
@@ -997,7 +1002,9 @@
   const scanCanvas = document.getElementById('scan-canvas');
   const scanStartBtn = document.getElementById('scan-start-btn');
   const scanCaptureBtn = document.getElementById('scan-capture-btn');
+  const scanRecordBtn = document.getElementById('scan-record-btn');
   const scanFileInput = document.getElementById('scan-file-input');
+  const scanVideoFileInput = document.getElementById('scan-video-file-input');
   const scanHint = document.getElementById('scan-hint');
   const scanPhotoSlot = document.getElementById('scan-photo-slot');
   const scanHeightInput = document.getElementById('scan-height-input');
@@ -1005,12 +1012,25 @@
   const scanAvatarSvg = document.getElementById('scan-avatar-svg');
   const scanStatus = document.getElementById('scan-status');
   let scanStream = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  const RECORD_MS = 5000;
 
   function showScanPhoto(dataUrl){
     scanPhotoSlot.innerHTML = '';
     const img = document.createElement('img');
     img.src = dataUrl;
     scanPhotoSlot.appendChild(img);
+  }
+
+  function showScanVideo(url){
+    scanPhotoSlot.innerHTML = '';
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.loop = true;
+    video.playsInline = true;
+    scanPhotoSlot.appendChild(video);
   }
 
   function stopScanStream(){
@@ -1020,15 +1040,25 @@
     }
   }
 
+  function resetCameraButtons(){
+    scanCaptureBtn.hidden = true;
+    scanRecordBtn.hidden = true;
+    scanStartBtn.hidden = false;
+    scanStartBtn.textContent = '다시 촬영';
+  }
+
   scanStartBtn.addEventListener('click', async () => {
     try{
       scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
       scanVideo.srcObject = scanStream;
       scanStartBtn.hidden = true;
       scanCaptureBtn.hidden = false;
-      scanHint.textContent = '준비되면 "촬영하기"를 눌러주세요.';
+      scanRecordBtn.hidden = false;
+      scanRecordBtn.disabled = false;
+      scanRecordBtn.textContent = '동영상 녹화 (5초)';
+      scanHint.textContent = '"사진 촬영"으로 한 장 찍거나, "동영상 녹화"로 한 바퀴 돌면서 5초간 찍어보세요.';
     } catch(err){
-      scanHint.textContent = '카메라를 사용할 수 없어요. 아래 "사진 업로드"로 진행해주세요.';
+      scanHint.textContent = '카메라를 사용할 수 없어요. 아래 업로드 버튼으로 진행해주세요.';
     }
   });
 
@@ -1043,10 +1073,49 @@
     showScanPhoto(dataUrl);
     stopScanStream();
     scanVideo.srcObject = null;
-    scanCaptureBtn.hidden = true;
-    scanStartBtn.hidden = false;
-    scanStartBtn.textContent = '다시 촬영';
+    resetCameraButtons();
     scanHint.textContent = '촬영이 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
+  });
+
+  scanRecordBtn.addEventListener('click', () => {
+    if(!scanStream) return;
+    let mimeType = 'video/webm';
+    if(!MediaRecorder.isTypeSupported(mimeType)) mimeType = '';
+    recordedChunks = [];
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(scanStream, { mimeType }) : new MediaRecorder(scanStream);
+    } catch(err){
+      scanHint.textContent = '이 브라우저에서는 동영상 녹화가 지원되지 않아요. "사진 촬영"을 이용해주세요.';
+      return;
+    }
+    mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: mimeType || 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      showScanVideo(url);
+      stopScanStream();
+      scanVideo.srcObject = null;
+      resetCameraButtons();
+      scanHint.textContent = '녹화가 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
+    };
+
+    mediaRecorder.start();
+    scanCaptureBtn.disabled = true;
+    scanRecordBtn.disabled = true;
+    let secondsLeft = RECORD_MS / 1000;
+    scanRecordBtn.textContent = `녹화 중... ${secondsLeft}초`;
+    const countdown = setInterval(() => {
+      secondsLeft -= 1;
+      if(secondsLeft > 0){
+        scanRecordBtn.textContent = `녹화 중... ${secondsLeft}초`;
+      } else {
+        clearInterval(countdown);
+      }
+    }, 1000);
+    setTimeout(() => {
+      if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      scanCaptureBtn.disabled = false;
+    }, RECORD_MS);
   });
 
   scanFileInput.addEventListener('change', () => {
@@ -1058,6 +1127,14 @@
       scanHint.textContent = '사진 업로드가 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
     };
     reader.readAsDataURL(file);
+  });
+
+  scanVideoFileInput.addEventListener('change', () => {
+    const file = scanVideoFileInput.files[0];
+    if(!file) return;
+    const url = URL.createObjectURL(file);
+    showScanVideo(url);
+    scanHint.textContent = '동영상 업로드가 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
   });
 
   scanGenerateBtn.addEventListener('click', () => {
