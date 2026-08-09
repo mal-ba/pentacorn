@@ -416,6 +416,13 @@
     position:absolute; bottom:8px; left:0; right:0; text-align:center;
     font-size:11px; color:var(--paper); opacity:0.55; pointer-events:none;
   }
+  .scan-nameplate{
+    position:absolute; top:0; left:0; transform:translate(-50%, -100%);
+    background:rgba(15,46,44,0.85); color:var(--paper); font-weight:700; font-size:12px;
+    padding:4px 12px; border-radius:999px; white-space:nowrap; pointer-events:none;
+    z-index:5; border:1px solid rgba(255,255,255,0.25);
+  }
+  .scan-nameplate[hidden]{ display:none; }
   .scan-status{ font-size:13px; color:var(--star-dark); font-weight:600; min-height:18px; }
 
   /* ---------- 옷장 & 꾸미기 ---------- */
@@ -510,6 +517,11 @@
     display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);
   }
   .garment-fit-controls input[type="range"]{ flex:1; }
+  .garment-fit-controls input[type="color"]{
+    width:48px; height:28px; border-radius:6px; border:1px solid var(--line); padding:2px; cursor:pointer;
+  }
+  .garment-fit-actions{ display:flex; gap:10px; margin-top:4px; }
+  .garment-fit-actions .btn{ flex:1; justify-content:center; font-size:12px; padding:9px; }
   .garment-status{ font-size:12.5px; color:var(--star-dark); font-weight:600; margin-top:8px; min-height:16px; }
 
   .calc-custom{
@@ -895,8 +907,6 @@
   <div class="footer-social">
     <a href="https://www.instagram.com/jaehoon703/?hl=ko" target="_blank" rel="noopener noreferrer">Instagram</a>
     <span class="dot">·</span>
-    <a href="https://github.com/mal-ba" target="_blank" rel="noopener noreferrer">GitHub</a>
-    <span class="dot">·</span>
     <a href="https://www.meshy.ai/ko/@s17789845805bd65" target="_blank" rel="noopener noreferrer">Meshy AI</a>
   </div>
 </footer>
@@ -945,9 +955,14 @@
             <label for="scan-height-input">키 (cm)</label>
             <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
           </div>
+          <div class="scan-height-row">
+            <label for="scan-nickname-input">머리 위 이름</label>
+            <input type="text" id="scan-nickname-input" maxlength="16" placeholder="예: 재훈">
+          </div>
           <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
           <div class="scan-avatar-box">
             <div id="scan-avatar-3d"></div>
+            <div class="scan-nameplate" id="scan-nameplate" hidden></div>
             <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
             <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
           </div>
@@ -991,6 +1006,7 @@
                 <button class="wardrobe-filter-chip" data-category="outer">아우터</button>
                 <button class="wardrobe-filter-chip" data-category="accessory">장신구</button>
                 <button class="wardrobe-filter-chip" data-category="shoes">신발</button>
+                <button class="wardrobe-filter-chip" data-category="hair">헤어</button>
               </div>
               <div class="wardrobe-grid" id="wardrobe-browse-results"></div>
               <div class="wardrobe-edit-box" id="wardrobe-edit-box" hidden>
@@ -1022,6 +1038,7 @@
                     <option value="outer">아우터</option>
                     <option value="accessory">장신구</option>
                     <option value="shoes">신발</option>
+                    <option value="hair">헤어</option>
                   </select>
                 </label>
                 <label>색상
@@ -1058,7 +1075,11 @@
               <label>높이 <input type="range" id="garment-y" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>좌우 <input type="range" id="garment-z" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>크기 <input type="range" id="garment-scale" min="0.02" max="5" step="0.01" value="1"></label>
-              <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
+              <label>색상 <input type="color" id="garment-color" value="#ffffff"></label>
+              <div class="garment-fit-actions">
+                <button id="garment-color-reset-btn" class="btn btn-ghost-dark" type="button">색상 초기화</button>
+                <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
+              </div>
             </div>
             <p class="garment-status" id="garment-status"></p>
           </div>
@@ -1931,6 +1952,8 @@
 
   const scanAvatarLoading = document.getElementById('scan-avatar-loading');
   const scanAvatarHint = document.getElementById('scan-avatar-hint');
+  const scanNicknameInput = document.getElementById('scan-nickname-input');
+  const scanNameplate = document.getElementById('scan-nameplate');
 
   /* ---------- 3D 마네킹 뷰어 (Three.js) ---------- */
   let scanScene, scanCamera, scanRenderer, scanControls;
@@ -1995,6 +2018,7 @@
       requestAnimationFrame(renderLoop);
       if(scanControls) scanControls.update();
       if(scanRenderer && scanScene && scanCamera) scanRenderer.render(scanScene, scanCamera);
+      updateNameplatePosition(container);
     })();
 
     window.addEventListener('resize', () => {
@@ -2042,6 +2066,28 @@
 
     lastAppliedHeightMeters = targetMeters;
     frameCameraToFullBody(targetMeters);
+
+    // 머리 위 이름표: 입력한 이름이 있으면 그걸, 없으면 로그인한 이름을, 그것도 없으면 "게스트"를 표시해요.
+    const typedName = scanNicknameInput ? scanNicknameInput.value.trim() : '';
+    const fallbackName = (window.authState && window.authState.loggedIn && window.authState.name) || '게스트';
+    if(scanNameplate){
+      scanNameplate.textContent = typedName || fallbackName;
+      scanNameplate.hidden = false;
+    }
+  }
+
+  // 매 프레임마다 머리 위(3D 좌표)를 화면 좌표로 변환해서, 카메라를 돌려도
+  // 이름표가 항상 머리 위에 붙어 따라오게 해요.
+  function updateNameplatePosition(container){
+    if(!scanNameplate || scanNameplate.hidden || !scanCamera || !scanMannequin) return;
+    const headWorldPos = new THREE.Vector3(0, lastAppliedHeightMeters + 0.14, 0);
+    const ndc = headWorldPos.project(scanCamera);
+    if(ndc.z > 1){ scanNameplate.style.display = 'none'; return; }
+    scanNameplate.style.display = 'block';
+    const x = (ndc.x * 0.5 + 0.5) * container.clientWidth;
+    const y = (-(ndc.y * 0.5) + 0.5) * container.clientHeight;
+    scanNameplate.style.left = `${x}px`;
+    scanNameplate.style.top = `${y}px`;
   }
 
   window.applyHeightToMannequin = applyHeightToMannequin;
@@ -2063,7 +2109,24 @@
   const garmentY = document.getElementById('garment-y');
   const garmentZ = document.getElementById('garment-z');
   const garmentScaleInput = document.getElementById('garment-scale');
+  const garmentColorInput = document.getElementById('garment-color');
+  const garmentColorResetBtn = document.getElementById('garment-color-reset-btn');
   const garmentRemoveBtn = document.getElementById('garment-remove-btn');
+
+  function applyGarmentColor(hexColor){
+    if(!currentGarment) return;
+    currentGarment.traverse(node => {
+      if(node.isMesh && node.material){
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(mat => {
+          if(mat.color){
+            mat.color.set(hexColor);
+            mat.needsUpdate = true;
+          }
+        });
+      }
+    });
+  }
 
   function updateGarmentTransform(){
     if(!currentGarment) return;
@@ -2109,9 +2172,10 @@
         garmentY.value = 0;
         garmentZ.value = 0;
         garmentScaleInput.value = autoScale.toFixed(2);
+        garmentColorInput.value = '#ffffff';
         updateGarmentTransform();
         garmentControls.hidden = false;
-        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 크기·위치가 안 맞으면 슬라이더로 맞춰보세요.`;
+        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
         garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       },
       undefined,
@@ -2123,6 +2187,12 @@
 
   [garmentX, garmentY, garmentZ, garmentScaleInput].forEach(el => {
     el.addEventListener('input', updateGarmentTransform);
+  });
+
+  garmentColorInput.addEventListener('input', () => applyGarmentColor(garmentColorInput.value));
+  garmentColorResetBtn.addEventListener('click', () => {
+    garmentColorInput.value = '#ffffff';
+    applyGarmentColor('#ffffff');
   });
 
   garmentRemoveBtn.addEventListener('click', () => {
@@ -2152,7 +2222,7 @@
     });
   });
 
-  const CATEGORY_LABEL = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발' };
+  const CATEGORY_LABEL = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발', hair: '헤어' };
 
   function wardrobeCardHTML(item, reason){
     const thumb = item.thumbnailUrl
