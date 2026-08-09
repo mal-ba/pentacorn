@@ -70,8 +70,8 @@ const wardrobeItems = new Map();
 function seedBuiltinWardrobe() {
   const items = [
     { name: '화이트 반팔 티셔츠', category: 'top', color: '화이트', tags: ['casual', 'sporty'], ageGroups: ['10s', '20s'] },
-    { name: '데님 청바지', category: 'bottom', color: '블루', tags: ['casual', 'street'], ageGroups: ['10s', '20s', '30s40s'] },
-    { name: '블랙 후드 집업', category: 'outer', color: '블랙', tags: ['street', 'casual'], ageGroups: ['10s', '20s'] },
+    { name: '데님 청바지', category: 'bottom', color: '다크그레이 워시', tags: ['casual', 'street'], ageGroups: ['10s', '20s', '30s40s'], glbUrl: '/wardrobe-assets/denim-jeans.glb', thumbnailUrl: '/wardrobe-assets/denim-jeans-thumb.jpg' },
+    { name: '블랙 후드 집업', category: 'outer', color: '블랙', tags: ['street', 'casual'], ageGroups: ['10s', '20s'], glbUrl: '/wardrobe-assets/black-hoodie.glb', thumbnailUrl: '/wardrobe-assets/black-hoodie-thumb.jpg' },
     { name: '체크 셔츠', category: 'top', color: '멀티', tags: ['casual', 'formal'], ageGroups: ['20s', '30s40s'] },
     { name: '베이직 볼캡', category: 'accessory', color: '블랙', tags: ['casual', 'street', 'sporty'], ageGroups: ['10s', '20s'] },
     { name: '골드 도트 목걸이', category: 'accessory', color: '골드', tags: ['formal', 'casual'], ageGroups: ['20s', '30s40s', '50s+'] },
@@ -85,8 +85,8 @@ function seedBuiltinWardrobe() {
       color: it.color,
       tags: it.tags,
       ageGroups: it.ageGroups,
-      glbUrl: null, // 기본 제공 아이템은 아직 실제 3D 모델이 없는 카탈로그 항목이에요.
-      thumbnailUrl: null,
+      glbUrl: it.glbUrl || null, // 기본 제공 아이템 중 아직 3D 모델이 없는 건 null로 둬요.
+      thumbnailUrl: it.thumbnailUrl || null,
       uploadedBy: 'builtin',
       createdAt: new Date().toISOString(),
     });
