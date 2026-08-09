@@ -252,6 +252,24 @@
   .modal-plan-summary .mp-price{ font-family:'Fraunces',serif; font-size:22px; color:var(--star-dark); }
   .modal-note{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
 
+  .consent-box{ max-width:480px; max-height:88vh; overflow-y:auto; }
+  .consent-section{
+    padding:16px 0; border-bottom:1px solid var(--line);
+  }
+  .consent-section:last-of-type{ border-bottom:none; }
+  .consent-scroll{
+    max-height:110px; overflow-y:auto; font-size:12px; line-height:1.6; color:var(--ink-soft);
+    background:var(--mist); border-radius:10px; padding:12px 14px; margin-bottom:12px;
+  }
+  .consent-title{ font-size:14px; font-weight:600; }
+  .consent-optional{ font-size:12px; color:var(--ink-soft); font-weight:400; }
+  .consent-desc{ font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin:8px 0 12px; }
+  .consent-check{
+    display:flex; align-items:flex-start; gap:10px; font-size:13px; cursor:pointer;
+  }
+  .consent-check input[type="checkbox"]{ margin-top:2px; width:16px; height:16px; flex-shrink:0; }
+  .consent-history{ font-size:11.5px; color:var(--star-dark); margin-top:10px; min-height:14px; }
+
   /* ---------- DESIGN WIZARD MODAL ---------- */
   .design-cta-box{
     background:var(--mist); border:1px solid var(--line); border-radius:var(--radius);
@@ -645,6 +663,7 @@
            data-logo_alignment="left">
       </div>
     </div>
+    <button class="btn btn-ghost-dark" id="privacy-settings-btn" type="button" hidden>개인정보 설정</button>
     <button class="btn btn-ghost-dark" id="google-logout-btn" type="button" hidden>로그아웃</button>
   </div>
 
@@ -865,6 +884,47 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="consent-modal" hidden>
+  <div class="modal-box consent-box">
+    <h3 class="serif">서비스 이용약관 · 신체 데이터 동의</h3>
+
+    <div class="consent-section">
+      <div class="consent-scroll">
+        UNEXPOSED는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
+        (1) 본 서비스는 데모 버전이며 실제 약관은 추후 정식 서비스 출시 시 변호사 검토를 거쳐 제공됩니다.
+        (2) 이용자는 본인의 신체 정보를 자발적으로 입력합니다.
+        (3) 계정 및 결제 정보는 관련 법령에 따라 안전하게 관리됩니다.
+      </div>
+      <label class="consent-check">
+        <input type="checkbox" id="consent-tos-checkbox">
+        <span>이용약관에 동의합니다 <b>(필수)</b></span>
+      </label>
+    </div>
+
+    <div class="consent-section">
+      <div class="consent-label-row">
+        <span class="consent-title">신체 데이터 수집·보관 동의 <span class="consent-optional">(선택)</span></span>
+      </div>
+      <p class="consent-desc">
+        동의하면 촬영한 사진과 입력한 키 정보가 서버에 저장되어, 아바타 정확도 개선 등 서비스 향상에 활용돼요.
+        <b>동의하지 않아도 스캔·아바타 생성 기능은 그대로 사용할 수 있고</b>, 이 경우 데이터는 화면에만 표시되고 저장되지 않아요.
+        동의는 언제든 이 화면에서 다시 바꿀 수 있고, 철회하면 그동안 저장된 데이터도 즉시 삭제돼요.
+      </p>
+      <label class="consent-check">
+        <input type="checkbox" id="consent-bodydata-checkbox">
+        <span>신체 스캔 사진·키 정보를 저장하고 활용하는 데 동의합니다</span>
+      </label>
+      <p class="consent-history" id="consent-history-text"></p>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost-dark" id="consent-later-btn" type="button">나중에 결정하기</button>
+      <button class="btn btn-primary" id="consent-save-btn" type="button" disabled>저장하기</button>
+    </div>
+    <p class="modal-note" id="consent-save-note"></p>
+  </div>
+</div>
+
 <div class="modal-overlay" id="payment-modal" hidden>
   <div class="modal-box">
     <h3 class="serif">플랜 결제</h3>
@@ -1004,7 +1064,9 @@
   const authStatusText = document.getElementById('auth-status-text');
   const googleSigninContainer = document.getElementById('google-signin-container');
   const googleLogoutBtn = document.getElementById('google-logout-btn');
+  const privacySettingsBtn = document.getElementById('privacy-settings-btn');
   const planNote = document.getElementById('plan-selected-note');
+  let bodyDataConsentGranted = null; // null = 아직 선택 안 함, true/false = 선택함
 
   function setLoggedIn(user){
     authState.loggedIn = true;
@@ -1014,15 +1076,18 @@
     authStatusText.textContent = `${user.name} (${user.email}) 로 로그인됨`;
     googleSigninContainer.hidden = true;
     googleLogoutBtn.hidden = false;
+    privacySettingsBtn.hidden = false;
   }
   function setLoggedOut(){
     authState.loggedIn = false;
     authState.email = null;
     authState.name = null;
+    bodyDataConsentGranted = null;
     authBar.classList.remove('logged-in');
     authStatusText.textContent = '로그인하지 않았어요 · 유료 플랜은 로그인 후 결제할 수 있어요';
     googleSigninContainer.hidden = false;
     googleLogoutBtn.hidden = true;
+    privacySettingsBtn.hidden = true;
   }
 
   // Google Identity Services가 로그인 성공 시 호출하는 콜백
@@ -1037,6 +1102,12 @@
       if(data.ok){
         setLoggedIn(data.user);
         planNote.textContent = `${data.user.name}님, 환영해요!`;
+        if(data.bodyDataConsent){
+          bodyDataConsentGranted = data.bodyDataConsent.consent;
+        } else {
+          // 아직 한 번도 선택한 적이 없으면 동의 화면을 띄워요.
+          openConsentModal();
+        }
       } else {
         planNote.textContent = data.error || '로그인에 실패했어요.';
       }
@@ -1061,6 +1132,9 @@
       const data = await res.json();
       if(data.user){
         setLoggedIn(data.user);
+        if(data.bodyDataConsent){
+          bodyDataConsentGranted = data.bodyDataConsent.consent;
+        }
         if(data.subscription){
           const card = document.querySelector(`.price-card[data-plan="${data.subscription.plan}"]`);
           if(card){
@@ -1073,6 +1147,68 @@
     } catch(err){ /* 서버가 아직 안 켜져 있을 수 있어요 */ }
   }
   checkAuthOnLoad();
+
+  /* ---------- 신체 데이터 수집 동의 ---------- */
+  const consentModal = document.getElementById('consent-modal');
+  const consentTosCheckbox = document.getElementById('consent-tos-checkbox');
+  const consentBodydataCheckbox = document.getElementById('consent-bodydata-checkbox');
+  const consentSaveBtn = document.getElementById('consent-save-btn');
+  const consentLaterBtn = document.getElementById('consent-later-btn');
+  const consentHistoryText = document.getElementById('consent-history-text');
+  const consentSaveNote = document.getElementById('consent-save-note');
+
+  consentTosCheckbox.addEventListener('change', () => {
+    consentSaveBtn.disabled = !consentTosCheckbox.checked;
+  });
+
+  async function openConsentModal(){
+    if(!authState.loggedIn) return;
+    consentTosCheckbox.checked = false;
+    consentSaveBtn.disabled = true;
+    consentBodydataCheckbox.checked = bodyDataConsentGranted === true;
+    consentSaveNote.textContent = '';
+    consentHistoryText.textContent = '';
+    try{
+      const res = await fetch('/api/scan/history');
+      const data = await res.json();
+      if(data.count > 0){
+        consentHistoryText.textContent = `지금까지 저장된 스캔 기록: ${data.count}개 (동의를 철회하면 즉시 삭제돼요)`;
+      }
+    } catch(err){ /* 무시해도 괜찮아요 */ }
+    consentModal.hidden = false;
+  }
+
+  privacySettingsBtn.addEventListener('click', openConsentModal);
+  consentLaterBtn.addEventListener('click', () => { consentModal.hidden = true; });
+
+  consentSaveBtn.addEventListener('click', async () => {
+    if(!consentTosCheckbox.checked) return;
+    const consent = consentBodydataCheckbox.checked;
+    consentSaveBtn.disabled = true;
+    consentSaveBtn.textContent = '저장 중...';
+    try{
+      const res = await fetch('/api/consent/body-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        bodyDataConsentGranted = data.consent;
+        consentSaveNote.textContent = consent
+          ? '저장됐어요. 앞으로 스캔한 사진·키 정보가 서버에 저장돼요.'
+          : '저장됐어요. 스캔 데이터는 저장되지 않고 화면에만 표시돼요.';
+        setTimeout(() => { consentModal.hidden = true; }, 900);
+      } else {
+        consentSaveNote.textContent = data.error || '저장에 실패했어요.';
+      }
+    } catch(err){
+      consentSaveNote.textContent = '저장 중 오류가 발생했어요.';
+    } finally {
+      consentSaveBtn.disabled = false;
+      consentSaveBtn.textContent = '저장하기';
+    }
+  });
 
   /* ---------- PLAN SELECT + 실제 토스페이먼츠 결제 ---------- */
   const paymentModal = document.getElementById('payment-modal');
@@ -1361,7 +1497,29 @@
     scanStatus.textContent = height
       ? `${validHeight}cm 체형 데이터 기반 아바타 생성 완료 (데모)`
       : '키를 입력하지 않아 기본값(165cm) 비율로 생성했어요.';
+    saveScanDataIfConsented(validHeight);
   });
+
+  // 로그인 + 신체 데이터 수집에 동의한 경우에만, 방금 찍은 사진과 키를 서버에 저장해요.
+  async function saveScanDataIfConsented(heightCm){
+    if(!authState.loggedIn || bodyDataConsentGranted !== true) return;
+    const imgEl = scanPhotoSlot.querySelector('img');
+    let photoThumbnail = null;
+    if(imgEl && imgEl.src && imgEl.src.startsWith('data:') && imgEl.src.length < 380000){
+      photoThumbnail = imgEl.src;
+    }
+    try{
+      const res = await fetch('/api/scan/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ heightCm, photoThumbnail }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        scanStatus.textContent += ' · 동의하신 대로 서버에 저장됐어요.';
+      }
+    } catch(err){ /* 저장 실패해도 아바타 생성 자체엔 영향 없어요 */ }
+  }
 </script>
 
 <script type="module">
