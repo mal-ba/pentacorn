@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UNEXPOSED — 데모</title>
+<script>
+  // 주소 끝에 ?debug=1 을 붙였을 때만 폰용 개발자 도구가 보이게 해요.
+  // (일반 방문자한테는 안 보이고, 디버깅할 때만 켜서 볼 수 있어요)
+  if(new URLSearchParams(window.location.search).get('debug') === '1'){
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    s.onload = () => eruda.init();
+    document.head.appendChild(s);
+  }
+</script>
+<!-- ↑ 임시 디버깅용 (폰에서 콘솔 에러 확인용) — 문제 해결되면 이 블록은 지워도 돼요 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -2300,12 +2311,4 @@
   });
 
   /* ---------- 옷장: 탭 전환 ---------- */
-  const wardrobeTabs = document.querySelectorAll('.wardrobe-tab');
-  const wardrobePanels = {
-    recommend: document.getElementById('wardrobe-panel-recommend'),
-    browse: document.getElementById('wardrobe-panel-browse'),
-    upload: document.getElementById('wardrobe-panel-upload'),
-  };
-  wardrobeTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      wardrobeTabs.forEach(t => t.classList.remove('act
+  const w
