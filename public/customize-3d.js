@@ -166,6 +166,198 @@
     initMannequinViewer();
   };
 
+  /* ==========================================================================
+     메이크업 전용 3D 구역 — 체형 스캔(마네킹)과 완전히 별개의 파일·장면을 써요.
+     같은 Three.js 라이브러리를 쓰지만, scanScene/scanMannequin 등 몸 관련 변수는
+     전혀 건드리지 않고 makeup* 이라는 이름의 독립된 변수들만 사용해요.
+     ========================================================================== */
+  const makeupAvatarLoading = document.getElementById('makeup-avatar-loading');
+  const makeupAvatarHint = document.getElementById('makeup-avatar-hint');
+  let makeupScene, makeupCamera, makeupRenderer, makeupControls;
+  let makeupFaceModel = null;
+  let makeupFaceDefaultHeight = 0;
+
+  function initMakeupViewer(){
+    const container = document.getElementById('makeup-avatar-3d');
+    if(!container){
+      if(makeupAvatarLoading) makeupAvatarLoading.textContent = '3D 뷰어를 불러올 수 없어요.';
+      return;
+    }
+    const width = container.clientWidth || 300;
+    const height = container.clientHeight || 320;
+
+    makeupScene = new THREE.Scene();
+    makeupCamera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    makeupCamera.position.set(0, 0, 2.2);
+
+    makeupRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    makeupRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    makeupRenderer.setSize(width, height);
+    container.appendChild(makeupRenderer.domElement);
+
+    makeupScene.add(new THREE.HemisphereLight(0xffffff, 0x2a2a2a, 1.3));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(2, 4, 3);
+    makeupScene.add(dirLight);
+
+    makeupControls = new OrbitControls(makeupCamera, makeupRenderer.domElement);
+    makeupControls.enableDamping = true;
+    makeupControls.enablePan = false;
+    makeupControls.minDistance = 0.3;
+    makeupControls.maxDistance = 10;
+    makeupControls.target.set(0, 0, 0);
+
+    // 체형 스캔 마네킹(/models/mannequin.glb)과는 다른, 메이크업 전용 얼굴 파일을 불러와요.
+    // 이 파일은 재훈이가 직접 만들어서 /models/makeup-face.glb 로 올려야 실제로 보여요.
+    const loader = new GLTFLoader();
+    loader.load(
+      '/models/makeup-face.glb',
+      gltf => {
+        makeupFaceModel = gltf.scene;
+        makeupScene.add(makeupFaceModel);
+
+        const box0 = new THREE.Box3().setFromObject(makeupFaceModel);
+        makeupFaceDefaultHeight = box0.max.y - box0.min.y;
+        // 얼굴 모델의 중심이 화면 가운데 오도록 살짝 옮겨요.
+        const center = box0.getCenter(new THREE.Vector3());
+        makeupFaceModel.position.sub(center);
+
+        if(makeupAvatarLoading) makeupAvatarLoading.hidden = true;
+        if(makeupAvatarHint) makeupAvatarHint.hidden = false;
+      },
+      undefined,
+      err => {
+        console.error('메이크업 얼굴 모델 로드 실패:', err);
+        if(makeupAvatarLoading) makeupAvatarLoading.textContent = '3D 얼굴 모델을 아직 못 찾았어요. /models/makeup-face.glb 파일을 올려주세요.';
+      }
+    );
+
+    (function renderLoop(){
+      requestAnimationFrame(renderLoop);
+      if(makeupControls) makeupControls.update();
+      if(makeupRenderer && makeupScene && makeupCamera) makeupRenderer.render(makeupScene, makeupCamera);
+    })();
+
+    window.addEventListener('resize', () => {
+      const w = container.clientWidth, h = container.clientHeight;
+      if(!w || !h) return;
+      makeupCamera.aspect = w / h;
+      makeupCamera.updateProjectionMatrix();
+      makeupRenderer.setSize(w, h);
+    });
+  }
+
+  let makeupViewerStarted = false;
+  window.startMakeupViewerOnce = function(){
+    if(makeupViewerStarted) return;
+    makeupViewerStarted = true;
+    initMakeupViewer();
+  };
+
+  /* ---------- 메이크업 아이템 입혀보기 (얼굴 모델에만 붙어요, 몸 마네킹과는 무관해요) ---------- */
+  let currentMakeupItem = null;
+  const makeupFitControls = document.getElementById('makeup-fit-controls');
+  const makeupStatus = document.getElementById('makeup-status');
+  const makeupX = document.getElementById('makeup-x');
+  const makeupY = document.getElementById('makeup-y');
+  const makeupZ = document.getElementById('makeup-z');
+  const makeupScaleInput = document.getElementById('makeup-scale');
+  const makeupColorInput = document.getElementById('makeup-color');
+  const makeupColorResetBtn = document.getElementById('makeup-color-reset-btn');
+  const makeupRemoveBtn = document.getElementById('makeup-remove-btn');
+
+  function updateMakeupTransform(){
+    if(!currentMakeupItem) return;
+    currentMakeupItem.position.set(
+      parseFloat(makeupX.value),
+      parseFloat(makeupY.value),
+      parseFloat(makeupZ.value)
+    );
+    const s = parseFloat(makeupScaleInput.value);
+    currentMakeupItem.scale.set(s, s, s);
+  }
+
+  function applyMakeupColor(hexColor){
+    if(!currentMakeupItem) return;
+    currentMakeupItem.traverse(node => {
+      if(node.isMesh && node.material){
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(mat => {
+          if(mat.color){
+            mat.color.set(hexColor);
+            mat.needsUpdate = true;
+          }
+        });
+      }
+    });
+  }
+
+  function wearMakeupItemFromUrl(url, label){
+    if(!makeupFaceModel){
+      makeupStatus.textContent = '먼저 얼굴 모델이 다 불러와질 때까지 잠시 기다려주세요.';
+      return;
+    }
+    makeupStatus.textContent = `${label || '메이크업'}을(를) 불러오는 중...`;
+    const loader = new GLTFLoader();
+    loader.load(
+      url,
+      gltf => {
+        if(currentMakeupItem) makeupFaceModel.remove(currentMakeupItem);
+        currentMakeupItem = gltf.scene;
+        currentMakeupItem.scale.set(1, 1, 1);
+        currentMakeupItem.position.set(0, 0, 0);
+        makeupFaceModel.add(currentMakeupItem);
+
+        const itemBox = new THREE.Box3().setFromObject(currentMakeupItem);
+        const itemHeight = itemBox.max.y - itemBox.min.y;
+        let autoScale = 1;
+        if(itemHeight > 0 && makeupFaceDefaultHeight > 0){
+          autoScale = makeupFaceDefaultHeight / itemHeight;
+          autoScale = Math.min(Math.max(autoScale, 0.02), 5);
+        }
+
+        makeupX.value = 0;
+        makeupY.value = 0;
+        makeupZ.value = 0;
+        makeupScaleInput.value = autoScale.toFixed(2);
+        makeupColorInput.value = '#ffffff';
+        updateMakeupTransform();
+        makeupFitControls.hidden = false;
+        makeupStatus.textContent = `${label || '메이크업'}을(를) 적용했어요! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
+        makeupFitControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      },
+      undefined,
+      () => {
+        makeupStatus.textContent = '메이크업 파일을 불러오지 못했어요. .glb 파일이 맞는지 확인해주세요.';
+      }
+    );
+  }
+
+  if(makeupX && makeupY && makeupZ && makeupScaleInput){
+    [makeupX, makeupY, makeupZ, makeupScaleInput].forEach(el => {
+      el.addEventListener('input', updateMakeupTransform);
+    });
+  }
+  if(makeupColorInput){
+    makeupColorInput.addEventListener('input', () => applyMakeupColor(makeupColorInput.value));
+  }
+  if(makeupColorResetBtn){
+    makeupColorResetBtn.addEventListener('click', () => {
+      makeupColorInput.value = '#ffffff';
+      applyMakeupColor('#ffffff');
+    });
+  }
+  if(makeupRemoveBtn){
+    makeupRemoveBtn.addEventListener('click', () => {
+      if(currentMakeupItem){
+        makeupFaceModel.remove(currentMakeupItem);
+        currentMakeupItem = null;
+      }
+      makeupFitControls.hidden = true;
+      makeupStatus.textContent = '';
+    });
+  }
+
   /* ---------- 옷/장신구 입혀보기 (파일 URL 기반, 옷장 아이템 공용) ---------- */
   let currentGarment = null;
   const garmentControls = document.getElementById('garment-controls');
@@ -284,6 +476,7 @@
   const wardrobePanels = {
     recommend: document.getElementById('wardrobe-panel-recommend'),
     browse: document.getElementById('wardrobe-panel-browse'),
+    makeup: document.getElementById('wardrobe-panel-makeup'),
     upload: document.getElementById('wardrobe-panel-upload'),
   };
   wardrobeTabs.forEach(tab => {
@@ -294,6 +487,10 @@
         panel.hidden = key !== tab.dataset.tab;
       });
       if(tab.dataset.tab === 'browse' && !wardrobeBrowseLoaded) loadWardrobeBrowse('');
+      if(tab.dataset.tab === 'makeup'){
+        if(typeof window.startMakeupViewerOnce === 'function') window.startMakeupViewerOnce();
+        if(!wardrobeMakeupLoaded) loadWardrobeMakeup();
+      }
     });
   });
 
@@ -325,7 +522,24 @@
     container.querySelectorAll('button[data-item-id]').forEach(btn => {
       const item = items.find(it => it.id === btn.dataset.itemId);
       if(!item || !item.glbUrl) return;
-      btn.addEventListener('click', () => wearGarmentFromUrl(item.glbUrl, item.name, item.category));
+      // 추천받기 결과에 메이크업 아이템이 섞여 나올 수 있어서, 카테고리를 보고 알맞은 곳(몸/얼굴)에 입혀요.
+      if(item.category === 'makeup'){
+        btn.addEventListener('click', () => wearMakeupItemFromUrl(item.glbUrl, item.name));
+      } else {
+        btn.addEventListener('click', () => wearGarmentFromUrl(item.glbUrl, item.name, item.category));
+      }
+    });
+    container.querySelectorAll('.wardrobe-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => openWardrobeEditBox(btn.dataset.editItemId, btn.dataset.editItemName));
+    });
+  }
+
+  // 메이크업 탭 전용: 몸 마네킹이 아니라 별도의 얼굴 모델에 입혀요.
+  function wireMakeupWearButtons(container, items){
+    container.querySelectorAll('button[data-item-id]').forEach(btn => {
+      const item = items.find(it => it.id === btn.dataset.itemId);
+      if(!item || !item.glbUrl) return;
+      btn.addEventListener('click', () => wearMakeupItemFromUrl(item.glbUrl, item.name));
     });
     container.querySelectorAll('.wardrobe-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => openWardrobeEditBox(btn.dataset.editItemId, btn.dataset.editItemName));
@@ -417,6 +631,27 @@
     }
   }
 
+  /* ---------- 메이크업 전용 탭 ---------- */
+  let wardrobeMakeupLoaded = false;
+  const wardrobeMakeupResults = document.getElementById('wardrobe-makeup-results');
+
+  async function loadWardrobeMakeup(){
+    wardrobeMakeupLoaded = true;
+    wardrobeMakeupResults.innerHTML = '<p class="wardrobe-hint">불러오는 중...</p>';
+    try{
+      const res = await fetch('/api/wardrobe?category=makeup');
+      const data = await res.json();
+      if(!data.items || data.items.length === 0){
+        wardrobeMakeupResults.innerHTML = '<p class="wardrobe-hint">아직 등록된 메이크업 아이템이 없어요. "내 아이템 올리기"에서 첫 메이크업을 올려보세요.</p>';
+        return;
+      }
+      wardrobeMakeupResults.innerHTML = data.items.map(it => wardrobeCardHTML(it)).join('');
+      wireMakeupWearButtons(wardrobeMakeupResults, data.items);
+    } catch(err){
+      wardrobeMakeupResults.innerHTML = '<p class="wardrobe-hint">메이크업 아이템을 불러오지 못했어요.</p>';
+    }
+  }
+
   /* ---------- 추천받기 ---------- */
   const recommendResults = document.getElementById('recommend-results');
   document.getElementById('recommend-btn').addEventListener('click', async () => {
@@ -501,6 +736,7 @@
         document.getElementById('upload-item-thumbnail').value = '';
         document.getElementById('upload-item-glb').value = '';
         wardrobeBrowseLoaded = false;
+        wardrobeMakeupLoaded = false;
       } else {
         uploadStatus.textContent = data.error || '업로드에 실패했어요.';
       }
