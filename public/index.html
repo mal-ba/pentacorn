@@ -1011,6 +1011,10 @@
             <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
             <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
           </div>
+          <div class="scan-height-row">
+            <label for="mannequin-vpos-input">마네킹 상하 위치</label>
+            <input type="range" id="mannequin-vpos-input" min="-1.5" max="1.5" step="0.01" value="0">
+          </div>
           <p class="scan-status" id="scan-status"></p>
 
           <div class="wardrobe-box">
@@ -2141,24 +2145,25 @@
   }
 
   let lastAppliedHeightMeters = 1.65;
+  let mannequinVerticalOffset = 0; // 사용자가 슬라이더로 직접 조정하는 상하 위치 보정값
 
   // 모델 키(대략적인 크기)와 팔 벌린 폭이 화면 안에 항상 여유 있게 다 들어오도록,
   // 세로 기준 거리와 가로(T포즈 폭) 기준 거리를 각각 계산해서 더 넉넉한 쪽을 써요.
-  // 카메라는 발끝 계산 대신 마네킹의 원점(허리 정도 높이) 을 그대로 기준점으로 삼아요 —
-  // 모델마다 발끝 위치를 정확히 계산하기 어려운 경우가 있어서, 이 방식이 더 안정적이에요.
+  // 모델마다 발끝/원점 위치가 제각각이라 자동 계산이 어려운 경우가 있어서,
+  // "마네킹 상하 위치" 슬라이더로 직접 눈으로 보면서 맞출 수 있게 해뒀어요.
   function frameCameraToFullBody(heightMeters){
     if(!scanCamera || !scanControls) return;
     const vFovRad = THREE.MathUtils.degToRad(scanCamera.fov);
     const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * scanCamera.aspect);
-    const margin = 1.9; // 위아래·좌우 여유 공간 (원점 기준이라 조금 더 넉넉하게)
+    const margin = 1.9; // 위아래·좌우 여유 공간
 
     const widthMeters = heightMeters * scanMannequinWidthRatio;
     const distanceForHeight = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
     const distanceForWidth = (widthMeters * margin) / (2 * Math.tan(hFovRad / 2));
     const distance = Math.max(distanceForHeight, distanceForWidth);
 
-    scanCamera.position.set(0, 0, distance); // 마네킹 원점(허리) 높이에서 정면으로 바라봐요
-    scanControls.target.set(0, 0, 0); // 회전 중심도 원점(허리)
+    scanCamera.position.set(0, mannequinVerticalOffset, distance);
+    scanControls.target.set(0, mannequinVerticalOffset, 0);
     scanCamera.updateProjectionMatrix();
   }
 
@@ -2168,10 +2173,9 @@
     const scale = targetMeters / scanMannequinDefaultHeight;
     scanMannequin.scale.set(scale, scale, scale);
 
-    // 모델마다 발끝 위치를 정확히 계산하기 까다로운 경우가 있어서(모델마다 구조가 달라요),
-    // 발을 바닥에 맞추려는 시도 대신 마네킹의 원점(=허리 정도 높이)을 그대로
-    // 화면 중심(0,0,0)에 고정해요. 옷·이름표도 전부 이 기준점으로 위치를 잡아요.
-    scanMannequin.position.y = 0;
+    // 모델마다 원점(기준점) 위치가 제각각이라(허리인 경우도, 발인 경우도 있어요),
+    // 자동으로 발을 바닥에 맞추는 대신 "마네킹 상하 위치" 슬라이더 값을 그대로 적용해요.
+    scanMannequin.position.y = mannequinVerticalOffset;
 
     lastAppliedHeightMeters = targetMeters;
     frameCameraToFullBody(targetMeters);
@@ -2186,11 +2190,10 @@
   }
 
   // 매 프레임마다 머리 위(3D 좌표)를 화면 좌표로 변환해서, 카메라를 돌려도
-  // 이름표가 항상 머리 위에 붙어 따라오게 해요. 마네킹 원점(허리)을 기준으로,
-  // 대략적인 신장 비율만큼 위로 띄워요.
+  // 이름표가 항상 머리 위에 붙어 따라오게 해요. "마네킹 상하 위치" 조정값도 같이 반영해요.
   function updateNameplatePosition(container){
     if(!scanNameplate || scanNameplate.hidden || !scanCamera || !scanMannequin) return;
-    const headWorldPos = new THREE.Vector3(0, lastAppliedHeightMeters * 0.45 + 0.1, 0);
+    const headWorldPos = new THREE.Vector3(0, lastAppliedHeightMeters * 0.45 + 0.1 + mannequinVerticalOffset, 0);
     const ndc = headWorldPos.project(scanCamera);
     if(ndc.z > 1){ scanNameplate.style.display = 'none'; return; }
     scanNameplate.style.display = 'block';
@@ -2201,6 +2204,15 @@
   }
 
   window.applyHeightToMannequin = applyHeightToMannequin;
+
+  // "마네킹 상하 위치" 슬라이더: 값이 바뀔 때마다 현재 키 기준으로 위치를 다시 계산해요.
+  const mannequinVposInput = document.getElementById('mannequin-vpos-input');
+  if(mannequinVposInput){
+    mannequinVposInput.addEventListener('input', () => {
+      mannequinVerticalOffset = parseFloat(mannequinVposInput.value);
+      applyHeightToMannequin(Math.round(lastAppliedHeightMeters * 100));
+    });
+  }
 
   // 모달이 처음 열릴 때만 3D 뷰어를 초기화해요 (숨겨진 상태에서 초기화하면
   // 컨테이너 크기가 0이라 렌더러가 깨지기 때문에, 실제로 보일 때 시작해요)
