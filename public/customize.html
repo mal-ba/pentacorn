@@ -61,12 +61,35 @@
           </div>
           <p class="scan-status" id="scan-status"></p>
 
+          <div class="wardrobe-box" id="makeup-box">
+            <div class="calc-label">메이크업</div>
+            <p class="wardrobe-hint">체형 스캔과는 별개의 3D 얼굴 파일을 사용하는 독립된 구역이에요. 여기서 얼굴 모델을 확인하고, 메이크업 아이템을 바로 입혀볼 수 있어요.</p>
+            <div class="scan-avatar-box" id="makeup-avatar-box">
+              <div id="makeup-avatar-3d"></div>
+              <div class="scan-avatar-loading" id="makeup-avatar-loading">3D 얼굴 모델 불러오는 중...</div>
+              <div class="scan-avatar-hint" id="makeup-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
+            </div>
+            <div class="wardrobe-grid" id="wardrobe-makeup-results"></div>
+            <div class="garment-fit-controls" id="makeup-fit-controls" hidden>
+              <div class="calc-label">입은 메이크업 위치 맞추기</div>
+              <label>앞뒤 <input type="range" id="makeup-x" min="-1.5" max="1.5" step="0.01" value="0"></label>
+              <label>높이 <input type="range" id="makeup-y" min="-1.5" max="1.5" step="0.01" value="0"></label>
+              <label>좌우 <input type="range" id="makeup-z" min="-1.5" max="1.5" step="0.01" value="0"></label>
+              <label>크기 <input type="range" id="makeup-scale" min="0.02" max="5" step="0.01" value="1"></label>
+              <label>색상 <input type="color" id="makeup-color" value="#ffffff"></label>
+              <div class="garment-fit-actions">
+                <button id="makeup-color-reset-btn" class="btn btn-ghost-dark" type="button">색상 초기화</button>
+                <button id="makeup-remove-btn" class="btn btn-ghost-dark" type="button">지우기</button>
+              </div>
+            </div>
+            <p class="garment-status" id="makeup-status"></p>
+          </div>
+
           <div class="wardrobe-box">
             <div class="calc-label">옷장 &amp; 꾸미기</div>
             <div class="wardrobe-tabs">
               <button class="wardrobe-tab active" data-tab="recommend" type="button">추천받기</button>
               <button class="wardrobe-tab" data-tab="browse" type="button">옷장 둘러보기</button>
-              <button class="wardrobe-tab" data-tab="makeup" type="button">메이크업</button>
               <button class="wardrobe-tab" data-tab="upload" type="button">내 아이템 올리기</button>
             </div>
 
@@ -118,29 +141,6 @@
                 </div>
                 <p class="wardrobe-hint" id="wardrobe-edit-status"></p>
               </div>
-            </div>
-
-            <div class="wardrobe-panel" id="wardrobe-panel-makeup" hidden>
-              <p class="wardrobe-hint">체형 스캔과는 별개의 3D 얼굴 파일을 사용하는 독립된 구역이에요. 여기서 얼굴 모델을 확인하고, 메이크업 아이템을 바로 입혀볼 수 있어요.</p>
-              <div class="scan-avatar-box" id="makeup-avatar-box">
-                <div id="makeup-avatar-3d"></div>
-                <div class="scan-avatar-loading" id="makeup-avatar-loading">3D 얼굴 모델 불러오는 중...</div>
-                <div class="scan-avatar-hint" id="makeup-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
-              </div>
-              <div class="wardrobe-grid" id="wardrobe-makeup-results"></div>
-              <div class="garment-fit-controls" id="makeup-fit-controls" hidden>
-                <div class="calc-label">입은 메이크업 위치 맞추기</div>
-                <label>앞뒤 <input type="range" id="makeup-x" min="-1.5" max="1.5" step="0.01" value="0"></label>
-                <label>높이 <input type="range" id="makeup-y" min="-1.5" max="1.5" step="0.01" value="0"></label>
-                <label>좌우 <input type="range" id="makeup-z" min="-1.5" max="1.5" step="0.01" value="0"></label>
-                <label>크기 <input type="range" id="makeup-scale" min="0.02" max="5" step="0.01" value="1"></label>
-                <label>색상 <input type="color" id="makeup-color" value="#ffffff"></label>
-                <div class="garment-fit-actions">
-                  <button id="makeup-color-reset-btn" class="btn btn-ghost-dark" type="button">색상 초기화</button>
-                  <button id="makeup-remove-btn" class="btn btn-ghost-dark" type="button">지우기</button>
-                </div>
-              </div>
-              <p class="garment-status" id="makeup-status"></p>
             </div>
 
             <div class="wardrobe-panel" id="wardrobe-panel-upload" hidden>
