@@ -2142,23 +2142,23 @@
 
   let lastAppliedHeightMeters = 1.65;
 
-  // 모델 키(head-to-toe)와 팔 벌린 폭이 화면 안에 항상 여유 있게 다 들어오도록,
+  // 모델 키(대략적인 크기)와 팔 벌린 폭이 화면 안에 항상 여유 있게 다 들어오도록,
   // 세로 기준 거리와 가로(T포즈 폭) 기준 거리를 각각 계산해서 더 넉넉한 쪽을 써요.
-  // (고정 값이면 화면이 좁고 길 때 팔이나 머리가 잘려 보일 수 있어요)
+  // 카메라는 발끝 계산 대신 마네킹의 원점(허리 정도 높이) 을 그대로 기준점으로 삼아요 —
+  // 모델마다 발끝 위치를 정확히 계산하기 어려운 경우가 있어서, 이 방식이 더 안정적이에요.
   function frameCameraToFullBody(heightMeters){
     if(!scanCamera || !scanControls) return;
     const vFovRad = THREE.MathUtils.degToRad(scanCamera.fov);
     const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * scanCamera.aspect);
-    const margin = 1.7; // 위아래·좌우 여유 공간
+    const margin = 1.9; // 위아래·좌우 여유 공간 (원점 기준이라 조금 더 넉넉하게)
 
     const widthMeters = heightMeters * scanMannequinWidthRatio;
     const distanceForHeight = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
     const distanceForWidth = (widthMeters * margin) / (2 * Math.tan(hFovRad / 2));
     const distance = Math.max(distanceForHeight, distanceForWidth);
 
-    const camHeight = heightMeters * 0.58; // 살짝 위에서 내려다보는 자연스러운 각도
-    scanCamera.position.set(0, camHeight, distance);
-    scanControls.target.set(0, heightMeters / 2, 0);
+    scanCamera.position.set(0, 0, distance); // 마네킹 원점(허리) 높이에서 정면으로 바라봐요
+    scanControls.target.set(0, 0, 0); // 회전 중심도 원점(허리)
     scanCamera.updateProjectionMatrix();
   }
 
@@ -2168,10 +2168,10 @@
     const scale = targetMeters / scanMannequinDefaultHeight;
     scanMannequin.scale.set(scale, scale, scale);
 
-    // 발이 바닥(y=0)에 붙도록 재조정해요. 몸(마네킹) 자체의 원래 발끝 위치만 기준으로
-    // 계산해서, 옷을 입혀도(자식으로 붙어있어도) 그 옷 때문에 몸 전체 위치가
-    // 틀어지지 않게 해요.
-    scanMannequin.position.y = -scale * scanMannequinDefaultMinY;
+    // 모델마다 발끝 위치를 정확히 계산하기 까다로운 경우가 있어서(모델마다 구조가 달라요),
+    // 발을 바닥에 맞추려는 시도 대신 마네킹의 원점(=허리 정도 높이)을 그대로
+    // 화면 중심(0,0,0)에 고정해요. 옷·이름표도 전부 이 기준점으로 위치를 잡아요.
+    scanMannequin.position.y = 0;
 
     lastAppliedHeightMeters = targetMeters;
     frameCameraToFullBody(targetMeters);
@@ -2186,10 +2186,11 @@
   }
 
   // 매 프레임마다 머리 위(3D 좌표)를 화면 좌표로 변환해서, 카메라를 돌려도
-  // 이름표가 항상 머리 위에 붙어 따라오게 해요.
+  // 이름표가 항상 머리 위에 붙어 따라오게 해요. 마네킹 원점(허리)을 기준으로,
+  // 대략적인 신장 비율만큼 위로 띄워요.
   function updateNameplatePosition(container){
     if(!scanNameplate || scanNameplate.hidden || !scanCamera || !scanMannequin) return;
-    const headWorldPos = new THREE.Vector3(0, lastAppliedHeightMeters + 0.14, 0);
+    const headWorldPos = new THREE.Vector3(0, lastAppliedHeightMeters * 0.45 + 0.1, 0);
     const ndc = headWorldPos.project(scanCamera);
     if(ndc.z > 1){ scanNameplate.style.display = 'none'; return; }
     scanNameplate.style.display = 'block';
