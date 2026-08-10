@@ -22,8 +22,8 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
   }
 }
 </script>
@@ -2311,4 +2311,236 @@
   });
 
   /* ---------- 옷장: 탭 전환 ---------- */
-  const w
+  const wardrobeTabs = document.querySelectorAll('.wardrobe-tab');
+  const wardrobePanels = {
+    recommend: document.getElementById('wardrobe-panel-recommend'),
+    browse: document.getElementById('wardrobe-panel-browse'),
+    upload: document.getElementById('wardrobe-panel-upload'),
+  };
+  wardrobeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      wardrobeTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.entries(wardrobePanels).forEach(([key, panel]) => {
+        panel.hidden = key !== tab.dataset.tab;
+      });
+      if(tab.dataset.tab === 'browse' && !wardrobeBrowseLoaded) loadWardrobeBrowse('');
+    });
+  });
+
+  const CATEGORY_LABEL = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발', hair: '헤어' };
+
+  function wardrobeCardHTML(item, reason){
+    const thumb = item.thumbnailUrl
+      ? `<img src="${item.thumbnailUrl}" alt="${item.name}">`
+      : `<span>${CATEGORY_LABEL[item.category] || item.category}</span>`;
+    const wearable = !!item.glbUrl;
+    const officialBadge = item.isOfficial ? `<span class="wardrobe-official-badge">공식</span>` : '';
+    const editBtn = item.canEdit
+      ? `<button type="button" class="wardrobe-edit-btn" data-edit-item-id="${item.id}" data-edit-item-name="${item.name}">사진·3D 파일 채우기</button>`
+      : '';
+    return `
+      <div class="wardrobe-card">
+        <div class="wardrobe-card-thumb">${thumb}${officialBadge}</div>
+        <div class="wardrobe-card-name">${item.name}</div>
+        <div class="wardrobe-card-meta">${CATEGORY_LABEL[item.category] || item.category}${item.color ? ' · ' + item.color : ''}</div>
+        ${reason ? `<div class="wardrobe-card-reason">${reason}</div>` : ''}
+        <button type="button" data-item-id="${item.id}" ${wearable ? '' : 'disabled'}>
+          ${wearable ? '입혀보기' : '3D 모델 준비 중'}
+        </button>
+        ${editBtn}
+      </div>`;
+  }
+
+  function wireWearButtons(container, items){
+    container.querySelectorAll('button[data-item-id]').forEach(btn => {
+      const item = items.find(it => it.id === btn.dataset.itemId);
+      if(!item || !item.glbUrl) return;
+      btn.addEventListener('click', () => wearGarmentFromUrl(item.glbUrl, item.name));
+    });
+    container.querySelectorAll('.wardrobe-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => openWardrobeEditBox(btn.dataset.editItemId, btn.dataset.editItemName));
+    });
+  }
+
+  /* ---------- 이미 있는 아이템에 사진·3D 파일 채워 넣기 ---------- */
+  const wardrobeEditBox = document.getElementById('wardrobe-edit-box');
+  const wardrobeEditName = document.getElementById('wardrobe-edit-name');
+  const wardrobeEditThumbnail = document.getElementById('wardrobe-edit-thumbnail');
+  const wardrobeEditGlb = document.getElementById('wardrobe-edit-glb');
+  const wardrobeEditStatus = document.getElementById('wardrobe-edit-status');
+  let editingItemId = null;
+
+  function openWardrobeEditBox(itemId, itemName){
+    editingItemId = itemId;
+    wardrobeEditName.textContent = itemName;
+    wardrobeEditThumbnail.value = '';
+    wardrobeEditGlb.value = '';
+    wardrobeEditStatus.textContent = '';
+    wardrobeEditBox.hidden = false;
+    wardrobeEditBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('wardrobe-edit-cancel-btn').addEventListener('click', () => {
+    wardrobeEditBox.hidden = true;
+    editingItemId = null;
+  });
+
+  document.getElementById('wardrobe-edit-save-btn').addEventListener('click', async () => {
+    if(!editingItemId) return;
+    const thumbnailFile = wardrobeEditThumbnail.files[0];
+    const glbFile = wardrobeEditGlb.files[0];
+    if(!thumbnailFile && !glbFile){
+      wardrobeEditStatus.textContent = '사진이나 3D 파일 중 하나는 선택해주세요.';
+      return;
+    }
+    wardrobeEditStatus.textContent = '저장하는 중...';
+    try{
+      const formData = new FormData();
+      if(thumbnailFile) formData.append('thumbnailFile', thumbnailFile, thumbnailFile.name);
+      if(glbFile) formData.append('glbFile', glbFile, glbFile.name);
+      const res = await fetch(`/api/wardrobe/${editingItemId}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      const data = await res.json();
+      if(data.ok){
+        wardrobeEditStatus.textContent = '저장됐어요!';
+        setTimeout(() => {
+          wardrobeEditBox.hidden = true;
+          editingItemId = null;
+          loadWardrobeBrowse(document.querySelector('.wardrobe-filter-chip.active')?.dataset.category || '');
+        }, 700);
+      } else {
+        wardrobeEditStatus.textContent = data.error || '저장에 실패했어요.';
+      }
+    } catch(err){
+      wardrobeEditStatus.textContent = '저장 중 오류가 발생했어요.';
+    }
+  });
+
+  /* ---------- 옷장 둘러보기 ---------- */
+  let wardrobeBrowseLoaded = false;
+  const wardrobeBrowseResults = document.getElementById('wardrobe-browse-results');
+  document.querySelectorAll('.wardrobe-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.wardrobe-filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      loadWardrobeBrowse(chip.dataset.category);
+    });
+  });
+
+  async function loadWardrobeBrowse(category){
+    wardrobeBrowseLoaded = true;
+    wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">불러오는 중...</p>';
+    try{
+      const url = category ? `/api/wardrobe?category=${encodeURIComponent(category)}` : '/api/wardrobe';
+      const res = await fetch(url);
+      const data = await res.json();
+      if(!data.items || data.items.length === 0){
+        wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">아직 등록된 아이템이 없어요.</p>';
+        return;
+      }
+      wardrobeBrowseResults.innerHTML = data.items.map(it => wardrobeCardHTML(it)).join('');
+      wireWearButtons(wardrobeBrowseResults, data.items);
+    } catch(err){
+      wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">옷장을 불러오지 못했어요.</p>';
+    }
+  }
+
+  /* ---------- 추천받기 ---------- */
+  const recommendResults = document.getElementById('recommend-results');
+  document.getElementById('recommend-btn').addEventListener('click', async () => {
+    const ageGroup = document.getElementById('recommend-age-select').value;
+    const occasion = document.getElementById('recommend-occasion-select').value;
+    if(!ageGroup){
+      recommendResults.innerHTML = '<p class="wardrobe-hint">연령대를 먼저 선택해주세요.</p>';
+      return;
+    }
+    recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 계산하는 중...</p>';
+    try{
+      const params = new URLSearchParams({ ageGroup });
+      if(occasion) params.set('occasion', occasion);
+      const res = await fetch(`/api/wardrobe/recommend?${params.toString()}`);
+      const data = await res.json();
+      if(!data.recommended || data.recommended.length === 0){
+        recommendResults.innerHTML = '<p class="wardrobe-hint">조건에 맞는 추천 아이템이 아직 없어요.</p>';
+        return;
+      }
+      recommendResults.innerHTML = data.recommended.map(it => wardrobeCardHTML(it, it.reason)).join('');
+      wireWearButtons(recommendResults, data.recommended);
+    } catch(err){
+      recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 불러오지 못했어요.</p>';
+    }
+  });
+
+  /* ---------- 내 아이템 올리기 ---------- */
+  const wardrobeUploadLoginNotice = document.getElementById('wardrobe-upload-login-notice');
+  const wardrobeUploadForm = document.getElementById('wardrobe-upload-form');
+  const uploadStatus = document.getElementById('upload-status');
+
+  function refreshWardrobeUploadAccess(){
+    const canUpload = !!(window.authState && window.authState.loggedIn);
+    wardrobeUploadLoginNotice.hidden = canUpload;
+    wardrobeUploadForm.hidden = !canUpload;
+  }
+  window.refreshWardrobeUploadAccess = refreshWardrobeUploadAccess; // 로그인 스크립트(classic script)에서도 호출할 수 있게 공유해요.
+
+  function readFileAsDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('upload-item-submit-btn').addEventListener('click', async () => {
+    const name = document.getElementById('upload-item-name').value.trim();
+    const category = document.getElementById('upload-item-category').value;
+    const color = document.getElementById('upload-item-color').value.trim();
+    const tags = Array.from(document.querySelectorAll('.upload-occasion:checked')).map(el => el.value);
+    const ageGroups = Array.from(document.querySelectorAll('.upload-agegroup:checked')).map(el => el.value);
+    const thumbnailFile = document.getElementById('upload-item-thumbnail').files[0];
+    const glbFile = document.getElementById('upload-item-glb').files[0];
+
+    if(!name){ uploadStatus.textContent = '이름을 입력해주세요.'; return; }
+    if(ageGroups.length === 0){ uploadStatus.textContent = '추천 연령대를 1개 이상 선택해주세요.'; return; }
+    if(!thumbnailFile){ uploadStatus.textContent = '썸네일 이미지를 선택해주세요.'; return; }
+
+    uploadStatus.textContent = '업로드하는 중...';
+    try{
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('category', category);
+      formData.append('color', color);
+      formData.append('tags', JSON.stringify(tags));
+      formData.append('ageGroups', JSON.stringify(ageGroups));
+      formData.append('thumbnailFile', thumbnailFile, thumbnailFile.name);
+      if(glbFile) formData.append('glbFile', glbFile, glbFile.name);
+
+      const res = await fetch('/api/wardrobe', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if(data.ok){
+        uploadStatus.textContent = '옷장에 올렸어요! "옷장 둘러보기" 탭에서 확인할 수 있어요.';
+        document.getElementById('upload-item-name').value = '';
+        document.getElementById('upload-item-color').value = '';
+        document.querySelectorAll('.upload-occasion, .upload-agegroup').forEach(el => { el.checked = false; });
+        document.getElementById('upload-item-thumbnail').value = '';
+        document.getElementById('upload-item-glb').value = '';
+        wardrobeBrowseLoaded = false;
+      } else {
+        uploadStatus.textContent = data.error || '업로드에 실패했어요.';
+      }
+    } catch(err){
+      uploadStatus.textContent = '업로드 중 오류가 발생했어요.';
+    }
+  });
+
+  refreshWardrobeUploadAccess();
+</script>
+</body>
+</html>
