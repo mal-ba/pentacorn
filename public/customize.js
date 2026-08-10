@@ -4,9 +4,23 @@
 // authState, bodyDataConsentGranted 는 index.html 쪽에서 window에 노출해둔 값을
 // 그대로 참조해요 (이 파일에서 따로 선언하지 않아요).
 
-  /* ---------- 원단 색상 실시간 미리보기 ---------- */
+  /* ---------- 원단 색상 실시간 미리보기 (3D 모드에서 옷을 입은 상태면 그 옷 색깔도 같이 바꿔요) ---------- */
   const fabricColorPreview = document.getElementById('fabric-color-preview');
   const fabricColorCustomInput = document.getElementById('fabric-color-custom');
+  const fabricColorGarmentNote = document.getElementById('fabric-color-garment-note');
+
+  function applyFabricColorToWornGarment(color){
+    if(typeof window.hasGarmentWorn === 'function' && window.hasGarmentWorn() && typeof window.applyGarmentColor === 'function'){
+      window.applyGarmentColor(color);
+      if(fabricColorGarmentNote){
+        fabricColorGarmentNote.textContent = '지금 입혀본 옷 색상에도 바로 반영됐어요.';
+        fabricColorGarmentNote.hidden = false;
+      }
+    } else if(fabricColorGarmentNote){
+      fabricColorGarmentNote.hidden = true;
+    }
+  }
+
   document.querySelectorAll('.color-swatch[data-color]').forEach(swatch => {
     swatch.addEventListener('click', () => {
       document.querySelectorAll('.color-swatch[data-color]').forEach(s => s.classList.remove('active'));
@@ -14,12 +28,14 @@
       const color = swatch.dataset.color;
       if(fabricColorPreview) fabricColorPreview.style.background = color;
       if(fabricColorCustomInput) fabricColorCustomInput.value = color;
+      applyFabricColorToWornGarment(color);
     });
   });
   if(fabricColorCustomInput){
     fabricColorCustomInput.addEventListener('input', () => {
       document.querySelectorAll('.color-swatch[data-color]').forEach(s => s.classList.remove('active'));
       if(fabricColorPreview) fabricColorPreview.style.background = fabricColorCustomInput.value;
+      applyFabricColorToWornGarment(fabricColorCustomInput.value);
     });
   }
 
@@ -102,6 +118,10 @@
   const wizardToStep2Btn = document.getElementById('wizard-to-step2-btn');
   const wizardToStep1Btn = document.getElementById('wizard-to-step1-btn');
   const wizardFinishBtn = document.getElementById('wizard-finish-btn');
+  const wizard3dOnlyBlock = document.getElementById('wizard-3d-only-block');
+  const scan2dCharacterPreview = document.getElementById('scan-2d-character-preview');
+  const scan2dCharacterImg = document.getElementById('scan-2d-character-img');
+  let currentDesignMode = '3d'; // '3d' 또는 '2d'
 
   function showWizardStep(step){
     const onStep1 = step === 1;
@@ -110,23 +130,52 @@
     wizardStepIndicator1.classList.toggle('active', onStep1);
     wizardStepIndicator2.classList.toggle('active', !onStep1);
     designModal.querySelector('.wizard-header').scrollIntoView({ block: 'nearest' });
+
+    // 2단계(꾸미기)로 넘어갈 때, 2D 모드면 방금 스캔한 사진을 "내 2D 캐릭터"로 보여줘요.
+    if(!onStep1){
+      const note = document.getElementById('wizard-2d-mode-note');
+      const is2D = currentDesignMode === '2d';
+      if(note) note.hidden = !is2D;
+      if(scan2dCharacterPreview){
+        const capturedImg = document.querySelector('#scan-photo-slot img');
+        if(is2D && capturedImg && capturedImg.src){
+          scan2dCharacterImg.src = capturedImg.src;
+          scan2dCharacterPreview.hidden = false;
+        } else {
+          scan2dCharacterPreview.hidden = true;
+        }
+      }
+    }
   }
 
-  // 3D 모드: 스캔·마네킹·옷장부터 시작해요.
+  // 3D 모드: 스캔 → 3D 마네킹·옷장 → 원단/색상 꾸미기로 이어지는 흐름이에요.
   function openDesignModal3D(){
+    currentDesignMode = '3d';
     designModal.hidden = false;
+    if(wizard3dOnlyBlock) wizard3dOnlyBlock.hidden = false;
+    setScanStepText(false);
     showWizardStep(1);
     if(typeof window.startMannequinViewerOnce === 'function'){
       window.startMannequinViewerOnce();
     }
   }
 
-  // 2D 모드: 3D 아바타 없이, 원단·디테일 선택 화면으로 바로 들어가요.
+  // 2D 모드: 3D 마네킹 없이, 스캔한 사진을 그대로 내 캐릭터로 써서 원단/색상/디테일만 꾸며요.
   function openDesignModal2D(){
+    currentDesignMode = '2d';
     designModal.hidden = false;
-    showWizardStep(2);
-    const note = document.getElementById('wizard-2d-mode-note');
-    if(note) note.hidden = false;
+    if(wizard3dOnlyBlock) wizard3dOnlyBlock.hidden = true; // 3D 마네킹·옷장 부분은 2D에선 필요 없어서 숨겨요.
+    setScanStepText(true);
+    showWizardStep(1);
+  }
+
+  function setScanStepText(is2D){
+    const title = document.getElementById('scan-step-title');
+    const desc = document.getElementById('scan-step-desc');
+    if(title) title.textContent = is2D ? '카메라로 내 2D 캐릭터 만들기' : '카메라로 체형 스캔해보기';
+    if(desc) desc.textContent = is2D
+      ? '정면 사진을 촬영하거나 업로드하면, 그 사진이 그대로 내 2D 캐릭터가 돼요. 다음 단계에서 원단·색상·디테일로 꾸며볼 수 있어요.'
+      : '정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)';
   }
 
   function closeDesignModal(){
@@ -140,8 +189,7 @@
   wizardToStep2Btn.addEventListener('click', () => showWizardStep(2));
   wizardToStep1Btn.addEventListener('click', () => {
     showWizardStep(1);
-    // 2D 모드로 들어와서 3D 마네킹이 아직 초기화 안 됐을 수 있어서, 이때 한 번 더 확인해요.
-    if(typeof window.startMannequinViewerOnce === 'function'){
+    if(currentDesignMode === '3d' && typeof window.startMannequinViewerOnce === 'function'){
       window.startMannequinViewerOnce();
     }
   });
