@@ -64,11 +64,16 @@ const PLAN_PRICES = {
 
 /* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
 
-// 업로드한 파일의 원래 이름을 최대한 그대로 살려서 저장해요 (경로 조작 방지를 위한
-// 위험한 문자만 걸러내요).
+// 업로드한 파일의 원래 이름을 최대한 살려서 저장하되, Supabase Storage 저장 경로에
+// 한글 등 비ASCII 문자가 들어가면 "Invalid key" 오류가 나는 알려진 버그가 있어서
+// (https://github.com/supabase/supabase/issues/22974), 저장 경로용 이름에서는
+// 한글 등을 밑줄로 바꿔요. 화면에 보이는 아이템 이름(name 필드)은 이 영향을 안 받고
+// 그대로 한글로 잘 표시돼요 — 이건 어디까지나 내부 저장 경로에만 해당돼요.
 function sanitizeFilename(originalName) {
   const base = path.basename(String(originalName));
-  const cleaned = base.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+  let cleaned = base.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+  cleaned = cleaned.replace(/[^\x00-\x7F]/g, '_'); // 비ASCII(한글 등) 문자를 밑줄로
+  cleaned = cleaned.replace(/_+/g, '_'); // 연속된 밑줄은 하나로 정리
   return cleaned.slice(0, 150) || 'file';
 }
 
