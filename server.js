@@ -72,6 +72,17 @@ function sanitizeFilename(originalName) {
   return cleaned.slice(0, 150) || 'file';
 }
 
+// multer(내부 busboy)가 한글 등 UTF-8 파일명을 라틴1로 잘못 해석해서 깨뜨리는
+// 잘 알려진 문제가 있어요. latin1로 잘못 읽힌 바이트를 다시 utf8로 되돌려줘요.
+function fixMulterFilenameEncoding(name) {
+  if (!name) return name;
+  try {
+    return Buffer.from(name, 'latin1').toString('utf8');
+  } catch (err) {
+    return name;
+  }
+}
+
 // Supabase Storage에 파일을 올리고, 누구나 접근 가능한 공개 URL을 돌려줘요.
 // itemId로 폴더를 나눠서, 서로 다른 아이템끼리 파일 이름이 겹쳐도 안전해요.
 // buffer는 원본 바이너리 그대로 받아요 (base64로 부풀리지 않아서 대용량 파일에도 안전해요).
@@ -425,11 +436,11 @@ app.post('/api/wardrobe', requireLogin, wardrobeUpload.fields([{ name: 'glbFile'
 
   try {
     if (glbFile) {
-      const uploaded = await uploadToWardrobeBucket(id, glbFile.buffer, glbFile.originalname || `${id}.glb`, 'model/gltf-binary');
+      const uploaded = await uploadToWardrobeBucket(id, glbFile.buffer, fixMulterFilenameEncoding(glbFile.originalname) || `${id}.glb`, 'model/gltf-binary');
       glbUrl = uploaded.publicUrl;
     }
     if (thumbnailFile) {
-      const uploaded = await uploadToWardrobeBucket(id, thumbnailFile.buffer, thumbnailFile.originalname || `${id}.png`, 'image/png');
+      const uploaded = await uploadToWardrobeBucket(id, thumbnailFile.buffer, fixMulterFilenameEncoding(thumbnailFile.originalname) || `${id}.png`, 'image/png');
       thumbnailUrl = uploaded.publicUrl;
     }
   } catch (err) {
@@ -485,12 +496,12 @@ app.put('/api/wardrobe/:id', requireLogin, wardrobeUpload.fields([{ name: 'glbFi
   try {
     if (glbFile) {
       await deleteFromWardrobeBucketIfManaged(item.glb_url);
-      const uploaded = await uploadToWardrobeBucket(item.id, glbFile.buffer, glbFile.originalname || `${item.id}.glb`, 'model/gltf-binary');
+      const uploaded = await uploadToWardrobeBucket(item.id, glbFile.buffer, fixMulterFilenameEncoding(glbFile.originalname) || `${item.id}.glb`, 'model/gltf-binary');
       updates.glb_url = uploaded.publicUrl;
     }
     if (thumbnailFile) {
       await deleteFromWardrobeBucketIfManaged(item.thumbnail_url);
-      const uploaded = await uploadToWardrobeBucket(item.id, thumbnailFile.buffer, thumbnailFile.originalname || `${item.id}.png`, 'image/png');
+      const uploaded = await uploadToWardrobeBucket(item.id, thumbnailFile.buffer, fixMulterFilenameEncoding(thumbnailFile.originalname) || `${item.id}.png`, 'image/png');
       updates.thumbnail_url = uploaded.publicUrl;
     }
   } catch (err) {
