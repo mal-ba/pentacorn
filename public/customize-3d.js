@@ -253,6 +253,12 @@
     makeupViewerStarted = true;
     initMakeupViewer();
   };
+  // 메이크업이 이제 탭이 아니라 독립된 섹션이라, 몸 마네킹과 같은 시점(모달이 열릴 때)에
+  // 3D 뷰어 시작 + 아이템 목록 불러오기를 같이 해줘요.
+  window.startMakeupSectionOnce = function(){
+    window.startMakeupViewerOnce();
+    if(!wardrobeMakeupLoaded) loadWardrobeMakeup();
+  };
 
   /* ---------- 메이크업 아이템 입혀보기 (얼굴 모델에만 붙어요, 몸 마네킹과는 무관해요) ---------- */
   let currentMakeupItem = null;
@@ -476,7 +482,6 @@
   const wardrobePanels = {
     recommend: document.getElementById('wardrobe-panel-recommend'),
     browse: document.getElementById('wardrobe-panel-browse'),
-    makeup: document.getElementById('wardrobe-panel-makeup'),
     upload: document.getElementById('wardrobe-panel-upload'),
   };
   wardrobeTabs.forEach(tab => {
@@ -487,10 +492,6 @@
         panel.hidden = key !== tab.dataset.tab;
       });
       if(tab.dataset.tab === 'browse' && !wardrobeBrowseLoaded) loadWardrobeBrowse('');
-      if(tab.dataset.tab === 'makeup'){
-        if(typeof window.startMakeupViewerOnce === 'function') window.startMakeupViewerOnce();
-        if(!wardrobeMakeupLoaded) loadWardrobeMakeup();
-      }
     });
   });
 
