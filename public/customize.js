@@ -158,6 +158,9 @@
     if(typeof window.startMannequinViewerOnce === 'function'){
       window.startMannequinViewerOnce();
     }
+    if(typeof window.startMakeupSectionOnce === 'function'){
+      window.startMakeupSectionOnce();
+    }
   }
 
   // 2D 모드: 3D 마네킹 없이, 스캔한 사진을 그대로 내 캐릭터로 써서 원단/색상/디테일만 꾸며요.
@@ -191,6 +194,9 @@
     showWizardStep(1);
     if(currentDesignMode === '3d' && typeof window.startMannequinViewerOnce === 'function'){
       window.startMannequinViewerOnce();
+    }
+    if(currentDesignMode === '3d' && typeof window.startMakeupSectionOnce === 'function'){
+      window.startMakeupSectionOnce();
     }
   });
   wizardFinishBtn.addEventListener('click', closeDesignModal);
