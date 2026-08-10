@@ -1,17 +1,121 @@
 // ====== makeup.js : 메인 페이지의 독립된 "메이크업" 구역 전용 스크립트 (module script, Three.js) ======
-// 체형 스캔(마네킹)과는 완전히 별개의 파일·장면을 써요. 3D 디자인 팝업(customize-3d.js)과도
-// 완전히 분리돼 있어서, 이 파일 하나만으로 메인 페이지에서 바로 얼굴 모델을 보여주고
-// 메이크업 아이템을 입혀볼 수 있어요.
+// 체형 스캔(마네킹)과는 완전히 별개의 흐름이에요.
+// STEP 1: 얼굴 사진을 찍거나 올려요 → STEP 2: 그 사진을 3D 얼굴 모델(makeup-face.glb)에
+// 입혀서 보여주고, 메이크업 소품(makeup-props.js)이나 업로드된 메이크업 아이템으로 꾸며요.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { MAKEUP_PROP_DEFS, recolorProp } from '/makeup-props.js';
 
+/* ==========================================================================
+   STEP 1 : 얼굴 스캔 (카메라 촬영 / 파일 업로드)
+   ========================================================================== */
+const scanStepEl = document.getElementById('makeup-scan-step');
+const threeDStepEl = document.getElementById('makeup-3d-step');
+const scanVideo = document.getElementById('makeup-scan-video');
+const scanCanvas = document.getElementById('makeup-scan-canvas');
+const scanStartBtn = document.getElementById('makeup-scan-start-btn');
+const scanCaptureBtn = document.getElementById('makeup-scan-capture-btn');
+const scanFileInput = document.getElementById('makeup-scan-file-input');
+const scanPhotoSlot = document.getElementById('makeup-scan-photo-slot');
+const scanConfirmBtn = document.getElementById('makeup-scan-confirm-btn');
+const rescanBtn = document.getElementById('makeup-rescan-btn');
+
+let scanStream = null;
+let capturedDataUrl = null;
+
+function showScanPhoto(dataUrl){
+  capturedDataUrl = dataUrl;
+  scanPhotoSlot.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  scanPhotoSlot.appendChild(img);
+  scanConfirmBtn.disabled = false;
+}
+
+function stopScanStream(){
+  if(scanStream){
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+}
+
+scanStartBtn.addEventListener('click', async () => {
+  try{
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    scanVideo.srcObject = scanStream;
+    scanStartBtn.hidden = true;
+    scanCaptureBtn.hidden = false;
+  } catch(err){
+    alert('카메라를 켤 수 없어요. 파일 업로드를 이용해주세요.');
+  }
+});
+
+scanCaptureBtn.addEventListener('click', () => {
+  scanCanvas.width = scanVideo.videoWidth;
+  scanCanvas.height = scanVideo.videoHeight;
+  scanCanvas.getContext('2d').drawImage(scanVideo, 0, 0);
+  showScanPhoto(scanCanvas.toDataURL('image/jpeg', 0.92));
+  stopScanStream();
+  scanCaptureBtn.hidden = true;
+  scanStartBtn.hidden = false;
+  scanStartBtn.textContent = '다시 촬영';
+});
+
+scanFileInput.addEventListener('change', () => {
+  const file = scanFileInput.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => showScanPhoto(reader.result);
+  reader.readAsDataURL(file);
+});
+
+scanConfirmBtn.addEventListener('click', () => {
+  if(!capturedDataUrl) return;
+  stopScanStream();
+  scanStepEl.hidden = true;
+  threeDStepEl.hidden = false;
+  threeDStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  startOrUpdateViewer(capturedDataUrl);
+});
+
+rescanBtn.addEventListener('click', () => {
+  threeDStepEl.hidden = true;
+  scanStepEl.hidden = false;
+  scanStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+/* ==========================================================================
+   STEP 2 : 3D 얼굴 뷰어 — 스캔한 사진을 얼굴 모델 텍스처로 입혀요.
+   ========================================================================== */
 const loadingEl = document.getElementById('landing-makeup-loading');
 const hintEl = document.getElementById('landing-makeup-hint');
 
 let scene, camera, renderer, controls;
 let faceModel = null;
 let faceDefaultHeight = 0;
+let viewerStarted = false;
+let pendingPhotoDataUrl = null;
+
+function applyPhotoTexture(dataUrl){
+  if(!faceModel) { pendingPhotoDataUrl = dataUrl; return; }
+  const loader = new THREE.TextureLoader();
+  loader.load(dataUrl, texture => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.flipY = true;
+    faceModel.traverse(node => {
+      if(node.isMesh && node.material){
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(mat => {
+          if('map' in mat){
+            mat.map = texture;
+            mat.needsUpdate = true;
+          }
+        });
+      }
+    });
+  });
+}
 
 function initViewer(){
   const container = document.getElementById('landing-makeup-3d');
@@ -57,6 +161,12 @@ function initViewer(){
 
       if(loadingEl) loadingEl.hidden = true;
       if(hintEl) hintEl.hidden = false;
+
+      if(pendingPhotoDataUrl){
+        applyPhotoTexture(pendingPhotoDataUrl);
+        pendingPhotoDataUrl = null;
+      }
+      renderMakeupPropsPanel();
     },
     undefined,
     err => {
@@ -80,7 +190,99 @@ function initViewer(){
   });
 }
 
-/* ---------- 메이크업 아이템 입혀보기 ---------- */
+function startOrUpdateViewer(photoDataUrl){
+  if(!viewerStarted){
+    viewerStarted = true;
+    initViewer();
+    applyPhotoTexture(photoDataUrl); // faceModel이 아직 없으면 pendingPhotoDataUrl로 대기했다가, 로드되면 자동 적용돼요.
+    loadMakeupWardrobe();
+  } else {
+    applyPhotoTexture(photoDataUrl);
+  }
+}
+
+/* ==========================================================================
+   메이크업 소품(코드로 만든 오브젝트)으로 꾸미기 — makeup-props.js
+   ========================================================================== */
+const propsGridEl = document.getElementById('makeup-props-grid');
+const activeProps = {}; // { propId: { object3d } }
+
+function propCardHTML(def){
+  return `
+    <div class="makeup-prop-card" id="makeup-prop-card-${def.id}">
+      <div class="makeup-prop-card-head">
+        <span class="makeup-prop-card-label">${def.label}</span>
+        <input type="color" class="makeup-prop-color" data-prop-id="${def.id}" value="${def.defaultColor}">
+      </div>
+      <button type="button" class="btn btn-ghost-dark makeup-prop-toggle-btn" data-prop-id="${def.id}">추가하기</button>
+      <div class="makeup-prop-fine-tune" data-prop-id="${def.id}" hidden>
+        <label>좌우 <input type="range" class="prop-x" data-prop-id="${def.id}" min="-0.3" max="0.3" step="0.005" value="0"></label>
+        <label>위아래 <input type="range" class="prop-y" data-prop-id="${def.id}" min="-0.3" max="0.3" step="0.005" value="0"></label>
+        <label>크기 <input type="range" class="prop-scale" data-prop-id="${def.id}" min="0.3" max="2.5" step="0.01" value="1"></label>
+      </div>
+    </div>`;
+}
+
+function renderMakeupPropsPanel(){
+  if(!propsGridEl) return;
+  propsGridEl.innerHTML = MAKEUP_PROP_DEFS.map(propCardHTML).join('');
+
+  propsGridEl.querySelectorAll('.makeup-prop-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleProp(btn.dataset.propId));
+  });
+  propsGridEl.querySelectorAll('.makeup-prop-color').forEach(input => {
+    input.addEventListener('input', () => {
+      const active = activeProps[input.dataset.propId];
+      if(active) recolorProp(active.object3d, input.value);
+    });
+  });
+  propsGridEl.querySelectorAll('.prop-x, .prop-y, .prop-scale').forEach(input => {
+    input.addEventListener('input', () => updatePropTransform(input.dataset.propId));
+  });
+}
+
+function updatePropTransform(propId){
+  const active = activeProps[propId];
+  if(!active) return;
+  const def = MAKEUP_PROP_DEFS.find(d => d.id === propId);
+  const card = document.getElementById(`makeup-prop-card-${propId}`);
+  const dx = parseFloat(card.querySelector('.prop-x').value);
+  const dy = parseFloat(card.querySelector('.prop-y').value);
+  const s = parseFloat(card.querySelector('.prop-scale').value);
+  active.object3d.position.set(def.position[0] + dx, def.position[1] + dy, def.position[2]);
+  active.object3d.scale.set(s, s, s);
+}
+
+function toggleProp(propId){
+  const def = MAKEUP_PROP_DEFS.find(d => d.id === propId);
+  const card = document.getElementById(`makeup-prop-card-${propId}`);
+  const toggleBtn = card.querySelector('.makeup-prop-toggle-btn');
+  const fineTune = card.querySelector('.makeup-prop-fine-tune');
+  const colorInput = card.querySelector('.makeup-prop-color');
+
+  if(activeProps[propId]){
+    // 이미 추가돼 있으면 빼요.
+    faceModel.remove(activeProps[propId].object3d);
+    delete activeProps[propId];
+    toggleBtn.textContent = '추가하기';
+    fineTune.hidden = true;
+    return;
+  }
+  if(!faceModel){
+    alert('얼굴 모델을 아직 불러오는 중이에요. 잠시만 기다려주세요.');
+    return;
+  }
+  const object3d = def.create(colorInput.value);
+  object3d.position.set(def.position[0], def.position[1], def.position[2]);
+  faceModel.add(object3d);
+  activeProps[propId] = { object3d };
+  toggleBtn.textContent = '빼기';
+  fineTune.hidden = false;
+}
+
+/* ==========================================================================
+   업로드된 메이크업 아이템(.glb) 입혀보기 — 소품과는 별개로, 옷장에 올라온 아이템이에요.
+   ========================================================================== */
 let currentItem = null;
 const fitControls = document.getElementById('landing-makeup-fit-controls');
 const statusEl = document.getElementById('landing-makeup-status');
@@ -92,14 +294,14 @@ const colorInput = document.getElementById('landing-makeup-color');
 const colorResetBtn = document.getElementById('landing-makeup-color-reset-btn');
 const removeBtn = document.getElementById('landing-makeup-remove-btn');
 
-function updateTransform(){
+function updateItemTransform(){
   if(!currentItem) return;
   currentItem.position.set(parseFloat(xInput.value), parseFloat(yInput.value), parseFloat(zInput.value));
   const s = parseFloat(scaleInput.value);
   currentItem.scale.set(s, s, s);
 }
 
-function applyColor(hexColor){
+function applyItemColor(hexColor){
   if(!currentItem) return;
   currentItem.traverse(node => {
     if(node.isMesh && node.material){
@@ -143,7 +345,7 @@ function wearItemFromUrl(url, label){
       zInput.value = 0;
       scaleInput.value = autoScale.toFixed(2);
       colorInput.value = '#ffffff';
-      updateTransform();
+      updateItemTransform();
       fitControls.hidden = false;
       statusEl.textContent = `${label || '메이크업'}을(를) 적용했어요! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
       fitControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -156,15 +358,15 @@ function wearItemFromUrl(url, label){
 }
 
 if(xInput && yInput && zInput && scaleInput){
-  [xInput, yInput, zInput, scaleInput].forEach(el => el.addEventListener('input', updateTransform));
+  [xInput, yInput, zInput, scaleInput].forEach(el => el.addEventListener('input', updateItemTransform));
 }
 if(colorInput){
-  colorInput.addEventListener('input', () => applyColor(colorInput.value));
+  colorInput.addEventListener('input', () => applyItemColor(colorInput.value));
 }
 if(colorResetBtn){
   colorResetBtn.addEventListener('click', () => {
     colorInput.value = '#ffffff';
-    applyColor('#ffffff');
+    applyItemColor('#ffffff');
   });
 }
 if(removeBtn){
@@ -178,7 +380,6 @@ if(removeBtn){
   });
 }
 
-/* ---------- 메이크업 아이템 목록 불러오기 ---------- */
 const resultsEl = document.getElementById('landing-makeup-results');
 
 function cardHTML(item){
@@ -206,9 +407,9 @@ function wireWearButtons(items){
   });
 }
 
-let loaded = false;
+let wardrobeLoaded = false;
 async function loadMakeupWardrobe(){
-  loaded = true;
+  wardrobeLoaded = true;
   resultsEl.innerHTML = '<p class="wardrobe-hint">불러오는 중...</p>';
   try{
     const res = await fetch('/api/wardrobe?category=makeup');
@@ -226,10 +427,6 @@ async function loadMakeupWardrobe(){
 
 // 3D 디자인 팝업에서 새 메이크업 아이템을 올렸을 때, 이 구역의 목록도 새로고침할 수 있게 열어둬요.
 window.refreshMakeupWardrobe = function(){
-  loaded = false;
-  loadMakeupWardrobe();
+  wardrobeLoaded = false;
+  if(viewerStarted) loadMakeupWardrobe();
 };
-
-// 메인 페이지에 이 구역이 항상 보이니, 팝업의 탭 클릭을 기다리지 않고 바로 시작해요.
-initViewer();
-loadMakeupWardrobe();
