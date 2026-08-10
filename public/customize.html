@@ -13,8 +13,8 @@
     <div class="wizard-panel" id="wizard-panel-scan">
       <div class="sec-head" style="text-align:left; margin-bottom:20px;">
         <div class="eyebrow">STEP 1</div>
-        <h2 class="serif" style="font-size:26px;">카메라로 체형 스캔해보기</h2>
-        <p>정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
+        <h2 class="serif" style="font-size:26px;" id="scan-step-title">카메라로 체형 스캔해보기</h2>
+        <p id="scan-step-desc">정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
       </div>
       <div class="scan-wrap">
         <div class="scan-camera">
@@ -43,6 +43,7 @@
             <label for="scan-height-input">키 (cm)</label>
             <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
           </div>
+          <div id="wizard-3d-only-block">
           <div class="scan-height-row">
             <label for="scan-nickname-input">머리 위 이름</label>
             <input type="text" id="scan-nickname-input" maxlength="16" placeholder="예: 홍길동">
@@ -177,6 +178,7 @@
             </div>
             <p class="garment-status" id="garment-status"></p>
           </div>
+          </div>
         </div>
       </div>
       <div class="wizard-actions">
@@ -191,7 +193,10 @@
         <h2 class="serif" style="font-size:26px;">원단·디테일을 선택해보세요</h2>
         <p>실제 제작 비용은 원단·디테일·완성도에 따라 달라집니다. 아래에서 직접 옵션을 눌러보세요.</p>
       </div>
-      <p class="wardrobe-hint" id="wizard-2d-mode-note" hidden>2D 모드로 진행 중이에요 — 3D 아바타 없이 원단·디테일만 빠르게 골라볼 수 있어요. 3D로 입혀보고 싶으면 아래 "이전: 스캔으로 돌아가기"를 눌러주세요.</p>
+      <p class="wardrobe-hint" id="wizard-2d-mode-note" hidden>2D 모드로 진행 중이에요 — 방금 스캔한 사진이 내 2D 캐릭터예요. 아래에서 원단·색상·디테일을 골라 꾸며보세요.</p>
+      <div class="scan-2d-character-preview" id="scan-2d-character-preview" hidden>
+        <img id="scan-2d-character-img" alt="내 2D 캐릭터">
+      </div>
       <div class="calc-wrap">
         <div class="calc-options">
           <div class="calc-group">
@@ -208,6 +213,7 @@
                 <input type="color" id="fabric-color-custom" value="#f5f2ea">
               </label>
             </div>
+            <p class="wardrobe-hint" id="fabric-color-garment-note" hidden></p>
           </div>
           <div class="calc-group">
             <div class="calc-label">원단 등급</div>
