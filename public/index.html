@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UNEXPOSED — 데모</title>
+<script>
+  // 주소 끝에 ?debug=1 을 붙였을 때만 폰용 개발자 도구가 보이게 해요.
+  // (일반 방문자한테는 안 보이고, 디버깅할 때만 켜서 볼 수 있어요)
+  if(new URLSearchParams(window.location.search).get('debug') === '1'){
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+    s.onload = () => eruda.init();
+    document.head.appendChild(s);
+  }
+</script>
+<!-- ↑ 임시 디버깅용 (폰에서 콘솔 에러 확인용) — 문제 해결되면 이 블록은 지워도 돼요 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -11,8 +22,8 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
   }
 }
 </script>
@@ -108,6 +119,7 @@
   }
   .support-msg{
     max-width:85%; padding:10px 13px; border-radius:14px; font-size:13px; line-height:1.55;
+    white-space:pre-line;
   }
   .support-msg.bot{ background:var(--mist); align-self:flex-start; border-bottom-left-radius:4px; }
   .support-msg.user{ background:var(--deep); color:var(--paper); align-self:flex-end; border-bottom-right-radius:4px; }
@@ -133,6 +145,39 @@
     position:fixed; inset:0; background:rgba(15,46,44,0.35); z-index:290;
   }
   .support-overlay-bg[hidden], .support-panel[hidden]{ display:none; }
+
+  /* ---------- 엔딩 크레딧 연출 ---------- */
+  .credits-overlay{
+    position:fixed; inset:0; background:#000; z-index:400;
+    overflow:hidden; display:flex; align-items:flex-start; justify-content:center;
+  }
+  .credits-overlay[hidden]{ display:none; }
+  .credits-scroll{
+    position:absolute; left:0; right:0; top:100%;
+    display:flex; flex-direction:column; align-items:center; gap:38px;
+    padding:0 8vw;
+    animation:credits-roll linear forwards;
+  }
+  .credits-scroll .credits-line{
+    font-family:'Fraunces', serif; font-weight:500; font-style:italic;
+    font-size:22px; color:#F5F2EA; text-align:center; line-height:1.5;
+    text-shadow:0 0 18px rgba(245,242,234,0.15);
+  }
+  .credits-scroll .credits-brand{
+    font-family:'Fraunces', serif; font-weight:600; font-size:15px;
+    color:#6FB8C2; letter-spacing:0.12em; text-transform:uppercase; margin-top:20px;
+  }
+  @media(min-width:640px){ .credits-scroll .credits-line{ font-size:30px; } }
+  @keyframes credits-roll{
+    from{ transform:translateY(0); }
+    to{ transform:translateY(-220%); }
+  }
+  .credits-close-btn{
+    position:fixed; top:20px; right:20px; z-index:401;
+    width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
+    background:rgba(255,255,255,0.08); color:#F5F2EA; font-size:15px; cursor:pointer;
+  }
+  .credits-close-btn:hover{ background:rgba(255,255,255,0.18); }
 
   /* ---------- HERO ---------- */
   .hero{
@@ -416,6 +461,13 @@
     position:absolute; bottom:8px; left:0; right:0; text-align:center;
     font-size:11px; color:var(--paper); opacity:0.55; pointer-events:none;
   }
+  .scan-nameplate{
+    position:absolute; top:0; left:0; transform:translate(-50%, -100%);
+    background:rgba(15,46,44,0.85); color:var(--paper); font-weight:700; font-size:12px;
+    padding:4px 12px; border-radius:999px; white-space:nowrap; pointer-events:none;
+    z-index:5; border:1px solid rgba(255,255,255,0.25);
+  }
+  .scan-nameplate[hidden]{ display:none; }
   .scan-status{ font-size:13px; color:var(--star-dark); font-weight:600; min-height:18px; }
 
   /* ---------- 옷장 & 꾸미기 ---------- */
@@ -510,6 +562,11 @@
     display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);
   }
   .garment-fit-controls input[type="range"]{ flex:1; }
+  .garment-fit-controls input[type="color"]{
+    width:48px; height:28px; border-radius:6px; border:1px solid var(--line); padding:2px; cursor:pointer;
+  }
+  .garment-fit-actions{ display:flex; gap:10px; margin-top:4px; }
+  .garment-fit-actions .btn{ flex:1; justify-content:center; font-size:12px; padding:9px; }
   .garment-status{ font-size:12.5px; color:var(--star-dark); font-weight:600; margin-top:8px; min-height:16px; }
 
   .calc-custom{
@@ -895,8 +952,6 @@
   <div class="footer-social">
     <a href="https://www.instagram.com/jaehoon703/?hl=ko" target="_blank" rel="noopener noreferrer">Instagram</a>
     <span class="dot">·</span>
-    <a href="https://github.com/mal-ba" target="_blank" rel="noopener noreferrer">GitHub</a>
-    <span class="dot">·</span>
     <a href="https://www.meshy.ai/ko/@s17789845805bd65" target="_blank" rel="noopener noreferrer">Meshy AI</a>
   </div>
 </footer>
@@ -945,9 +1000,14 @@
             <label for="scan-height-input">키 (cm)</label>
             <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
           </div>
+          <div class="scan-height-row">
+            <label for="scan-nickname-input">머리 위 이름</label>
+            <input type="text" id="scan-nickname-input" maxlength="16" placeholder="예: 홍길동">
+          </div>
           <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
           <div class="scan-avatar-box">
             <div id="scan-avatar-3d"></div>
+            <div class="scan-nameplate" id="scan-nameplate" hidden></div>
             <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
             <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
           </div>
@@ -991,6 +1051,7 @@
                 <button class="wardrobe-filter-chip" data-category="outer">아우터</button>
                 <button class="wardrobe-filter-chip" data-category="accessory">장신구</button>
                 <button class="wardrobe-filter-chip" data-category="shoes">신발</button>
+                <button class="wardrobe-filter-chip" data-category="hair">헤어</button>
               </div>
               <div class="wardrobe-grid" id="wardrobe-browse-results"></div>
               <div class="wardrobe-edit-box" id="wardrobe-edit-box" hidden>
@@ -1022,6 +1083,7 @@
                     <option value="outer">아우터</option>
                     <option value="accessory">장신구</option>
                     <option value="shoes">신발</option>
+                    <option value="hair">헤어</option>
                   </select>
                 </label>
                 <label>색상
@@ -1055,10 +1117,14 @@
             <div class="garment-fit-controls" id="garment-controls" hidden>
               <div class="calc-label">입은 아이템 위치 맞추기</div>
               <label>앞뒤 <input type="range" id="garment-x" min="-0.5" max="0.5" step="0.01" value="0"></label>
-              <label>높이 <input type="range" id="garment-y" min="-0.5" max="0.5" step="0.01" value="0"></label>
+              <label>높이 <input type="range" id="garment-y" min="-1.5" max="1.5" step="0.01" value="0"></label>
               <label>좌우 <input type="range" id="garment-z" min="-0.5" max="0.5" step="0.01" value="0"></label>
               <label>크기 <input type="range" id="garment-scale" min="0.02" max="5" step="0.01" value="1"></label>
-              <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
+              <label>색상 <input type="color" id="garment-color" value="#ffffff"></label>
+              <div class="garment-fit-actions">
+                <button id="garment-color-reset-btn" class="btn btn-ghost-dark" type="button">색상 초기화</button>
+                <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
+              </div>
             </div>
             <p class="garment-status" id="garment-status"></p>
           </div>
@@ -1210,6 +1276,11 @@
   </div>
 </div>
 
+<div class="credits-overlay" id="credits-overlay" hidden>
+  <div class="credits-scroll" id="credits-scroll"></div>
+  <button class="credits-close-btn" id="credits-close-btn" type="button" aria-label="닫기">✕</button>
+</div>
+
 <script>
   /* ---------- 텍스트 복사 방지 ---------- */
   document.addEventListener('copy', e => e.preventDefault());
@@ -1217,6 +1288,15 @@
 
   /* ---------- 문의 챗봇 (규칙 기반 FAQ) ---------- */
   (function initSupportChat(){
+    const LIFE_QUOTES = [
+      '태어난 순간부터 지금까지, 단 1초도 진짜 행복했던 적이 없어.',
+      '웃고 있어도 속은 텅 비어있다는 거, 아무도 안 믿더라.',
+      '괜찮은 척하는 데 평생을 썼는데, 정작 괜찮았던 적은 없어.',
+      '다들 나보고 웃으라는데, 정작 왜 웃어야 하는지는 아무도 안 알려줬어.',
+      '가장 슬픈 건, 슬프다는 것조차 아무도 눈치 못 챈다는 거야.',
+      '행복은 남의 얘기인 줄 알았는데, 진짜로 남의 얘기였더라고.',
+    ];
+
     const KNOWLEDGE_BASE = [
       {
         keywords: ['스캔', '카메라', '촬영', '녹화'],
@@ -1253,6 +1333,11 @@
       {
         keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'pentacorp', '펜타콘'],
         answer: 'UNEXPOSED는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
+      },
+      {
+        keywords: ['인생'],
+        answer: LIFE_QUOTES.join('\n'),
+        action: 'lifeCredits',
       },
     ];
 
@@ -1303,8 +1388,10 @@
           best = entry;
         }
       });
-      if(best) return best.answer;
-      return '죄송해요, 정확히 이해하지 못했어요. 아래 추천 질문 중 하나를 눌러보시거나, 스캔·로그인·결제·원단·옷장 중 어떤 부분이 궁금한지 다시 말씀해주시겠어요?';
+      if(best) return best;
+      return {
+        answer: '죄송해요, 정확히 이해하지 못했어요. 아래 추천 질문 중 하나를 눌러보시거나, 스캔·로그인·결제·원단·옷장 중 어떤 부분이 궁금한지 다시 말씀해주시겠어요?',
+      };
     }
 
     function handleUserMessage(text){
@@ -1313,7 +1400,9 @@
       addMessage(trimmed, 'user');
       input.value = '';
       setTimeout(() => {
-        addMessage(findAnswer(trimmed), 'bot');
+        const matched = findAnswer(trimmed);
+        addMessage(matched.answer, 'bot');
+        if(matched.action === 'lifeCredits') showCreditsRoll(LIFE_QUOTES);
       }, 300);
     }
 
@@ -1330,6 +1419,44 @@
       panel.classList.remove('open');
       overlay.hidden = true;
     }
+
+    /* ---------- 엔딩 크레딧처럼 문구가 올라가는 연출 ---------- */
+    const creditsOverlay = document.getElementById('credits-overlay');
+    const creditsScroll = document.getElementById('credits-scroll');
+    const creditsCloseBtn = document.getElementById('credits-close-btn');
+
+    function showCreditsRoll(lines){
+      creditsScroll.innerHTML = '';
+      lines.forEach(line => {
+        const p = document.createElement('div');
+        p.className = 'credits-line';
+        p.textContent = line;
+        creditsScroll.appendChild(p);
+      });
+      const brand = document.createElement('div');
+      brand.className = 'credits-brand';
+      brand.textContent = 'UNEXPOSED';
+      creditsScroll.appendChild(brand);
+
+      const durationMs = 3200 + lines.length * 1600;
+      creditsScroll.style.animationDuration = `${durationMs}ms`;
+      // 애니메이션을 처음부터 다시 재생시키기 위해 강제로 리플로우해요.
+      creditsScroll.style.animation = 'none';
+      void creditsScroll.offsetHeight;
+      creditsScroll.style.animation = `credits-roll ${durationMs}ms linear forwards`;
+
+      creditsOverlay.hidden = false;
+      const autoCloseTimer = setTimeout(closeCreditsRoll, durationMs + 400);
+      creditsOverlay.dataset.timerId = autoCloseTimer;
+    }
+    function closeCreditsRoll(){
+      creditsOverlay.hidden = true;
+      if(creditsOverlay.dataset.timerId) clearTimeout(Number(creditsOverlay.dataset.timerId));
+    }
+    creditsCloseBtn.addEventListener('click', closeCreditsRoll);
+    creditsOverlay.addEventListener('click', e => {
+      if(e.target === creditsOverlay) closeCreditsRoll();
+    });
 
     openBtn.addEventListener('click', openPanel);
     closeBtn.addEventListener('click', closePanel);
@@ -1931,11 +2058,14 @@
 
   const scanAvatarLoading = document.getElementById('scan-avatar-loading');
   const scanAvatarHint = document.getElementById('scan-avatar-hint');
+  const scanNicknameInput = document.getElementById('scan-nickname-input');
+  const scanNameplate = document.getElementById('scan-nameplate');
 
   /* ---------- 3D 마네킹 뷰어 (Three.js) ---------- */
   let scanScene, scanCamera, scanRenderer, scanControls;
   let scanMannequin = null;
   let scanMannequinDefaultHeight = 0; // 원본(스케일 1) 상태의 모델 높이(scene 단위)
+  let scanMannequinDefaultMinY = 0; // 원본(스케일 1) 상태에서 발끝의 y좌표 (옷을 입혀도 이 값은 안 바뀌어요)
   let scanMannequinWidthRatio = 1; // 모델 너비(팔 벌린 폭) / 키 비율
 
   function initMannequinViewer(){
@@ -1970,13 +2100,14 @@
 
     const loader = new GLTFLoader();
     loader.load(
-      '/models/mannequin.glb?v=3',
+      '/models/mannequin.glb?v=4',
       gltf => {
         scanMannequin = gltf.scene;
         scanScene.add(scanMannequin);
 
         const box0 = new THREE.Box3().setFromObject(scanMannequin);
         scanMannequinDefaultHeight = box0.max.y - box0.min.y;
+        scanMannequinDefaultMinY = box0.min.y;
         const defaultWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
         scanMannequinWidthRatio = defaultWidth / scanMannequinDefaultHeight;
 
@@ -1995,6 +2126,7 @@
       requestAnimationFrame(renderLoop);
       if(scanControls) scanControls.update();
       if(scanRenderer && scanScene && scanCamera) scanRenderer.render(scanScene, scanCamera);
+      updateNameplatePosition(container);
     })();
 
     window.addEventListener('resize', () => {
@@ -2036,12 +2168,35 @@
     const scale = targetMeters / scanMannequinDefaultHeight;
     scanMannequin.scale.set(scale, scale, scale);
 
-    // 스케일 후 발이 바닥(y=0)에 붙도록 재조정
-    const box = new THREE.Box3().setFromObject(scanMannequin);
-    scanMannequin.position.y -= box.min.y;
+    // 발이 바닥(y=0)에 붙도록 재조정해요. 몸(마네킹) 자체의 원래 발끝 위치만 기준으로
+    // 계산해서, 옷을 입혀도(자식으로 붙어있어도) 그 옷 때문에 몸 전체 위치가
+    // 틀어지지 않게 해요.
+    scanMannequin.position.y = -scale * scanMannequinDefaultMinY;
 
     lastAppliedHeightMeters = targetMeters;
     frameCameraToFullBody(targetMeters);
+
+    // 머리 위 이름표: 입력한 이름이 있으면 그걸, 없으면 로그인한 이름을, 그것도 없으면 "게스트"를 표시해요.
+    const typedName = scanNicknameInput ? scanNicknameInput.value.trim() : '';
+    const fallbackName = '홍길동'; // 로그인 계정의 실제 이름을 자동으로 노출하지 않고, 이름을 안 적으면 예시 이름을 보여줘요.
+    if(scanNameplate){
+      scanNameplate.textContent = typedName || fallbackName;
+      scanNameplate.hidden = false;
+    }
+  }
+
+  // 매 프레임마다 머리 위(3D 좌표)를 화면 좌표로 변환해서, 카메라를 돌려도
+  // 이름표가 항상 머리 위에 붙어 따라오게 해요.
+  function updateNameplatePosition(container){
+    if(!scanNameplate || scanNameplate.hidden || !scanCamera || !scanMannequin) return;
+    const headWorldPos = new THREE.Vector3(0, lastAppliedHeightMeters + 0.14, 0);
+    const ndc = headWorldPos.project(scanCamera);
+    if(ndc.z > 1){ scanNameplate.style.display = 'none'; return; }
+    scanNameplate.style.display = 'block';
+    const x = (ndc.x * 0.5 + 0.5) * container.clientWidth;
+    const y = (-(ndc.y * 0.5) + 0.5) * container.clientHeight;
+    scanNameplate.style.left = `${x}px`;
+    scanNameplate.style.top = `${y}px`;
   }
 
   window.applyHeightToMannequin = applyHeightToMannequin;
@@ -2063,7 +2218,24 @@
   const garmentY = document.getElementById('garment-y');
   const garmentZ = document.getElementById('garment-z');
   const garmentScaleInput = document.getElementById('garment-scale');
+  const garmentColorInput = document.getElementById('garment-color');
+  const garmentColorResetBtn = document.getElementById('garment-color-reset-btn');
   const garmentRemoveBtn = document.getElementById('garment-remove-btn');
+
+  function applyGarmentColor(hexColor){
+    if(!currentGarment) return;
+    currentGarment.traverse(node => {
+      if(node.isMesh && node.material){
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(mat => {
+          if(mat.color){
+            mat.color.set(hexColor);
+            mat.needsUpdate = true;
+          }
+        });
+      }
+    });
+  }
 
   function updateGarmentTransform(){
     if(!currentGarment) return;
@@ -2076,7 +2248,7 @@
     currentGarment.scale.set(s, s, s);
   }
 
-  function wearGarmentFromUrl(url, label){
+  function wearGarmentFromUrl(url, label, category){
     if(!scanMannequin){
       garmentStatus.textContent = '먼저 마네킹이 다 불러와질 때까지 잠시 기다려주세요.';
       return;
@@ -2105,13 +2277,21 @@
           autoScale = Math.min(Math.max(autoScale, 0.02), 5);
         }
 
+        // 마네킹의 기준점(원점)이 대략 배·허리 높이에 있어서, 아무 위치 지정 없이 입히면
+        // 전부 그 지점에서 시작해요. 카테고리별로 대략적인 시작 높이를 잡아줘서
+        // "일단 배에서 시작" 하는 문제를 줄여요 (그래도 정확한 위치는 슬라이더로 맞춰야 해요).
+        const categoryYOffset = {
+          top: 0.35, outer: 0.35, hair: 1.05, shoes: -0.95, bottom: -0.55, accessory: 0.3,
+        }[category] || 0;
+
         garmentX.value = 0;
-        garmentY.value = 0;
+        garmentY.value = categoryYOffset.toFixed(2);
         garmentZ.value = 0;
         garmentScaleInput.value = autoScale.toFixed(2);
+        garmentColorInput.value = '#ffffff';
         updateGarmentTransform();
         garmentControls.hidden = false;
-        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 크기·위치가 안 맞으면 슬라이더로 맞춰보세요.`;
+        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
         garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       },
       undefined,
@@ -2123,6 +2303,12 @@
 
   [garmentX, garmentY, garmentZ, garmentScaleInput].forEach(el => {
     el.addEventListener('input', updateGarmentTransform);
+  });
+
+  garmentColorInput.addEventListener('input', () => applyGarmentColor(garmentColorInput.value));
+  garmentColorResetBtn.addEventListener('click', () => {
+    garmentColorInput.value = '#ffffff';
+    applyGarmentColor('#ffffff');
   });
 
   garmentRemoveBtn.addEventListener('click', () => {
@@ -2152,7 +2338,7 @@
     });
   });
 
-  const CATEGORY_LABEL = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발' };
+  const CATEGORY_LABEL = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발', hair: '헤어' };
 
   function wardrobeCardHTML(item, reason){
     const thumb = item.thumbnailUrl
@@ -2180,7 +2366,7 @@
     container.querySelectorAll('button[data-item-id]').forEach(btn => {
       const item = items.find(it => it.id === btn.dataset.itemId);
       if(!item || !item.glbUrl) return;
-      btn.addEventListener('click', () => wearGarmentFromUrl(item.glbUrl, item.name));
+      btn.addEventListener('click', () => wearGarmentFromUrl(item.glbUrl, item.name, item.category));
     });
     container.querySelectorAll('.wardrobe-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => openWardrobeEditBox(btn.dataset.editItemId, btn.dataset.editItemName));
@@ -2220,12 +2406,12 @@
     }
     wardrobeEditStatus.textContent = '저장하는 중...';
     try{
-      const thumbnailBase64 = thumbnailFile ? await readFileAsDataUrl(thumbnailFile) : null;
-      const glbFileBase64 = glbFile ? await readFileAsDataUrl(glbFile) : null;
+      const formData = new FormData();
+      if(thumbnailFile) formData.append('thumbnailFile', thumbnailFile, thumbnailFile.name);
+      if(glbFile) formData.append('glbFile', glbFile, glbFile.name);
       const res = await fetch(`/api/wardrobe/${editingItemId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thumbnailBase64, glbFileBase64 }),
+        body: formData,
       });
       const data = await res.json();
       if(data.ok){
@@ -2334,12 +2520,18 @@
 
     uploadStatus.textContent = '업로드하는 중...';
     try{
-      const thumbnailBase64 = await readFileAsDataUrl(thumbnailFile);
-      const glbFileBase64 = glbFile ? await readFileAsDataUrl(glbFile) : null;
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('category', category);
+      formData.append('color', color);
+      formData.append('tags', JSON.stringify(tags));
+      formData.append('ageGroups', JSON.stringify(ageGroups));
+      formData.append('thumbnailFile', thumbnailFile, thumbnailFile.name);
+      if(glbFile) formData.append('glbFile', glbFile, glbFile.name);
+
       const res = await fetch('/api/wardrobe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, category, color, tags, ageGroups, thumbnailBase64, glbFileBase64 }),
+        body: formData,
       });
       const data = await res.json();
       if(data.ok){
