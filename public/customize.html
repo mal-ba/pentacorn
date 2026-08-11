@@ -329,11 +329,47 @@
           <div class="calc-total-amount serif" id="calc-total">30,000원</div>
           <div class="calc-total-note">기본 제작비 30,000원 + 선택 옵션</div>
         </div>
+        <button class="btn btn-primary" id="order-open-btn" type="button" style="width:100%; margin-top:8px;">주문하기 →</button>
       </div>
       <div class="wizard-actions">
         <button class="btn btn-ghost-dark" id="wizard-to-step1-btn" type="button">← 이전: 스캔으로 돌아가기</button>
         <button class="btn btn-primary" id="wizard-finish-btn" type="button">완료</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 주문 전 배송지 입력 + 동의 모달 -->
+<div class="modal-overlay" id="order-modal" hidden>
+  <div class="modal-box consent-box">
+    <h3 class="serif" style="font-size:20px; margin-bottom:6px;">주문 확인</h3>
+    <p class="wardrobe-hint" id="order-summary-text"></p>
+
+    <div class="consent-section" id="order-shipping-section" hidden>
+      <div class="consent-title">배송지 입력</div>
+      <p class="consent-desc">완제품을 도어투도어로 보내드리기 위해 필요해요. 결제 전에 입력해주세요.</p>
+      <div class="order-shipping-fields">
+        <label>받는 분 이름 <input type="text" id="order-shipping-name" placeholder="예: 홍길동"></label>
+        <label>연락처 <input type="tel" id="order-shipping-phone" placeholder="예: 010-1234-5678"></label>
+        <label>우편번호 <input type="text" id="order-shipping-zipcode" placeholder="예: 06134"></label>
+        <label>주소 <input type="text" id="order-shipping-address1" placeholder="예: 서울시 강남구 테헤란로 123"></label>
+        <label>상세주소 (선택) <input type="text" id="order-shipping-address2" placeholder="예: 101동 1001호"></label>
+        <label>배송 메모 (선택) <input type="text" id="order-shipping-note" placeholder="예: 부재 시 경비실에 맡겨주세요"></label>
+      </div>
+      <div class="consent-desc" style="margin-top:10px;">
+        입력하신 이름·연락처·주소는 제작·배송 목적으로만 쓰이고, 배송 완료 후 일정 기간 뒤 파기돼요.
+        정식 개인정보처리방침은 서비스 정식 출시 전 별도로 안내드릴게요.
+      </div>
+      <label class="consent-check">
+        <input type="checkbox" id="order-shipping-consent-checkbox">
+        <span>위 배송지 정보 수집·이용에 동의합니다. (필수)</span>
+      </label>
+    </div>
+
+    <p class="modal-note" id="order-modal-note"></p>
+    <div class="wizard-actions" style="margin-top:14px;">
+      <button class="btn btn-ghost-dark" id="order-cancel-btn" type="button">취소</button>
+      <button class="btn btn-primary" id="order-pay-btn" type="button" disabled>결제하기</button>
     </div>
   </div>
 </div>

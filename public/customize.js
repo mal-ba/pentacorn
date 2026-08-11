@@ -368,6 +368,122 @@
   });
 
 
+  /* ---------- 주문하기 (배송지 입력 + 동의 → 결제) ---------- */
+  const orderOpenBtn = document.getElementById('order-open-btn');
+  const orderModal = document.getElementById('order-modal');
+  const orderSummaryText = document.getElementById('order-summary-text');
+  const orderShippingSection = document.getElementById('order-shipping-section');
+  const orderShippingName = document.getElementById('order-shipping-name');
+  const orderShippingPhone = document.getElementById('order-shipping-phone');
+  const orderShippingZipcode = document.getElementById('order-shipping-zipcode');
+  const orderShippingAddress1 = document.getElementById('order-shipping-address1');
+  const orderShippingAddress2 = document.getElementById('order-shipping-address2');
+  const orderShippingNote = document.getElementById('order-shipping-note');
+  const orderShippingConsentCheckbox = document.getElementById('order-shipping-consent-checkbox');
+  const orderCancelBtn = document.getElementById('order-cancel-btn');
+  const orderPayBtn = document.getElementById('order-pay-btn');
+  const orderModalNote = document.getElementById('order-modal-note');
+
+  function getActiveChipLabel(group){
+    const chip = document.querySelector(`.calc-choices[data-group="${group}"] .calc-chip.active`);
+    return chip ? chip.textContent.trim() : null;
+  }
+  function getActiveDetailLabels(){
+    return Array.from(document.querySelectorAll('.calc-choices[data-group="detail"] .calc-chip.active'))
+      .map(c => c.textContent.trim());
+  }
+
+  function updateOrderPayButtonState(){
+    if(!orderShippingSection || orderShippingSection.hidden){
+      orderPayBtn.disabled = false;
+      return;
+    }
+    const filled = orderShippingName.value.trim() && orderShippingPhone.value.trim()
+      && orderShippingZipcode.value.trim() && orderShippingAddress1.value.trim();
+    orderPayBtn.disabled = !(filled && orderShippingConsentCheckbox.checked);
+  }
+  [orderShippingName, orderShippingPhone, orderShippingZipcode, orderShippingAddress1, orderShippingConsentCheckbox].forEach(el => {
+    if(el) el.addEventListener('input', updateOrderPayButtonState);
+  });
+  if(orderShippingConsentCheckbox) orderShippingConsentCheckbox.addEventListener('change', updateOrderPayButtonState);
+
+  if(orderOpenBtn){
+    orderOpenBtn.addEventListener('click', () => {
+      if(!authState.loggedIn){
+        alert('주문하려면 먼저 우측 상단에서 Google 로그인을 해주세요.');
+        return;
+      }
+      const needsShipping = state.finish === 30000;
+      const total = BASE + state.fabric + state.detail + state.finish;
+      const parts = [
+        getActiveChipLabel('fabric'),
+        ...getActiveDetailLabels(),
+        getActiveChipLabel('finish'),
+      ].filter(Boolean);
+      orderSummaryText.textContent = `${parts.join(' · ')} — 총 ${fmt(total)}${(customActive.fabric || customActive.detail) ? ' + 협의' : ''}`;
+      orderShippingSection.hidden = !needsShipping;
+      orderModalNote.textContent = '';
+      orderPayBtn.textContent = '결제하기';
+      updateOrderPayButtonState();
+      orderModal.hidden = false;
+    });
+  }
+  if(orderCancelBtn) orderCancelBtn.addEventListener('click', () => { orderModal.hidden = true; });
+
+  if(orderPayBtn){
+    orderPayBtn.addEventListener('click', async () => {
+      orderPayBtn.disabled = true;
+      orderPayBtn.textContent = '주문 생성 중...';
+      const needsShipping = state.finish === 30000;
+      try{
+        const res = await fetch('/api/orders/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fabricAmount: state.fabric,
+            detailAmount: state.detail,
+            finishAmount: state.finish,
+            fabricLabel: getActiveChipLabel('fabric'),
+            detailLabels: getActiveDetailLabels(),
+            finishLabel: getActiveChipLabel('finish'),
+            fabricNote: customActive.fabric ? document.getElementById('custom-fabric-note').value : null,
+            detailNote: customActive.detail ? document.getElementById('custom-detail-note').value : null,
+            consent: needsShipping ? orderShippingConsentCheckbox.checked : false,
+            shipping: needsShipping ? {
+              name: orderShippingName.value.trim(),
+              phone: orderShippingPhone.value.trim(),
+              zipcode: orderShippingZipcode.value.trim(),
+              address1: orderShippingAddress1.value.trim(),
+              address2: orderShippingAddress2.value.trim(),
+              note: orderShippingNote.value.trim(),
+            } : null,
+          }),
+        });
+        const order = await res.json();
+        if(!order.ok){
+          orderModalNote.textContent = order.error || '주문 생성에 실패했어요.';
+          orderPayBtn.disabled = false;
+          orderPayBtn.textContent = '결제하기';
+          return;
+        }
+        const tossPayments = TossPayments(TOSS_CLIENT_KEY);
+        tossPayments.requestPayment('카드', {
+          amount: order.amount,
+          orderId: order.orderId,
+          orderName: order.orderName,
+          customerName: authState.name,
+          customerEmail: authState.email,
+          successUrl: `${window.location.origin}/payment-success.html`,
+          failUrl: `${window.location.origin}/payment-fail.html`,
+        });
+      } catch(err){
+        orderModalNote.textContent = '결제창을 여는 중 오류가 발생했어요.';
+        orderPayBtn.disabled = false;
+        orderPayBtn.textContent = '결제하기';
+      }
+    });
+  }
+
   /* ---------- DESIGN WIZARD MODAL ---------- */
   const designModal = document.getElementById('design-modal');
   // (3D/2D 시작 버튼 자체는 index.html에 있고, 이 팝업 로딩이 끝나면 index.html이

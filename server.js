@@ -222,6 +222,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// 관리자 사이트도 같은 방식으로 %%GOOGLE_CLIENT_ID%% 를 치환해서 내려줘요.
+// (누구나 접속은 할 수 있지만, 로그인 후 ADMIN_EMAILS에 없으면 API가 403을 돌려줘요)
+app.get('/admin.html', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'admin.html');
+  fs.readFile(filePath, 'utf8', (err, html) => {
+    if (err) return res.status(500).send('admin.html을 읽을 수 없어요.');
+    res.send(html.replaceAll('%%GOOGLE_CLIENT_ID%%', GOOGLE_CLIENT_ID));
+  });
+});
+
 // index: false 로 설정해서 static 미들웨어가 '/' 요청에서
 // public/index.html을 자동으로 가로채지 않게 해요.
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
@@ -636,6 +646,136 @@ app.get('/api/subscription', requireLogin, async (req, res) => {
       ? { plan: sub.plan, amount: sub.amount, subscribedAt: sub.subscribed_at, paymentKey: sub.payment_key, orderId: sub.order_id }
       : null,
   });
+});
+
+/* ---------------- 맞춤 제작 주문 + 배송지 (2단계 "무늬·디테일 선택" 화면의 주문하기) ---------------- */
+// 가격 위변조를 막기 위해, 클라이언트가 보낸 항목 "금액"이 실제로 우리가 정해둔 값과
+// 일치하는지만 검사하고, 최종 금액은 항상 서버가 다시 계산해요.
+const ORDER_FABRIC_AMOUNTS = new Set([0, 20000, 40000]);
+const ORDER_DETAIL_AMOUNTS = new Set([0, 10000, 15000, 25000]); // 디테일은 중복 선택 가능이라 합산값이에요.
+const ORDER_FINISH_AMOUNTS = new Set([0, 30000]);
+const ORDER_BASE_PRICE = 30000;
+
+app.post('/api/orders/create-order', requireLogin, async (req, res) => {
+  const {
+    fabricAmount, detailAmount, finishAmount,
+    fabricLabel, detailLabels, finishLabel, fabricNote, detailNote,
+    shipping, consent,
+  } = req.body || {};
+
+  const fa = Number(fabricAmount), da = Number(detailAmount), fi = Number(finishAmount);
+  if (!ORDER_FABRIC_AMOUNTS.has(fa) || !ORDER_DETAIL_AMOUNTS.has(da) || !ORDER_FINISH_AMOUNTS.has(fi)) {
+    return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않아요.' });
+  }
+
+  // "완제품 도어투도어 배송"을 선택했을 때만 배송지·동의가 필요해요 (패턴 PDF만이면 배송이 없어요).
+  const needsShipping = fi === 30000;
+  const s = shipping || {};
+  if (needsShipping) {
+    if (!consent) {
+      return res.status(400).json({ ok: false, error: '배송을 위한 개인정보(배송지) 수집·이용에 동의해주세요.' });
+    }
+    if (!s.name || !s.phone || !s.zipcode || !s.address1) {
+      return res.status(400).json({ ok: false, error: '배송지 정보(이름·연락처·우편번호·주소)를 모두 입력해주세요.' });
+    }
+  }
+
+  const amount = ORDER_BASE_PRICE + fa + da + fi;
+  const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const { error } = await supabase.from('orders').insert({
+    order_id: orderId,
+    email: req.user.email,
+    amount,
+    fabric_label: fabricLabel || null,
+    detail_labels: Array.isArray(detailLabels) ? detailLabels : null,
+    finish_label: finishLabel || null,
+    fabric_note: fabricNote || null,
+    detail_note: detailNote || null,
+    shipping_name: needsShipping ? s.name : null,
+    shipping_phone: needsShipping ? s.phone : null,
+    shipping_zipcode: needsShipping ? s.zipcode : null,
+    shipping_address1: needsShipping ? s.address1 : null,
+    shipping_address2: needsShipping ? (s.address2 || null) : null,
+    shipping_note: needsShipping ? (s.note || null) : null,
+    shipping_consent: !!consent,
+    status: 'pending',
+  });
+  if (error) {
+    console.error('주문 생성 오류:', error);
+    return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했어요.' });
+  }
+
+  res.json({ ok: true, orderId, amount, orderName: 'UNEXPOSED 맞춤 제작 주문' });
+});
+
+// Toss 결제창에서 successUrl로 돌아온 뒤, 프론트가 이 API로 실제 결제를 승인(confirm)해요.
+// (구독 결제의 /api/payments/confirm 과 같은 구조지만, orders 테이블을 써요)
+app.post('/api/orders/confirm', requireLogin, async (req, res) => {
+  const { paymentKey, orderId, amount } = req.body || {};
+  if (!paymentKey || !orderId || !amount) {
+    return res.status(400).json({ ok: false, error: '결제 정보가 부족해요.' });
+  }
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('order_id', orderId)
+    .eq('email', req.user.email)
+    .maybeSingle();
+  if (!order) return res.status(404).json({ ok: false, error: '주문을 찾을 수 없어요.' });
+  if (Number(amount) !== Number(order.amount)) {
+    return res.status(400).json({ ok: false, error: '결제 금액이 일치하지 않아요.' });
+  }
+
+  try {
+    const authHeader = 'Basic ' + Buffer.from(`${TOSS_SECRET_KEY}:`).toString('base64');
+    const tossRes = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
+      method: 'POST',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) }),
+    });
+    const data = await tossRes.json();
+    if (!tossRes.ok) {
+      console.error('Toss 주문 결제 승인 실패:', data);
+      return res.status(400).json({ ok: false, error: data.message || '결제 승인에 실패했어요.' });
+    }
+
+    await supabase
+      .from('orders')
+      .update({ status: 'paid', payment_key: paymentKey, paid_at: new Date().toISOString() })
+      .eq('order_id', orderId);
+
+    res.json({ ok: true, amount: order.amount, needsShipping: !!order.shipping_address1 });
+  } catch (err) {
+    console.error('주문 결제 승인 중 오류:', err);
+    res.status(500).json({ ok: false, error: '결제 승인 중 오류가 발생했어요.' });
+  }
+});
+
+// 관리자(ADMIN_EMAILS에 등록된 이메일)만 통과되는 미들웨어예요.
+// "공식" 옷장 배지에 이미 쓰던 것과 같은 ADMIN_EMAILS 목록을 그대로 재사용해요.
+function requireAdmin(req, res, next) {
+  const email = String(req.user.email || '').toLowerCase();
+  if (!ADMIN_EMAILS.includes(email)) {
+    return res.status(403).json({ ok: false, error: '관리자 계정으로 로그인해주세요.' });
+  }
+  next();
+}
+
+// 관리자 전용: 배송지가 포함된 전체 주문 목록. (관리자 사이트 admin.html에서 사용해요)
+app.get('/api/admin/orders', requireLogin, requireAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ ok: false, error: '주문 목록을 불러오지 못했어요.' });
+  res.json({ ok: true, orders: data, isAdmin: true });
+});
+
+// 관리자 여부만 가볍게 확인할 때 써요 (admin.html이 로그인 직후 이걸로 접근 권한을 확인해요).
+app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
+  res.json({ ok: true, isAdmin: true });
 });
 
 // 업로드 용량 초과 등 multer 에러를 깔끔한 JSON으로 응답해요.

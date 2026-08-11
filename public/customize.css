@@ -56,6 +56,11 @@
   .pattern-part-row select{
     padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--paper); font-size:13px; color:var(--ink);
   }
+  .order-shipping-fields{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+  .order-shipping-fields label{ display:flex; flex-direction:column; gap:4px; font-size:12.5px; color:var(--ink-soft); }
+  .order-shipping-fields input{
+    padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; color:var(--ink); background:var(--paper);
+  }
   .btn-ghost-dark{ background:transparent; color:var(--deep); border:1px solid var(--deep); }
   .scan-upload-label{
     display:inline-flex; align-items:center; gap:8px;
