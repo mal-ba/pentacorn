@@ -5,11 +5,19 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { MAKEUP_PROP_DEFS, recolorProp, createFacePatch } from '/makeup-props.js';
+import { MAKEUP_PROP_DEFS, recolorProp, createAngledPatch, FACE_PATCH_ANGLES, FACE_PATCH_Y, HAIR_BAND_ANGLES, HAIR_BAND_Y } from '/makeup-props.js';
 
 /* ==========================================================================
-   STEP 1 : 얼굴 스캔 (카메라 촬영 / 파일 업로드)
+   STEP 1 : 얼굴 스캔 — 정면 → 왼쪽 옆모습 → 오른쪽 옆모습 → 뒷모습, 4단계로 찍어요.
+   정면·좌·우 사진은 얼굴에, 4장 전부는 머리카락(옆·뒤통수까지)에 쓰여요.
    ========================================================================== */
+const SCAN_STAGES = [
+  { key: 'front', label: '정면', instruction: '정면을 카메라로 봐주세요. 이 사진으로 얼굴이랑 앞머리를 만들어요.', required: true },
+  { key: 'left', label: '왼쪽 옆모습', instruction: '고개를 오른쪽으로 돌려서, 얼굴 왼쪽이 보이게 찍어주세요.', required: false },
+  { key: 'right', label: '오른쪽 옆모습', instruction: '고개를 왼쪽으로 돌려서, 얼굴 오른쪽이 보이게 찍어주세요.', required: false },
+  { key: 'back', label: '뒷모습', instruction: '뒤돌아서 뒤통수가 보이게 찍어주세요 (다른 사람이 찍어줘도 좋아요).', required: false },
+];
+
 const scanStepEl = document.getElementById('makeup-scan-step');
 const threeDStepEl = document.getElementById('makeup-3d-step');
 const scanVideo = document.getElementById('makeup-scan-video');
@@ -18,26 +26,70 @@ const scanStartBtn = document.getElementById('makeup-scan-start-btn');
 const scanCaptureBtn = document.getElementById('makeup-scan-capture-btn');
 const scanFileInput = document.getElementById('makeup-scan-file-input');
 const scanPhotoSlot = document.getElementById('makeup-scan-photo-slot');
+const scanNextBtn = document.getElementById('makeup-scan-next-btn');
+const scanSkipBtn = document.getElementById('makeup-scan-skip-btn');
 const scanConfirmBtn = document.getElementById('makeup-scan-confirm-btn');
+const scanStageCounter = document.getElementById('makeup-scan-stage-counter');
+const scanStageInstruction = document.getElementById('makeup-scan-stage-instruction');
+const scanStageDots = document.getElementById('makeup-scan-stage-dots');
 const rescanBtn = document.getElementById('makeup-rescan-btn');
 
 let scanStream = null;
-let capturedDataUrl = null;
-
-function showScanPhoto(dataUrl){
-  capturedDataUrl = dataUrl;
-  scanPhotoSlot.innerHTML = '';
-  const img = document.createElement('img');
-  img.src = dataUrl;
-  scanPhotoSlot.appendChild(img);
-  scanConfirmBtn.disabled = false;
-}
+let currentStageIndex = 0;
+const capturedPhotos = {}; // { front: dataUrl, left: dataUrl, right: dataUrl, back: dataUrl }
+const stageStatus = {}; // { front: 'done'|'skipped', ... }
 
 function stopScanStream(){
   if(scanStream){
     scanStream.getTracks().forEach(t => t.stop());
     scanStream = null;
   }
+}
+
+function currentStage(){ return SCAN_STAGES[currentStageIndex]; }
+
+function renderStageDots(){
+  scanStageDots.querySelectorAll('.stage-dot').forEach(dot => {
+    const key = dot.dataset.stage;
+    dot.classList.toggle('stage-done', stageStatus[key] === 'done');
+    dot.classList.toggle('stage-skipped', stageStatus[key] === 'skipped');
+    dot.classList.toggle('stage-current', key === currentStage().key);
+  });
+}
+
+function renderStageUI(){
+  const stage = currentStage();
+  scanStageCounter.textContent = `${currentStageIndex + 1}/${SCAN_STAGES.length}`;
+  scanStageInstruction.textContent = stage.instruction;
+  scanSkipBtn.hidden = stage.required;
+
+  // 이 단계 사진이 이미 있으면 미리보기를 보여주고, 없으면 빈 상태로.
+  if(capturedPhotos[stage.key]){
+    scanPhotoSlot.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = capturedPhotos[stage.key];
+    scanPhotoSlot.appendChild(img);
+    scanNextBtn.disabled = false;
+  } else {
+    scanPhotoSlot.innerHTML = '<span class="scan-photo-placeholder">촬영하거나 업로드한 사진이 여기에 표시돼요</span>';
+    scanNextBtn.disabled = true;
+  }
+
+  scanStartBtn.hidden = false;
+  scanStartBtn.textContent = capturedPhotos[stage.key] ? '다시 촬영' : '카메라 켜기';
+  scanCaptureBtn.hidden = true;
+  scanNextBtn.textContent = currentStageIndex === SCAN_STAGES.length - 1 ? '완료' : '다음 각도로 →';
+
+  const doneCount = Object.keys(stageStatus).length;
+  scanConfirmBtn.disabled = !(stageStatus.front === 'done'); // 정면만 있으면 바로 만들 수 있게 해요.
+  renderStageDots();
+}
+
+function savePhotoForCurrentStage(dataUrl){
+  const stage = currentStage();
+  capturedPhotos[stage.key] = dataUrl;
+  stageStatus[stage.key] = 'done';
+  renderStageUI();
 }
 
 scanStartBtn.addEventListener('click', async () => {
@@ -55,31 +107,62 @@ scanCaptureBtn.addEventListener('click', () => {
   scanCanvas.width = scanVideo.videoWidth;
   scanCanvas.height = scanVideo.videoHeight;
   scanCanvas.getContext('2d').drawImage(scanVideo, 0, 0);
-  showScanPhoto(scanCanvas.toDataURL('image/jpeg', 0.92));
+  savePhotoForCurrentStage(scanCanvas.toDataURL('image/jpeg', 0.92));
   stopScanStream();
-  scanCaptureBtn.hidden = true;
-  scanStartBtn.hidden = false;
-  scanStartBtn.textContent = '다시 촬영';
 });
 
 scanFileInput.addEventListener('change', () => {
   const file = scanFileInput.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = () => showScanPhoto(reader.result);
+  reader.onload = () => savePhotoForCurrentStage(reader.result);
   reader.readAsDataURL(file);
+  scanFileInput.value = '';
+});
+
+function goToNextStage(){
+  stopScanStream();
+  if(currentStageIndex < SCAN_STAGES.length - 1){
+    currentStageIndex++;
+    renderStageUI();
+  }
+}
+
+scanNextBtn.addEventListener('click', goToNextStage);
+scanSkipBtn.addEventListener('click', () => {
+  const stage = currentStage();
+  if(!capturedPhotos[stage.key]) stageStatus[stage.key] = 'skipped';
+  goToNextStage();
+});
+
+scanStageDots.querySelectorAll('.stage-dot').forEach((dot, i) => {
+  dot.addEventListener('click', () => {
+    stopScanStream();
+    currentStageIndex = i;
+    renderStageUI();
+  });
 });
 
 scanConfirmBtn.addEventListener('click', () => {
-  if(!capturedDataUrl) return;
+  if(!capturedPhotos.front) return;
   stopScanStream();
   scanStepEl.hidden = true;
   threeDStepEl.hidden = false;
   threeDStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   startOrUpdateViewer();
-  // 사진에서 머리카락만 실제로 인식해서(AI 모델), 그 모양·색 그대로 3D 머리카락에 입혀줘요.
-  applyHairFromPhotoAI(capturedDataUrl);
+  // 찍은 사진들을 AI로 분석해서, 각도에 맞게 얼굴/머리카락을 입혀줘요.
+  applyAllPhotosAI({ ...capturedPhotos });
 });
+
+rescanBtn.addEventListener('click', () => {
+  threeDStepEl.hidden = true;
+  scanStepEl.hidden = false;
+  currentStageIndex = 0;
+  renderStageUI();
+  scanStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+renderStageUI();
 
 // ---------- 머리카락 AI 인식 (MediaPipe Image Segmenter, 브라우저 안에서 바로 실행) ----------
 // 사람 사진을 배경/머리카락/피부/옷 등으로 나눠주는 구글의 공개 모델을 그대로 브라우저에서 돌려요.
@@ -213,78 +296,102 @@ function sampleHairColorFromPhoto(dataUrl){
   });
 }
 
-let lastHairCutoutCanvas = null;
-let pendingHairApply = null;
-let pendingFaceApply = null;
+let pendingPhotosApply = null; // 얼굴 모델이 아직 안 불러와졌을 때, 분석 결과를 잠시 담아둬요.
+let activeFacePatches = []; // 정면/좌/우 얼굴 패치들
+let activeHairBandPatches = []; // 정면/좌/우/뒤 머리카락 밴드 패치들
 
-// STEP 2 진입 시 자동으로 호출돼요: 사진 한 장을 AI로 분석해서 머리카락과 얼굴을 각각 입혀요.
-async function applyHairFromPhotoAI(dataUrl){
-  if(statusEl) statusEl.textContent = '사진에서 얼굴과 머리카락을 인식하는 중이에요...';
-  let hairCutout = null, faceCutout = null;
-  try{
-    const segments = await analyzePhotoSegments(dataUrl);
-    hairCutout = segments.hairCutout;
-    faceCutout = segments.faceCutout;
-  } catch(err){
-    console.error('AI 인식 실패, 대체 방식으로 진행합니다:', err);
+// STEP 2 진입 시 자동으로 호출돼요: 찍은 사진들(최대 4장)을 각각 AI로 분석해서,
+// 각도에 맞는 얼굴 패치·머리카락 밴드를 만들어요.
+async function applyAllPhotosAI(photos){
+  if(statusEl) statusEl.textContent = '사진에서 얼굴과 머리카락을 인식하는 중이에요... (사진이 많으면 조금 걸려요)';
+
+  const faceCutouts = {}; // { front: canvas, left: canvas, right: canvas }
+  const hairCutouts = {}; // { front: canvas, left: canvas, right: canvas, back: canvas }
+  let anyFaceFound = false;
+
+  for(const stage of SCAN_STAGES){
+    const dataUrl = photos[stage.key];
+    if(!dataUrl) continue;
+    try{
+      const segments = await analyzePhotoSegments(dataUrl);
+      if(segments.faceCutout){ faceCutouts[stage.key] = segments.faceCutout; anyFaceFound = true; }
+      if(segments.hairCutout) hairCutouts[stage.key] = segments.hairCutout;
+    } catch(err){
+      console.error(`${stage.label} 사진 AI 인식 실패:`, err);
+    }
   }
 
-  // 얼굴: 인식된 얼굴 피부 부분을 얼굴 앞면 곡면에 그대로 입혀요 (모델 자체 UV는 안 건드려요).
-  if(faceCutout){
-    applyFaceToScene(faceCutout);
-    if(statusEl) statusEl.textContent = '사진 속 얼굴을 3D 얼굴 앞면에 입혔어요!';
+  applyPhotosToScene({ faceCutouts, hairCutouts, frontDataUrl: photos.front });
+
+  if(anyFaceFound){
+    if(statusEl) statusEl.textContent = '사진 속 얼굴·머리카락을 3D에 입혔어요! 각도별로 잘 안 맞으면 소품처럼 슬라이더로 미세조정할 수 있어요.';
   } else if(statusEl){
     statusEl.textContent = '얼굴 인식에는 실패했어요. 조명이 밝은 정면 사진으로 다시 시도해보세요.';
   }
-
-  // 머리카락: 인식되면 그 모양·색 그대로, 실패하면 색 평균 방식으로 대체해요.
-  if(hairCutout){
-    applyHairToScene({ cutoutCanvas: hairCutout });
-  } else {
-    const hex = await sampleHairColorFromPhoto(dataUrl);
-    if(hex) applyHairToScene({ color: hex });
-  }
 }
 
-// 얼굴 패치를 얼굴 모델 앞면에 붙여요 (아직 얼굴 모델이 안 불러와졌으면 대기했다가 나중에 적용).
-function applyFaceToScene(cutoutCanvas){
+// 얼굴 모델이 아직 없으면 대기했다가, 준비되면 실제로 씬에 붙여요.
+function applyPhotosToScene(payload){
   if(!faceModel){
-    pendingFaceApply = cutoutCanvas;
+    pendingPhotosApply = payload;
     return;
   }
-  if(activeFacePatch){
-    faceModel.remove(activeFacePatch);
-    activeFacePatch = null;
-  }
-  const patch = createFacePatch(cutoutCanvas);
-  if(patch){
-    faceModel.add(patch);
-    activeFacePatch = patch;
+  const { faceCutouts, hairCutouts, frontDataUrl } = payload;
+
+  // 기존에 붙어있던 패치들은 지우고 새로 붙여요 (다시 스캔했을 때 중복 방지).
+  activeFacePatches.forEach(p => faceModel.remove(p));
+  activeHairBandPatches.forEach(p => faceModel.remove(p));
+  activeFacePatches = [];
+  activeHairBandPatches = [];
+
+  FACE_PATCH_ANGLES.forEach(angle => {
+    const cutout = faceCutouts[angle.key];
+    if(!cutout) return;
+    const patch = createAngledPatch({
+      cutoutCanvas: cutout,
+      thetaCenter: angle.thetaCenter,
+      thetaWidth: angle.thetaWidth,
+      yTop: FACE_PATCH_Y.yTop,
+      yBottom: FACE_PATCH_Y.yBottom,
+      radius: FACE_PATCH_Y.radius,
+    });
+    if(patch){ faceModel.add(patch); activeFacePatches.push(patch); }
+  });
+
+  HAIR_BAND_ANGLES.forEach(angle => {
+    const cutout = hairCutouts[angle.key];
+    if(!cutout) return;
+    const patch = createAngledPatch({
+      cutoutCanvas: cutout,
+      thetaCenter: angle.thetaCenter,
+      thetaWidth: angle.thetaWidth,
+      yTop: HAIR_BAND_Y.yTop,
+      yBottom: HAIR_BAND_Y.yBottom,
+      radius: HAIR_BAND_Y.radius,
+    });
+    if(patch){ faceModel.add(patch); activeHairBandPatches.push(patch); }
+  });
+
+  // 정수리 캡(작은 단색 돔)은 정면 사진에서 뽑은 머리색으로 자동으로 씌워줘요.
+  if(frontDataUrl){
+    sampleHairColorFromPhoto(frontDataUrl).then(hex => {
+      if(hex) applyHairCrown(hex);
+    });
   }
 }
 
-// 머리카락을 얼굴 모델에 실제로 붙여요 (아직 얼굴 모델이 안 불러와졌으면 대기했다가 나중에 적용).
-function applyHairToScene({ cutoutCanvas, color }){
+// 정수리 캡을 특정 색으로 추가/교체해요.
+function applyHairCrown(hex){
   const card = document.getElementById('makeup-prop-card-hair');
-  if(!card){
-    pendingHairApply = { cutoutCanvas, color };
-    return;
-  }
-  if(cutoutCanvas) lastHairCutoutCanvas = cutoutCanvas;
+  if(!card) return;
   const colorInput = card.querySelector('.makeup-prop-color');
-  if(color) colorInput.value = color;
+  colorInput.value = hex;
   if(activeProps['hair']){
     faceModel.remove(activeProps['hair'].object3d);
     delete activeProps['hair'];
   }
-  toggleProp('hair'); // toggleProp이 lastHairCutoutCanvas를 참고해서 새로 만들어줘요.
+  toggleProp('hair');
 }
-
-rescanBtn.addEventListener('click', () => {
-  threeDStepEl.hidden = true;
-  scanStepEl.hidden = false;
-  scanStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
 
 /* ==========================================================================
    STEP 2 : 3D 얼굴 뷰어 — 사진 속 얼굴/머리카락을 AI로 오려서 앞면에 입혀요.
@@ -296,7 +403,6 @@ let scene, camera, renderer, controls;
 let faceModel = null;
 let faceDefaultHeight = 0;
 let viewerStarted = false;
-let activeFacePatch = null;
 
 function initViewer(){
   const container = document.getElementById('landing-makeup-3d');
@@ -343,15 +449,11 @@ function initViewer(){
       if(loadingEl) loadingEl.hidden = true;
       if(hintEl) hintEl.hidden = false;
 
-      if(pendingFaceApply){
-        applyFaceToScene(pendingFaceApply);
-        pendingFaceApply = null;
+      if(pendingPhotosApply){
+        applyPhotosToScene(pendingPhotosApply);
+        pendingPhotosApply = null;
       }
       renderMakeupPropsPanel();
-      if(pendingHairApply){
-        applyHairToScene(pendingHairApply);
-        pendingHairApply = null;
-      }
     },
     undefined,
     err => {
@@ -457,10 +559,9 @@ function toggleProp(propId){
     alert('얼굴 모델을 아직 불러오는 중이에요. 잠시만 기다려주세요.');
     return;
   }
-  // 머리카락은 사진에서 인식해서 오려낸 실제 이미지(lastHairCutoutCanvas)가 있으면 그걸 써요.
-  const object3d = propId === 'hair'
-    ? def.create(colorInput.value, lastHairCutoutCanvas)
-    : def.create(colorInput.value);
+  // 정수리 캡(머리카락)은 이제 사진으로 오려낸 밴드 패치들이 옆/뒤를 덮어주기 때문에,
+  // 작은 단색 캡만 만들면 돼요 (색은 정면 사진에서 자동으로 뽑혀서 colorInput에 이미 들어있어요).
+  const object3d = def.create(colorInput.value);
   object3d.position.set(def.position[0], def.position[1], def.position[2]);
   faceModel.add(object3d);
   activeProps[propId] = { object3d };
