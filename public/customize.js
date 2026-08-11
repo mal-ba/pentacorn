@@ -53,9 +53,38 @@
   const patternPreviewSwatch = document.getElementById('pattern-preview-swatch');
   const patternRepeatInput = document.getElementById('pattern-repeat-input');
   const patternGarmentNote = document.getElementById('pattern-garment-note');
+  const patternPartRow = document.getElementById('pattern-part-row');
+  const patternPartSelect = document.getElementById('pattern-part-select');
 
   let currentPatternMode = 'none';
   let currentPatternDataUrl = null;
+  const partPatterns = {}; // { '' : dataUrl(전체), [부위 재질 uuid]: dataUrl, ... } — 부위마다 다른 무늬를 기억해둬요.
+
+  function currentPartId(){
+    return (patternPartSelect && patternPartSelect.value) ? patternPartSelect.value : null;
+  }
+
+  // 지금 입은 옷의 실제 부위(재질) 목록을 다시 읽어와서 드롭다운을 채워요.
+  // 옷마다 부위가 몇 개로 나뉘어 있는지 다르기 때문에(하나도 없을 수도, 여러 개일 수도 있어요),
+  // 실제로 인식된 것만 보여줘요.
+  function refreshPatternPartOptions(){
+    if(!patternPartRow || !patternPartSelect) return;
+    const hasGarment = typeof window.hasGarmentWorn === 'function' && window.hasGarmentWorn();
+    if(!hasGarment){
+      patternPartRow.hidden = true;
+      return;
+    }
+    const parts = (typeof window.getGarmentParts === 'function') ? window.getGarmentParts() : [];
+    const prevValue = patternPartSelect.value;
+    patternPartSelect.innerHTML = '<option value="">전체</option>' +
+      parts.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+    if(parts.some(p => p.id === prevValue)) patternPartSelect.value = prevValue;
+    // 부위가 "전체" 하나뿐이면(=옷이 재질 하나로 통짜예요) 굳이 선택지를 안 보여줘도 돼요.
+    patternPartRow.hidden = parts.length === 0;
+  }
+
+  // 옷을 새로 입었을 때(customize-3d.js) 바로 이 함수를 불러서 부위 목록을 갱신할 수 있게 해요.
+  window.refreshPatternPartOptions = refreshPatternPartOptions;
 
   function setPatternGarmentNote(){
     if(!patternGarmentNote) return;
@@ -69,17 +98,43 @@
   }
 
   function applyCurrentPattern(){
+    const partId = currentPartId();
+    const key = partId || '';
     if(currentPatternMode === 'none' || !currentPatternDataUrl){
-      if(typeof window.clearGarmentPatternTexture === 'function') window.clearGarmentPatternTexture();
+      delete partPatterns[key];
+      if(typeof window.clearGarmentPatternTexture === 'function') window.clearGarmentPatternTexture(partId);
       if(patternPreviewRow) patternPreviewRow.hidden = true;
       setPatternGarmentNote();
       return;
     }
+    partPatterns[key] = currentPatternDataUrl;
     if(patternPreviewRow) patternPreviewRow.hidden = false;
     if(patternPreviewSwatch) patternPreviewSwatch.style.backgroundImage = `url(${currentPatternDataUrl})`;
     const repeat = parseInt(patternRepeatInput.value, 10) || 4;
-    if(typeof window.applyGarmentPatternTexture === 'function') window.applyGarmentPatternTexture(currentPatternDataUrl, repeat);
+    if(typeof window.applyGarmentPatternTexture === 'function') window.applyGarmentPatternTexture(currentPatternDataUrl, repeat, partId);
     setPatternGarmentNote();
+  }
+
+  // 부위를 바꾸면, 그 부위에 이미 만들어둔 무늬가 있으면 다시 불러오고(그려서 이어 편집할 수 있게),
+  // 없으면 빈 상태로 시작해요. 다른 부위에 이미 입힌 무늬는 그대로 남아있어요 — 부위별로 따로 기억돼요.
+  if(patternPartSelect){
+    patternPartSelect.addEventListener('change', () => {
+      const key = patternPartSelect.value || '';
+      const existing = partPatterns[key] || null;
+      currentPatternDataUrl = existing;
+      if(patternPreviewRow) patternPreviewRow.hidden = !existing;
+      if(existing && patternPreviewSwatch) patternPreviewSwatch.style.backgroundImage = `url(${existing})`;
+      if(currentPatternMode === 'draw' && patternDrawCtx){
+        patternDrawCtx.fillStyle = '#ffffff';
+        patternDrawCtx.fillRect(0, 0, patternDrawCanvas.width, patternDrawCanvas.height);
+        if(existing){
+          const img = new Image();
+          img.onload = () => patternDrawCtx.drawImage(img, 0, 0, patternDrawCanvas.width, patternDrawCanvas.height);
+          img.src = existing;
+        }
+      }
+      setPatternGarmentNote();
+    });
   }
 
   patternModeBtns.forEach(btn => {
@@ -90,6 +145,7 @@
       Object.entries(patternPanels).forEach(([key, panel]) => {
         if(panel) panel.hidden = key !== currentPatternMode;
       });
+      refreshPatternPartOptions();
       if(currentPatternMode === 'preset'){
         regeneratePresetPattern();
       } else if(currentPatternMode === 'none'){

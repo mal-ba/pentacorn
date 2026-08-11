@@ -257,7 +257,8 @@
 
   // 무늬/패턴(이미지)을 지금 입은 옷 표면에 반복 텍스처로 입혀요. 색상(applyGarmentColor)과는
   // 별개로 같이 쓸 수 있어요 — 텍스처가 색과 곱해져서, 색을 바꾸면 무늬 톤도 같이 바뀌어요.
-  function applyGarmentPatternTexture(imageDataUrl, repeatCount = 4){
+  // partId를 주면 그 부위(재질)에만 입히고, 안 주면(null) 옷 전체에 입혀요.
+  function applyGarmentPatternTexture(imageDataUrl, repeatCount = 4, partId = null){
     if(!currentGarment) return;
     const loader = new THREE.TextureLoader();
     loader.load(imageDataUrl, texture => {
@@ -269,6 +270,7 @@
         if(node.isMesh && node.material){
           const materials = Array.isArray(node.material) ? node.material : [node.material];
           materials.forEach(mat => {
+            if(partId && mat.uuid !== partId) return; // 특정 부위만 지정했으면, 그 부위 재질에만 입혀요.
             if('map' in mat){
               mat.map = texture;
               mat.needsUpdate = true;
@@ -279,13 +281,14 @@
     });
   }
 
-  // 무늬를 지우고 원단 색만 남겨요 (원래 옷 텍스처는 이미 사라졌으므로, 흰 바탕에 색만 입혀요).
-  function clearGarmentPatternTexture(){
+  // 무늬를 지워요. partId를 주면 그 부위만, 안 주면 옷 전체 무늬를 지워요.
+  function clearGarmentPatternTexture(partId = null){
     if(!currentGarment) return;
     currentGarment.traverse(node => {
       if(node.isMesh && node.material){
         const materials = Array.isArray(node.material) ? node.material : [node.material];
         materials.forEach(mat => {
+          if(partId && mat.uuid !== partId) return;
           if('map' in mat){
             mat.map = null;
             mat.needsUpdate = true;
@@ -295,12 +298,37 @@
     });
   }
 
+  // 지금 입은 옷을 이루는 부위(재질) 목록을 뽑아요. 옷마다 실제로 몇 개 부위로 나뉘어
+  // 있는지가 달라서(소매/몸판이 따로 분리된 옷도 있고, 통짜 재질 하나인 옷도 있어요),
+  // 있는 그대로의 개수·이름을 돌려줘요 — 없는 부위를 억지로 만들어내진 않아요.
+  function getGarmentParts(){
+    if(!currentGarment) return [];
+    const parts = [];
+    const seen = new Set();
+    let idx = 0;
+    currentGarment.traverse(node => {
+      if(node.isMesh && node.material){
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(mat => {
+          if(seen.has(mat.uuid)) return;
+          seen.add(mat.uuid);
+          idx++;
+          const label = (mat.name && mat.name.trim())
+            ? mat.name
+            : (node.name && node.name.trim() ? node.name : `부위 ${idx}`);
+          parts.push({ id: mat.uuid, label });
+        });
+      }
+    });
+    return parts;
+  }
+
   // 원단·디테일 선택(2단계) 화면의 색상 스와치/무늬 선택기에서도 이 함수들을 쓸 수 있게 공유해요.
   window.applyGarmentColor = applyGarmentColor;
   window.applyGarmentPatternTexture = applyGarmentPatternTexture;
   window.clearGarmentPatternTexture = clearGarmentPatternTexture;
+  window.getGarmentParts = getGarmentParts;
   window.hasGarmentWorn = function(){ return !!currentGarment; };
-
   function updateGarmentTransform(){
     if(!currentGarment) return;
     currentGarment.position.set(
@@ -373,6 +401,8 @@
         garmentControls.hidden = false;
         garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
         garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // 새 옷을 입었으니, 2단계 무늬 패널의 "적용할 부위" 목록도 새로 고쳐줘요.
+        if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
       },
       undefined,
       () => {
