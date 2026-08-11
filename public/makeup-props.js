@@ -117,6 +117,37 @@ function createHair(color, cutoutCanvas){
   return group;
 }
 
+// 얼굴 패치: 사진에서 AI로 오려낸 "얼굴 피부" 부분을 얼굴 앞면에 곡면으로 입혀요.
+// 머리 모델 자체의 UV(원래 텍스처 좌표)는 하나도 안 건드리고, 카메라가 보는 방향(앞쪽) 기준으로
+// 완전히 새로운 곡면을 만들어서 그 위에 입히기 때문에, 목/턱 쪽으로 이상하게 늘어나 보이는 문제가 없어요.
+//
+// 턱(Y≈-0.19)부터 이마 위(Y≈0.58, 머리카락이 시작하는 지점)까지, 귀 조금 앞쪽까지만 감싸요.
+export function createFacePatch(cutoutCanvas){
+  if(!cutoutCanvas) return null;
+  const height = 0.58 - (-0.22);
+  const radius = 0.5;
+  const thetaLength = 2.1; // 좌우로 약 120도 정도
+  const thetaStart = Math.PI / 2 - thetaLength / 2;
+  const geo = new THREE.CylinderGeometry(radius, radius, height, 32, 1, true, thetaStart, thetaLength);
+
+  const texture = new THREE.CanvasTexture(cutoutCanvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshStandardMaterial({
+    map: texture,
+    transparent: true,
+    alphaTest: 0.3,
+    side: THREE.DoubleSide,
+    roughness: 0.85,
+    metalness: 0,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+  });
+  const patch = new THREE.Mesh(geo, mat);
+  patch.position.set(0, 0.58 - height / 2, 0);
+  patch.name = 'facePatch';
+  return patch;
+}
+
 // 각 소품의 기본 정보예요. position은 makeup-face.glb 모델을 실제로 측정해서 얻은
 // 좌표라, 대부분은 슬라이더 없이도 바로 얼굴에 맞아요. 그래도 조금씩 다르게 나올 수 있어서
 // 미세 조정(좌우/위아래/앞뒤/크기) 슬라이더로 마지막 손질을 할 수 있게 해뒀어요.
