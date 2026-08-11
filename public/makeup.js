@@ -77,14 +77,95 @@ scanConfirmBtn.addEventListener('click', () => {
   threeDStepEl.hidden = false;
   threeDStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   startOrUpdateViewer(capturedDataUrl);
-  // 사진에서 머리카락 색을 뽑아서, 머리카락 소품 색을 그 사람에 맞게 자동으로 씌워줘요.
-  sampleHairColorFromPhoto(capturedDataUrl).then(hex => {
-    if(hex) applyHairFromPhoto(hex);
-  });
+  // 사진에서 머리카락만 실제로 인식해서(AI 모델), 그 모양·색 그대로 3D 머리카락에 입혀줘요.
+  applyHairFromPhotoAI(capturedDataUrl);
 });
 
+// ---------- 머리카락 AI 인식 (MediaPipe Image Segmenter, 브라우저 안에서 바로 실행) ----------
+// 사람 사진을 배경/머리카락/피부/옷 등으로 나눠주는 구글의 공개 모델을 그대로 브라우저에서 돌려요.
+// 서버로 사진을 보내지 않고, 사용자 기기 안에서 전부 처리돼요. 혹시 이 모델을 못 불러오면
+// (네트워크 문제 등) 자동으로 예전 방식(사진 위쪽 색 평균)으로 대체해요.
+const HAIR_CATEGORY_INDEX = 1; // selfie_multiclass 모델의 카테고리 순서: 0=배경,1=머리카락,2=피부,3=얼굴,4=옷,5=기타
+let imageSegmenterPromise = null;
+
+function getImageSegmenter(){
+  if(!imageSegmenterPromise){
+    imageSegmenterPromise = (async () => {
+      const { FilesetResolver, ImageSegmenter } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest');
+      const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm');
+      return await ImageSegmenter.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
+          delegate: 'CPU', // iOS Safari에서 GPU 딜리게이트를 쓰면 카테고리 순서가 뒤섞이는 알려진 버그가 있어서, 안정적인 CPU로 고정해요.
+        },
+        outputCategoryMask: true,
+        outputConfidenceMasks: false,
+        runningMode: 'IMAGE',
+      });
+    })();
+  }
+  return imageSegmenterPromise;
+}
+
+// 사진에서 "머리카락" 카테고리로 분류된 픽셀만 남기고 나머지는 투명 처리한 다음,
+// 머리카락이 있는 부분만 꽉 차게 잘라낸 캔버스를 돌려줘요.
+async function buildHairCutoutFromPhoto(dataUrl){
+  const img = await new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = reject;
+    el.src = dataUrl;
+  });
+
+  const segmenter = await getImageSegmenter();
+  const result = segmenter.segment(img);
+  const mask = result.categoryMask;
+  if(!mask) return null;
+  const maskData = mask.getAsUint8Array();
+  const maskW = mask.width, maskH = mask.height;
+
+  const srcCanvas = document.createElement('canvas');
+  srcCanvas.width = img.naturalWidth;
+  srcCanvas.height = img.naturalHeight;
+  const ctx = srcCanvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const imgData = ctx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+  const px = imgData.data;
+  const scaleX = maskW / srcCanvas.width;
+  const scaleY = maskH / srcCanvas.height;
+  let minX = srcCanvas.width, minY = srcCanvas.height, maxX = 0, maxY = 0, found = false;
+
+  for(let y = 0; y < srcCanvas.height; y++){
+    const my = Math.min(maskH - 1, Math.floor(y * scaleY));
+    for(let x = 0; x < srcCanvas.width; x++){
+      const mx = Math.min(maskW - 1, Math.floor(x * scaleX));
+      const category = maskData[my * maskW + mx];
+      const idx = (y * srcCanvas.width + x) * 4;
+      if(category === HAIR_CATEGORY_INDEX){
+        found = true;
+        if(x < minX) minX = x;
+        if(x > maxX) maxX = x;
+        if(y < minY) minY = y;
+        if(y > maxY) maxY = y;
+      } else {
+        px[idx + 3] = 0; // 머리카락이 아니면 투명하게
+      }
+    }
+  }
+  if(mask.close) mask.close(); // MPMask는 다 쓰고 나면 메모리를 명시적으로 해제해줘요.
+  if(!found) return null;
+
+  ctx.putImageData(imgData, 0, 0);
+  const w = maxX - minX + 1, h = maxY - minY + 1;
+  const cropCanvas = document.createElement('canvas');
+  cropCanvas.width = w;
+  cropCanvas.height = h;
+  cropCanvas.getContext('2d').drawImage(srcCanvas, minX, minY, w, h, 0, 0, w, h);
+  return cropCanvas;
+}
+
 // 사진 위쪽(머리카락이 있을 확률이 높은 영역) 픽셀 색을 평균 내서, 대략적인 머리카락 색을 추정해요.
-// 진짜 얼굴 인식/헤어 분리는 아니고, "사진 위쪽 = 대체로 머리카락"이라는 단순한 가정을 쓰는 근사치예요.
+// AI 인식이 실패했을 때만 쓰는 대체(fallback) 방식이에요.
 function sampleHairColorFromPhoto(dataUrl){
   return new Promise(resolve => {
     const img = new Image();
@@ -95,11 +176,10 @@ function sampleHairColorFromPhoto(dataUrl){
         canvas.height = img.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
-        // 맨 위 22% 영역만 잘라서 봐요 (얼굴 중앙의 피부색보다 머리카락이 많이 섞여있는 구간).
         const sampleHeight = Math.max(1, Math.floor(img.height * 0.22));
         const { data } = ctx.getImageData(0, 0, img.width, sampleHeight);
         let r = 0, g = 0, b = 0, count = 0;
-        for(let i = 0; i < data.length; i += 4 * 6){ // 성능을 위해 픽셀을 듬성듬성 건너뛰며 샘플링
+        for(let i = 0; i < data.length; i += 4 * 6){
           r += data[i]; g += data[i + 1]; b += data[i + 2];
           count++;
         }
@@ -108,7 +188,7 @@ function sampleHairColorFromPhoto(dataUrl){
         const toHex = v => v.toString(16).padStart(2, '0');
         resolve(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
       } catch(err){
-        resolve(null); // 캔버스 보안 제약 등으로 실패하면, 그냥 기본 색을 써요.
+        resolve(null);
       }
     };
     img.onerror = () => resolve(null);
@@ -116,22 +196,43 @@ function sampleHairColorFromPhoto(dataUrl){
   });
 }
 
-let pendingHairColor = null;
+let lastHairCutoutCanvas = null;
+let pendingHairApply = null;
 
-// 머리카락 소품을 사진에서 뽑은 색으로 자동으로 추가하거나(아직 없으면), 이미 있으면 색만 새로 입혀요.
-function applyHairFromPhoto(hex){
+// STEP 2 진입 시 자동으로 호출돼요: AI로 머리카락을 인식해보고, 실패하면 색 평균 방식으로 대체해요.
+async function applyHairFromPhotoAI(dataUrl){
+  if(statusEl) statusEl.textContent = '머리카락을 인식하는 중이에요...';
+  let cutoutCanvas = null;
+  try{
+    cutoutCanvas = await buildHairCutoutFromPhoto(dataUrl);
+  } catch(err){
+    console.error('머리카락 AI 인식 실패, 색상 평균 방식으로 대체합니다:', err);
+  }
+  if(cutoutCanvas){
+    applyHairToScene({ cutoutCanvas });
+    if(statusEl) statusEl.textContent = '사진에서 인식한 머리카락을 입혔어요!';
+  } else {
+    const hex = await sampleHairColorFromPhoto(dataUrl);
+    if(hex) applyHairToScene({ color: hex });
+    if(statusEl) statusEl.textContent = '머리카락 모양은 못 알아봤지만, 색은 사진에서 뽑아 입혔어요.';
+  }
+}
+
+// 머리카락을 얼굴 모델에 실제로 붙여요 (아직 얼굴 모델이 안 불러와졌으면 대기했다가 나중에 적용).
+function applyHairToScene({ cutoutCanvas, color }){
   const card = document.getElementById('makeup-prop-card-hair');
   if(!card){
-    pendingHairColor = hex; // 얼굴 모델이 아직 안 불러와져서 소품 패널이 없으면, 대기했다가 나중에 적용해요.
+    pendingHairApply = { cutoutCanvas, color };
     return;
   }
+  if(cutoutCanvas) lastHairCutoutCanvas = cutoutCanvas;
   const colorInput = card.querySelector('.makeup-prop-color');
-  colorInput.value = hex;
+  if(color) colorInput.value = color;
   if(activeProps['hair']){
-    recolorProp(activeProps['hair'].object3d, hex);
-  } else {
-    toggleProp('hair');
+    faceModel.remove(activeProps['hair'].object3d);
+    delete activeProps['hair'];
   }
+  toggleProp('hair'); // toggleProp이 lastHairCutoutCanvas를 참고해서 새로 만들어줘요.
 }
 
 rescanBtn.addEventListener('click', () => {
@@ -222,9 +323,9 @@ function initViewer(){
         pendingPhotoDataUrl = null;
       }
       renderMakeupPropsPanel();
-      if(pendingHairColor){
-        applyHairFromPhoto(pendingHairColor);
-        pendingHairColor = null;
+      if(pendingHairApply){
+        applyHairToScene(pendingHairApply);
+        pendingHairApply = null;
       }
     },
     undefined,
@@ -333,7 +434,10 @@ function toggleProp(propId){
     alert('얼굴 모델을 아직 불러오는 중이에요. 잠시만 기다려주세요.');
     return;
   }
-  const object3d = def.create(colorInput.value);
+  // 머리카락은 사진에서 인식해서 오려낸 실제 이미지(lastHairCutoutCanvas)가 있으면 그걸 써요.
+  const object3d = propId === 'hair'
+    ? def.create(colorInput.value, lastHairCutoutCanvas)
+    : def.create(colorInput.value);
   object3d.position.set(def.position[0], def.position[1], def.position[2]);
   faceModel.add(object3d);
   activeProps[propId] = { object3d };
