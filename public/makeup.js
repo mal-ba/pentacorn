@@ -77,7 +77,62 @@ scanConfirmBtn.addEventListener('click', () => {
   threeDStepEl.hidden = false;
   threeDStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   startOrUpdateViewer(capturedDataUrl);
+  // 사진에서 머리카락 색을 뽑아서, 머리카락 소품 색을 그 사람에 맞게 자동으로 씌워줘요.
+  sampleHairColorFromPhoto(capturedDataUrl).then(hex => {
+    if(hex) applyHairFromPhoto(hex);
+  });
 });
+
+// 사진 위쪽(머리카락이 있을 확률이 높은 영역) 픽셀 색을 평균 내서, 대략적인 머리카락 색을 추정해요.
+// 진짜 얼굴 인식/헤어 분리는 아니고, "사진 위쪽 = 대체로 머리카락"이라는 단순한 가정을 쓰는 근사치예요.
+function sampleHairColorFromPhoto(dataUrl){
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        // 맨 위 22% 영역만 잘라서 봐요 (얼굴 중앙의 피부색보다 머리카락이 많이 섞여있는 구간).
+        const sampleHeight = Math.max(1, Math.floor(img.height * 0.22));
+        const { data } = ctx.getImageData(0, 0, img.width, sampleHeight);
+        let r = 0, g = 0, b = 0, count = 0;
+        for(let i = 0; i < data.length; i += 4 * 6){ // 성능을 위해 픽셀을 듬성듬성 건너뛰며 샘플링
+          r += data[i]; g += data[i + 1]; b += data[i + 2];
+          count++;
+        }
+        if(count === 0){ resolve(null); return; }
+        r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+        const toHex = v => v.toString(16).padStart(2, '0');
+        resolve(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
+      } catch(err){
+        resolve(null); // 캔버스 보안 제약 등으로 실패하면, 그냥 기본 색을 써요.
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+let pendingHairColor = null;
+
+// 머리카락 소품을 사진에서 뽑은 색으로 자동으로 추가하거나(아직 없으면), 이미 있으면 색만 새로 입혀요.
+function applyHairFromPhoto(hex){
+  const card = document.getElementById('makeup-prop-card-hair');
+  if(!card){
+    pendingHairColor = hex; // 얼굴 모델이 아직 안 불러와져서 소품 패널이 없으면, 대기했다가 나중에 적용해요.
+    return;
+  }
+  const colorInput = card.querySelector('.makeup-prop-color');
+  colorInput.value = hex;
+  if(activeProps['hair']){
+    recolorProp(activeProps['hair'].object3d, hex);
+  } else {
+    toggleProp('hair');
+  }
+}
 
 rescanBtn.addEventListener('click', () => {
   threeDStepEl.hidden = true;
@@ -167,6 +222,10 @@ function initViewer(){
         pendingPhotoDataUrl = null;
       }
       renderMakeupPropsPanel();
+      if(pendingHairColor){
+        applyHairFromPhoto(pendingHairColor);
+        pendingHairColor = null;
+      }
     },
     undefined,
     err => {
