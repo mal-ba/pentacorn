@@ -174,4 +174,3 @@ export function recolorProp(object3d, hexColor){
     }
   });
 }
-
