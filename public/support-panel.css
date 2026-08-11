@@ -1,0 +1,82 @@
+/* ---------- 문의 챗봇 ---------- */
+.support-panel{
+  position:fixed; top:0; right:0; height:100%; width:100%; max-width:380px;
+  background:var(--paper); z-index:300; box-shadow:-16px 0 40px rgba(0,0,0,0.18);
+  display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform .25s ease;
+}
+.support-panel.open{ transform:translateX(0); }
+.support-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 18px; border-bottom:1px solid var(--line); background:var(--deep); color:var(--paper);
+}
+.support-header h4{ font-size:15px; font-weight:600; }
+.support-header p{ font-size:11.5px; color:#CFE0DD; margin-top:2px; }
+.support-close-btn{
+  width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
+  background:transparent; color:var(--paper); font-size:13px; cursor:pointer; flex-shrink:0;
+}
+.support-messages{
+  flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;
+}
+.support-msg{
+  max-width:85%; padding:10px 13px; border-radius:14px; font-size:13px; line-height:1.55;
+  white-space:pre-line;
+}
+.support-msg.bot{ background:var(--mist); align-self:flex-start; border-bottom-left-radius:4px; }
+.support-msg.user{ background:var(--deep); color:var(--paper); align-self:flex-end; border-bottom-right-radius:4px; }
+.support-suggestions{ display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px; }
+.support-suggestion-chip{
+  font-family:inherit; font-size:11.5px; padding:7px 12px; border-radius:999px;
+  border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer;
+}
+.support-suggestion-chip:hover{ border-color:var(--star-dark); color:var(--ink); }
+.support-input-row{
+  display:flex; gap:8px; padding:14px 16px; border-top:1px solid var(--line);
+}
+.support-input-row input{
+  flex:1; padding:11px 13px; border-radius:999px; border:1px solid var(--line);
+  font-family:inherit; font-size:13px; outline:none;
+}
+.support-input-row input:focus{ border-color:var(--star-dark); }
+.support-input-row button{
+  font-family:inherit; font-size:12.5px; font-weight:700; padding:0 18px;
+  border-radius:999px; border:none; background:var(--deep); color:var(--paper); cursor:pointer;
+}
+.support-overlay-bg{
+  position:fixed; inset:0; background:rgba(15,46,44,0.35); z-index:290;
+}
+.support-overlay-bg[hidden], .support-panel[hidden]{ display:none; }
+
+/* ---------- 엔딩 크레딧 연출 ---------- */
+.credits-overlay{
+  position:fixed; inset:0; background:#000; z-index:400;
+  overflow:hidden; display:flex; align-items:flex-start; justify-content:center;
+}
+.credits-overlay[hidden]{ display:none; }
+.credits-scroll{
+  position:absolute; left:0; right:0; top:100%;
+  display:flex; flex-direction:column; align-items:center; gap:38px;
+  padding:0 8vw;
+  animation:credits-roll linear forwards;
+}
+.credits-scroll .credits-line{
+  font-family:'Fraunces', serif; font-weight:500; font-style:italic;
+  font-size:22px; color:#F5F2EA; text-align:center; line-height:1.5;
+  text-shadow:0 0 18px rgba(245,242,234,0.15);
+}
+.credits-scroll .credits-brand{
+  font-family:'Fraunces', serif; font-weight:600; font-size:15px;
+  color:#6FB8C2; letter-spacing:0.12em; text-transform:uppercase; margin-top:20px;
+}
+@media(min-width:640px){ .credits-scroll .credits-line{ font-size:30px; } }
+@keyframes credits-roll{
+  from{ transform:translateY(0); }
+  to{ transform:translateY(-220%); }
+}
+.credits-close-btn{
+  position:fixed; top:20px; right:20px; z-index:401;
+  width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
+  background:rgba(255,255,255,0.08); color:#F5F2EA; font-size:15px; cursor:pointer;
+}
+.credits-close-btn:hover{ background:rgba(255,255,255,0.18); }
