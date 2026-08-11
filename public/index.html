@@ -1242,6 +1242,7 @@
         planNote.textContent = `${data.user.name}님, 환영해요!`;
         if(data.bodyDataConsent){
           setBodyDataConsentGranted(data.bodyDataConsent.consent);
+          hasSavedConsentBefore = true;
         } else {
           // 아직 한 번도 선택한 적이 없으면 동의 화면을 띄워요.
           openConsentModal();
@@ -1272,6 +1273,7 @@
         setLoggedIn(data.user);
         if(data.bodyDataConsent){
           setBodyDataConsentGranted(data.bodyDataConsent.consent);
+          hasSavedConsentBefore = true;
         }
         if(data.subscription){
           const card = document.querySelector(`.price-card[data-plan="${data.subscription.plan}"]`);
@@ -1299,10 +1301,14 @@
     consentSaveBtn.disabled = !consentTosCheckbox.checked;
   });
 
+  let hasSavedConsentBefore = false; // 서버에 저장된 동의 기록이 한 번이라도 있으면 true
+
   async function openConsentModal(){
     if(!authState.loggedIn) return;
-    consentTosCheckbox.checked = false;
-    consentSaveBtn.disabled = true;
+    // 예전에 한 번이라도 저장한 적 있으면(=그때 이용약관에도 동의했던 거니까), 다시 열었을 때도
+    // 체크 상태를 그대로 유지해요. 사용자가 직접 체크를 풀지 않는 한 안 바뀌어요.
+    consentTosCheckbox.checked = hasSavedConsentBefore;
+    consentSaveBtn.disabled = !hasSavedConsentBefore;
     consentBodydataCheckbox.checked = bodyDataConsentGranted === true;
     consentSaveNote.textContent = '';
     consentHistoryText.textContent = '';
