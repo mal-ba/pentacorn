@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이용 방법 — UNEXPOSED</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#0F2E2C; --mist:#F5F2EA; --paper:#FBFAF6; --star:#6FB8C2; --star-dark:#3E7F86;
+    --coral:#D8663F; --ink:#14201E; --ink-soft:#4A5654; --line:rgba(20,32,30,0.12); --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  body{ font-family:'Noto Sans KR', sans-serif; background:var(--paper); color:var(--ink); margin:0; line-height:1.7; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:18px 6vw; border-bottom:1px solid var(--line); }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:600; font-size:15px; text-decoration:none; color:var(--ink); }
+  .brand svg{ width:24px; height:24px; }
+  .back-link{ font-size:13.5px; color:var(--ink-soft); text-decoration:none; }
+  .back-link:hover{ color:var(--star-dark); }
+  main{ max-width:760px; margin:0 auto; padding:56px 6vw 100px; }
+  .eyebrow{ font-size:12.5px; letter-spacing:0.08em; color:var(--star-dark); font-weight:700; margin-bottom:10px; }
+  h1{ font-family:'Fraunces', serif; font-weight:500; font-size:clamp(28px,4vw,38px); margin:0 0 32px; }
+  .steps{ display:flex; flex-direction:column; gap:22px; }
+  .step{ display:flex; gap:18px; align-items:flex-start; }
+  .step-icon{
+    width:52px; height:52px; border-radius:14px; background:var(--mist); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .step-num{ font-family:'Fraunces', serif; font-size:12px; color:var(--star-dark); font-weight:600; margin-bottom:4px; }
+  .step h3{ font-size:16px; font-weight:600; margin:0 0 6px; }
+  .step p{ color:var(--ink-soft); font-size:14.5px; margin:0; }
+  .note{
+    background:var(--mist); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px;
+    font-size:13.5px; color:var(--ink-soft); margin-top:32px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="/">
+    <svg viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
+    UNEXPOSED
+  </a>
+  <a class="back-link" href="/">← 홈으로</a>
+</header>
+
+<main>
+  <div class="eyebrow">HOW TO USE</div>
+  <h1>스캔부터 주문까지,<br>4단계로 끝나요</h1>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 1</div>
+        <h3>Google 계정으로 로그인</h3>
+        <p>우측 상단(모바일은 메뉴)에서 Google 계정으로 로그인해요. 로그인해야 스캔·저장·주문 기능을 쓸 수 있어요.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l2-3h4l2 3"/><circle cx="12" cy="13.5" r="3.2"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 2</div>
+        <h3>얼굴·체형 사진 찍기</h3>
+        <p>"scan demo" 섹션에서 카메라로 찍거나 사진을 업로드해요. 정면 사진 한 장만 있어도 시작할 수 있어요.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><path d="M8 4l4 3 4-3"/><path d="M6 8l6-4 6 4-2 12H8z"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 3</div>
+        <h3>3D 아바타에 옷 꾸미기</h3>
+        <p>만들어진 아바타에 옷장에서 옷을 골라 입혀보거나, 직접 무늬를 그리거나 업로드해서 나만의 디자인을 완성해요.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8l9-5 9 5"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 4</div>
+        <h3>견적 확인 후 주문</h3>
+        <p>원단·디테일을 고르면 예상 견적이 바로 뜨고, "주문하기"로 결제하면 완료돼요. 배송을 선택하면 배송지도 입력해요.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">데모 단계라 일부 기능은 실제 제작·배송까지 이어지지 않을 수 있어요. 주문이 접수되면 팀이 직접 안내드려요.</div>
+</main>
+
+</body>
+</html>

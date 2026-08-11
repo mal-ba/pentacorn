@@ -109,89 +109,6 @@
   }
   .nav-support-btn:hover{ background:var(--deep-2); }
 
-  /* ---------- 문의 챗봇 ---------- */
-  .support-panel{
-    position:fixed; top:0; right:0; height:100%; width:100%; max-width:380px;
-    background:var(--paper); z-index:300; box-shadow:-16px 0 40px rgba(0,0,0,0.18);
-    display:flex; flex-direction:column;
-    transform:translateX(100%); transition:transform .25s ease;
-  }
-  .support-panel.open{ transform:translateX(0); }
-  .support-header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:18px 18px; border-bottom:1px solid var(--line); background:var(--deep); color:var(--paper);
-  }
-  .support-header h4{ font-size:15px; font-weight:600; }
-  .support-header p{ font-size:11.5px; color:#CFE0DD; margin-top:2px; }
-  .support-close-btn{
-    width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
-    background:transparent; color:var(--paper); font-size:13px; cursor:pointer; flex-shrink:0;
-  }
-  .support-messages{
-    flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;
-  }
-  .support-msg{
-    max-width:85%; padding:10px 13px; border-radius:14px; font-size:13px; line-height:1.55;
-    white-space:pre-line;
-  }
-  .support-msg.bot{ background:var(--mist); align-self:flex-start; border-bottom-left-radius:4px; }
-  .support-msg.user{ background:var(--deep); color:var(--paper); align-self:flex-end; border-bottom-right-radius:4px; }
-  .support-suggestions{ display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px; }
-  .support-suggestion-chip{
-    font-family:inherit; font-size:11.5px; padding:7px 12px; border-radius:999px;
-    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer;
-  }
-  .support-suggestion-chip:hover{ border-color:var(--star-dark); color:var(--ink); }
-  .support-input-row{
-    display:flex; gap:8px; padding:14px 16px; border-top:1px solid var(--line);
-  }
-  .support-input-row input{
-    flex:1; padding:11px 13px; border-radius:999px; border:1px solid var(--line);
-    font-family:inherit; font-size:13px; outline:none;
-  }
-  .support-input-row input:focus{ border-color:var(--star-dark); }
-  .support-input-row button{
-    font-family:inherit; font-size:12.5px; font-weight:700; padding:0 18px;
-    border-radius:999px; border:none; background:var(--deep); color:var(--paper); cursor:pointer;
-  }
-  .support-overlay-bg{
-    position:fixed; inset:0; background:rgba(15,46,44,0.35); z-index:290;
-  }
-  .support-overlay-bg[hidden], .support-panel[hidden]{ display:none; }
-
-  /* ---------- 엔딩 크레딧 연출 ---------- */
-  .credits-overlay{
-    position:fixed; inset:0; background:#000; z-index:400;
-    overflow:hidden; display:flex; align-items:flex-start; justify-content:center;
-  }
-  .credits-overlay[hidden]{ display:none; }
-  .credits-scroll{
-    position:absolute; left:0; right:0; top:100%;
-    display:flex; flex-direction:column; align-items:center; gap:38px;
-    padding:0 8vw;
-    animation:credits-roll linear forwards;
-  }
-  .credits-scroll .credits-line{
-    font-family:'Fraunces', serif; font-weight:500; font-style:italic;
-    font-size:22px; color:#F5F2EA; text-align:center; line-height:1.5;
-    text-shadow:0 0 18px rgba(245,242,234,0.15);
-  }
-  .credits-scroll .credits-brand{
-    font-family:'Fraunces', serif; font-weight:600; font-size:15px;
-    color:#6FB8C2; letter-spacing:0.12em; text-transform:uppercase; margin-top:20px;
-  }
-  @media(min-width:640px){ .credits-scroll .credits-line{ font-size:30px; } }
-  @keyframes credits-roll{
-    from{ transform:translateY(0); }
-    to{ transform:translateY(-220%); }
-  }
-  .credits-close-btn{
-    position:fixed; top:20px; right:20px; z-index:401;
-    width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
-    background:rgba(255,255,255,0.08); color:#F5F2EA; font-size:15px; cursor:pointer;
-  }
-  .credits-close-btn:hover{ background:rgba(255,255,255,0.18); }
-
   /* ---------- HERO ---------- */
   .hero{
     position:relative;
@@ -481,43 +398,6 @@
     #admin-fab-emoji{ font-size:21px; }
   }
 
-  /* ---------- 왼쪽 슬라이드 메뉴 (소개/이용방법/개인정보/배송/협력업체/Meshy 가이드) ---------- */
-  .side-menu-overlay{
-    position:fixed; inset:0; background:rgba(15,25,23,0.45); z-index:90;
-    display:flex; justify-content:flex-start;
-  }
-  .side-menu-overlay[hidden]{ display:none; }
-  .side-menu-panel{
-    width:340px; max-width:86vw; height:100%; background:var(--paper);
-    box-shadow:4px 0 24px rgba(15,25,23,0.18); display:flex; flex-direction:column;
-    padding:18px 20px 24px; overflow-y:auto;
-    animation:side-menu-slide-in 0.22s ease-out;
-  }
-  @keyframes side-menu-slide-in{
-    from{ transform:translateX(-16px); opacity:0.4; }
-    to{ transform:translateX(0); opacity:1; }
-  }
-  .side-menu-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-  .side-menu-back-btn{
-    background:none; border:none; color:var(--star-dark); font-size:13.5px; font-weight:600;
-    cursor:pointer; padding:4px 0;
-  }
-  .side-menu-close-btn{
-    width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--paper);
-    color:var(--ink-soft); cursor:pointer; margin-left:auto;
-  }
-  .side-menu-close-btn:hover{ border-color:var(--star-dark); }
-  .side-menu-list{ display:flex; flex-direction:column; gap:4px; }
-  .side-menu-item{
-    text-align:left; background:none; border:none; border-radius:10px; padding:13px 12px;
-    font-size:14.5px; font-weight:500; color:var(--ink); cursor:pointer;
-  }
-  .side-menu-item:hover{ background:var(--mist); }
-  .side-menu-detail h3{ font-family:'Fraunces', serif; font-weight:500; font-size:19px; margin-bottom:14px; }
-  #side-menu-detail-body{ font-size:13.5px; color:var(--ink-soft); line-height:1.75; white-space:pre-line; }
-  #side-menu-detail-body ol{ padding-left:20px; margin-top:6px; }
-  #side-menu-detail-body li{ margin-bottom:6px; }
-
 </style>
 </head>
 <body>
@@ -551,26 +431,8 @@
   <button class="nav-support-btn" id="support-open-btn" type="button">문의하기</button>
 </nav>
 
-<div class="side-menu-overlay" id="side-menu-overlay" hidden>
-  <div class="side-menu-panel">
-    <div class="side-menu-header">
-      <button class="side-menu-back-btn" id="side-menu-back-btn" type="button" hidden>← 목록으로</button>
-      <button class="side-menu-close-btn" id="side-menu-close-btn" type="button" aria-label="닫기">✕</button>
-    </div>
-    <div class="side-menu-list" id="side-menu-list">
-      <button class="side-menu-item" data-topic="intro">소개</button>
-      <button class="side-menu-item" data-topic="howto">이용 방법</button>
-      <button class="side-menu-item" data-topic="privacy">개인정보 처리와 동의</button>
-      <button class="side-menu-item" data-topic="shipping">배송과 만드는 과정</button>
-      <button class="side-menu-item" data-topic="partners">협력 업체</button>
-      <button class="side-menu-item" data-topic="meshy">Meshy AI GLB 가이드</button>
-    </div>
-    <div class="side-menu-detail" id="side-menu-detail" hidden>
-      <h3 id="side-menu-detail-title"></h3>
-      <div id="side-menu-detail-body"></div>
-    </div>
-  </div>
-</div>
+<div id="side-menu-mount"></div>
+
 
 <section class="hero">
   <svg class="hero-star" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#F5F2EA"/></svg>
@@ -1012,213 +874,46 @@
   </div>
 </div>
 
-<div class="support-overlay-bg" id="support-overlay-bg" hidden></div>
-<div class="support-panel" id="support-panel">
-  <div class="support-header">
-    <div>
-      <h4>UNEXPOSED 문의하기</h4>
-      <p>자주 묻는 질문에 바로 답해드려요</p>
-    </div>
-    <button class="support-close-btn" id="support-close-btn" type="button" aria-label="닫기">✕</button>
-  </div>
-  <div class="support-messages" id="support-messages"></div>
-  <div class="support-suggestions" id="support-suggestions"></div>
-  <div class="support-input-row">
-    <input type="text" id="support-input" placeholder="궁금한 걸 물어보세요 (예: 결제, 로그인, 스캔...)">
-    <button id="support-send-btn" type="button">전송</button>
-  </div>
-</div>
-
-<div class="credits-overlay" id="credits-overlay" hidden>
-  <div class="credits-scroll" id="credits-scroll"></div>
-  <button class="credits-close-btn" id="credits-close-btn" type="button" aria-label="닫기">✕</button>
-</div>
+<div id="support-mount"></div>
 
 <script>
   /* ---------- 텍스트 복사 방지 ---------- */
   document.addEventListener('copy', e => e.preventDefault());
   document.addEventListener('cut', e => e.preventDefault());
 
-  /* ---------- 문의 챗봇 (규칙 기반 FAQ) ---------- */
-  (function initSupportChat(){
-    const LIFE_QUOTES = [
-      '태어난 순간부터 지금까지, 단 1초도 진짜 행복했던 적이 없어.',
-      '웃고 있어도 속은 텅 비어있다는 거, 아무도 안 믿더라.',
-      '괜찮은 척하는 데 평생을 썼는데, 정작 괜찮았던 적은 없어.',
-      '다들 나보고 웃으라는데, 정작 왜 웃어야 하는지는 아무도 안 알려줬어.',
-      '가장 슬픈 건, 슬프다는 것조차 아무도 눈치 못 챈다는 거야.',
-      '행복은 남의 얘기인 줄 알았는데, 진짜로 남의 얘기였더라고.',
-    ];
+  /* ---------- 문의 챗봇 (처음 '문의하기' 누를 때만 불러와요) ---------- */
+  const supportOpenBtn = document.getElementById('support-open-btn');
+  let supportBundleLoaded = false;
+  let supportBundleLoading = null;
 
-    const KNOWLEDGE_BASE = [
-      {
-        keywords: ['스캔', '카메라', '촬영', '녹화'],
-        answer: '스캔은 "scan demo" 섹션의 "스캔하고 디자인 시작하기" 버튼을 누르면 시작돼요. 카메라 권한을 허용하면 사진 촬영이나 5초 동영상 녹화를 할 수 있고, 카메라를 쓸 수 없으면 사진·동영상 파일을 업로드해도 돼요.',
-      },
-      {
-        keywords: ['로그인', '구글', '인앱', '카카오톡', '403', 'disallowed'],
-        answer: 'Google 계정으로 로그인해서 유료 플랜 구독이나 결제를 할 수 있어요. 카카오톡·클로드 앱 같은 인앱 브라우저에서는 구글 보안 정책상 로그인이 막혀 있어서, 화면 위 배너의 "외부 브라우저로 열기"를 눌러서 크롬·사파리로 열어주세요.',
-      },
-      {
-        keywords: ['결제', '구독', '돈', '카드', '토스', '요금', '가격', '플랜'],
-        answer: '지금은 테스트 결제로 연동되어 있어서, 실제 카드를 입력해도 진짜 돈은 빠져나가지 않아요. Free/Basic/Standard/Pro 플랜이 있고, 유료 플랜은 로그인 후 구독하기를 누르면 결제창으로 이동해요.',
-      },
-      {
-        keywords: ['원단', '소재', '디테일', '견적', '제작비'],
-        answer: '원단 등급(베이직/프리미엄/스페셜), 디테일 옵션(자수·특수재단), 완성 형태(패턴 PDF/완제품 배송)를 골라서 실시간으로 예상 제작 견적을 확인할 수 있어요. "기타(직접 요청)"를 선택하면 원하는 원단·디자인을 자유롭게 적을 수도 있어요.',
-      },
-      {
-        keywords: ['옷장', '입혀', '꾸미기', '장신구', '아이템', '추천'],
-        answer: '스캔 화면 안 "옷장 & 꾸미기"에서 기본 제공 아이템을 둘러보거나, 연령대·상황에 맞춰 추천받거나, 직접 만든 옷·장신구(.glb 파일)를 올려서 마네킹에 입혀볼 수 있어요.',
-      },
-      {
-        keywords: ['마네킹', '키', '아바타', '3d', '전신'],
-        answer: '키(cm)를 입력하고 "아바타 생성하기"를 누르면 3D 마네킹 크기가 그 비율에 맞게 조정돼요. 마우스나 손가락으로 드래그하면 360도로 돌려볼 수 있어요.',
-      },
-      {
-        keywords: ['제작', '배송', '실제', '받을', '완제품', '기간'],
-        answer: '지금은 데모 버전이라 실제 제작·배송은 아직 연결되어 있지 않아요. 정식 서비스에서는 완성한 디자인을 파트너 제작사에 도면(PDF)으로 넘기거나, 완제품으로 배송받는 옵션을 고를 수 있게 될 예정이에요.',
-      },
-      {
-        keywords: ['개인정보', '사진', '저장', '삭제', '동의', '프라이버시'],
-        answer: '신체 데이터(사진·키)는 로그인 후 "신체 데이터 수집·보관"에 직접 동의한 경우에만 저장돼요. 동의하지 않으면 화면에만 보이고 서버에는 저장되지 않고, 언제든 우측 상단 "개인정보 설정"에서 동의를 바꾸거나 저장된 데이터를 삭제할 수 있어요.',
-      },
-      {
-        keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'pentacorp', '펜타콘'],
-        answer: 'UNEXPOSED는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
-      },
-      {
-        keywords: ['인생'],
-        answer: LIFE_QUOTES.join('\n'),
-        action: 'lifeCredits',
-      },
-    ];
+  function loadSupportBundle(){
+    if(supportBundleLoaded) return Promise.resolve();
+    if(supportBundleLoading) return supportBundleLoading;
+    supportBundleLoading = (async () => {
+      const cssLink = document.createElement('link');
+      cssLink.rel = 'stylesheet';
+      cssLink.href = '/support-panel.css';
+      document.head.appendChild(cssLink);
 
-    const SUGGESTIONS = [
-      '스캔은 어떻게 해요?',
-      '결제하면 진짜 돈 나가나요?',
-      '구글 로그인이 안 돼요',
-      '내 사진이 저장되나요?',
-    ];
+      const html = await (await fetch('/support-panel.html')).text();
+      document.getElementById('support-mount').outerHTML = html;
 
-    const openBtn = document.getElementById('support-open-btn');
-    const closeBtn = document.getElementById('support-close-btn');
-    const panel = document.getElementById('support-panel');
-    const overlay = document.getElementById('support-overlay-bg');
-    const messages = document.getElementById('support-messages');
-    const suggestionsBox = document.getElementById('support-suggestions');
-    const input = document.getElementById('support-input');
-    const sendBtn = document.getElementById('support-send-btn');
-
-    function addMessage(text, from){
-      const div = document.createElement('div');
-      div.className = `support-msg ${from}`;
-      div.textContent = text;
-      messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    function renderSuggestions(){
-      suggestionsBox.innerHTML = '';
-      SUGGESTIONS.forEach(text => {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'support-suggestion-chip';
-        chip.textContent = text;
-        chip.addEventListener('click', () => handleUserMessage(text));
-        suggestionsBox.appendChild(chip);
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/support-chat.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
       });
-    }
+      supportBundleLoaded = true;
+    })();
+    return supportBundleLoading;
+  }
 
-    function findAnswer(message){
-      const lower = message.toLowerCase();
-      let best = null;
-      let bestScore = 0;
-      KNOWLEDGE_BASE.forEach(entry => {
-        const score = entry.keywords.reduce((acc, kw) => acc + (lower.includes(kw.toLowerCase()) ? 1 : 0), 0);
-        if(score > bestScore){
-          bestScore = score;
-          best = entry;
-        }
-      });
-      if(best) return best;
-      return {
-        answer: '죄송해요, 정확히 이해하지 못했어요. 아래 추천 질문 중 하나를 눌러보시거나, 스캔·로그인·결제·원단·옷장 중 어떤 부분이 궁금한지 다시 말씀해주시겠어요?',
-      };
-    }
-
-    function handleUserMessage(text){
-      const trimmed = text.trim();
-      if(!trimmed) return;
-      addMessage(trimmed, 'user');
-      input.value = '';
-      setTimeout(() => {
-        const matched = findAnswer(trimmed);
-        addMessage(matched.answer, 'bot');
-        if(matched.action === 'lifeCredits') showCreditsRoll(LIFE_QUOTES);
-      }, 300);
-    }
-
-    function openPanel(){
-      panel.classList.add('open');
-      overlay.hidden = false;
-      if(messages.children.length === 0){
-        addMessage('안녕하세요! UNEXPOSED에 대해 궁금한 걸 물어보세요. 스캔, 로그인, 결제, 원단, 옷장 등 무엇이든 답해드릴게요. (규칙 기반 FAQ 챗봇이에요)', 'bot');
-        renderSuggestions();
-      }
-      input.focus();
-    }
-    function closePanel(){
-      panel.classList.remove('open');
-      overlay.hidden = true;
-    }
-
-    /* ---------- 엔딩 크레딧처럼 문구가 올라가는 연출 ---------- */
-    const creditsOverlay = document.getElementById('credits-overlay');
-    const creditsScroll = document.getElementById('credits-scroll');
-    const creditsCloseBtn = document.getElementById('credits-close-btn');
-
-    function showCreditsRoll(lines){
-      creditsScroll.innerHTML = '';
-      lines.forEach(line => {
-        const p = document.createElement('div');
-        p.className = 'credits-line';
-        p.textContent = line;
-        creditsScroll.appendChild(p);
-      });
-      const brand = document.createElement('div');
-      brand.className = 'credits-brand';
-      brand.textContent = 'UNEXPOSED';
-      creditsScroll.appendChild(brand);
-
-      const durationMs = 3200 + lines.length * 1600;
-      creditsScroll.style.animationDuration = `${durationMs}ms`;
-      // 애니메이션을 처음부터 다시 재생시키기 위해 강제로 리플로우해요.
-      creditsScroll.style.animation = 'none';
-      void creditsScroll.offsetHeight;
-      creditsScroll.style.animation = `credits-roll ${durationMs}ms linear forwards`;
-
-      creditsOverlay.hidden = false;
-      const autoCloseTimer = setTimeout(closeCreditsRoll, durationMs + 400);
-      creditsOverlay.dataset.timerId = autoCloseTimer;
-    }
-    function closeCreditsRoll(){
-      creditsOverlay.hidden = true;
-      if(creditsOverlay.dataset.timerId) clearTimeout(Number(creditsOverlay.dataset.timerId));
-    }
-    creditsCloseBtn.addEventListener('click', closeCreditsRoll);
-    creditsOverlay.addEventListener('click', e => {
-      if(e.target === creditsOverlay) closeCreditsRoll();
-    });
-
-    openBtn.addEventListener('click', openPanel);
-    closeBtn.addEventListener('click', closePanel);
-    overlay.addEventListener('click', closePanel);
-    sendBtn.addEventListener('click', () => handleUserMessage(input.value));
-    input.addEventListener('keydown', e => {
-      if(e.key === 'Enter') handleUserMessage(input.value);
-    });
-  })();
+  supportOpenBtn.addEventListener('click', async () => {
+    await loadSupportBundle();
+    if(typeof window.openSupportPanel === 'function') window.openSupportPanel();
+  });
 
   /* ---------- 인앱 브라우저 감지 (카카오톡, 클로드 앱 등) ---------- */
   (function detectInAppBrowser(){
@@ -1388,99 +1083,36 @@
   }
   checkAuthOnLoad();
 
-  /* ---------- 왼쪽 슬라이드 메뉴 ---------- */
-  const SIDE_MENU_CONTENT = {
-    intro: {
-      title: '소개',
-      body: `UNEXPOSED는 PentaCorp(펜타콘) 팀이 만든 신체 스캔 기반 맞춤 의류 디자인 서비스예요.
-
-3D 아바타 위에서 직접 옷을 디자인해보고, 완성된 디자인을 실제 제작으로 이어볼 수 있도록 만들고 있어요.
-
-지금은 학생 팀이 운영하는 데모/시제품 단계로, 정식 서비스 출시 전 기능들을 테스트하고 있는 중이에요.`,
-    },
-    howto: {
-      title: '이용 방법',
-      body: `<ol>
-        <li>우측 상단에서 Google 계정으로 로그인해요.</li>
-        <li>"scan demo" 섹션에서 얼굴·체형 사진을 찍거나 업로드해요.</li>
-        <li>3D 아바타가 만들어지면, 옷장에서 옷을 골라 입혀보거나 직접 무늬를 그려서 꾸며요.</li>
-        <li>마음에 드는 디자인이 완성되면 "주문하기"로 견적을 확인하고 결제할 수 있어요.</li>
-      </ol>
-      데모 단계라 일부 기능은 실제 제작·배송까지 이어지지 않을 수 있어요.`,
-    },
-    privacy: {
-      title: '개인정보 처리와 동의',
-      body: `로그인 시 Google 계정 정보(이메일, 이름)를 저장해요.
-
-스캔 시 신체 사진·키 정보는, 동의한 경우에만 서버에 저장돼요. 동의하지 않아도 스캔·아바타 생성 기능은 그대로 쓸 수 있어요.
-
-배송 주문 시에는 이름·연락처·주소도 별도 동의를 받고 수집해요.
-
-동의는 언제든 (우측 상단 "개인정보 설정"에서) 다시 바꿀 수 있고, 철회하면 그동안 저장된 데이터가 즉시 삭제돼요.
-
-이 서비스는 아직 데모 단계라, 정식 개인정보처리방침은 정식 출시 전 변호사 검토를 거쳐 별도로 공개할 예정이에요.`,
-    },
-    shipping: {
-      title: '배송과 만드는 과정',
-      body: `완성한 디자인은 "완제품 도어투도어 배송" 옵션을 선택하면 실제 제작·배송으로 이어질 수 있어요.
-
-"패턴 PDF만" 옵션을 고르면 배송 없이 도안 파일만 받아볼 수 있어요.
-
-현재는 데모 단계라, 실제 원단 제작·배송 파트너 연결은 아직 준비 중이에요. 주문이 접수되면 팀이 직접 안내드려요.`,
-    },
-    partners: {
-      title: '협력 업체',
-      body: `현재는 협력하고 있는 제작·배송 업체가 없어요.
-
-지금은 PentaCorp 팀이 직접 데모를 운영하며 기능을 테스트하는 단계예요. 정식 서비스 출시 시 원단·재단·배송 파트너사와 협력할 예정이고, 정해지는 대로 이 메뉴에 안내해드릴게요.`,
-    },
-    meshy: {
-      title: 'Meshy AI GLB 가이드',
-      body: `옷장에 올리는 옷·아이템은 Meshy AI 같은 도구로 만든 3D 모델(.glb 파일)을 사용해요.
-
-<ol>
-  <li>meshy.ai에서 텍스트나 이미지를 넣어 3D 모델을 생성해요.</li>
-  <li>완성되면 내보내기(Export)에서 GLB 형식으로 다운로드해요.</li>
-  <li>UNEXPOSED에서 "3D로 꾸미기 시작" → 옷장 → "내 아이템 올리기"에서 방금 받은 .glb 파일과 썸네일 이미지를 올려요.</li>
-  <li>업로드하면 바로 마네킹에 입혀보고 위치·크기·색을 조정할 수 있어요.</li>
-</ol>`,
-    },
-  };
-
-  const sideMenuOverlay = document.getElementById('side-menu-overlay');
-  const sideMenuList = document.getElementById('side-menu-list');
-  const sideMenuDetail = document.getElementById('side-menu-detail');
-  const sideMenuDetailTitle = document.getElementById('side-menu-detail-title');
-  const sideMenuDetailBody = document.getElementById('side-menu-detail-body');
-  const sideMenuBackBtn = document.getElementById('side-menu-back-btn');
+  /* ---------- 왼쪽 슬라이드 메뉴 — 처음 열 때만 불러와요 (각 항목은 별도 페이지로 이동) ---------- */
   const menuToggleBtn = document.getElementById('menu-toggle-btn');
-  const sideMenuCloseBtn = document.getElementById('side-menu-close-btn');
+  let sideMenuLoaded = false;
+  let sideMenuLoading = null;
 
-  function showSideMenuList(){
-    sideMenuList.hidden = false;
-    sideMenuDetail.hidden = true;
-    sideMenuBackBtn.hidden = true;
+  function loadSideMenuBundle(){
+    if(sideMenuLoaded) return Promise.resolve();
+    if(sideMenuLoading) return sideMenuLoading;
+    sideMenuLoading = (async () => {
+      const cssLink = document.createElement('link');
+      cssLink.rel = 'stylesheet';
+      cssLink.href = '/side-menu.css';
+      document.head.appendChild(cssLink);
+
+      const html = await (await fetch('/side-menu.html')).text();
+      document.getElementById('side-menu-mount').outerHTML = html;
+
+      const overlay = document.getElementById('side-menu-overlay');
+      const closeBtn = document.getElementById('side-menu-close-btn');
+      closeBtn.addEventListener('click', () => { overlay.hidden = true; });
+      overlay.addEventListener('click', e => { if(e.target === overlay) overlay.hidden = true; });
+
+      sideMenuLoaded = true;
+    })();
+    return sideMenuLoading;
   }
-  function showSideMenuDetail(topic){
-    const item = SIDE_MENU_CONTENT[topic];
-    if(!item) return;
-    sideMenuDetailTitle.textContent = item.title;
-    sideMenuDetailBody.innerHTML = item.body;
-    sideMenuList.hidden = true;
-    sideMenuDetail.hidden = false;
-    sideMenuBackBtn.hidden = false;
-  }
-  menuToggleBtn.addEventListener('click', () => {
-    showSideMenuList();
-    sideMenuOverlay.hidden = false;
-  });
-  sideMenuCloseBtn.addEventListener('click', () => { sideMenuOverlay.hidden = true; });
-  sideMenuOverlay.addEventListener('click', e => {
-    if(e.target === sideMenuOverlay) sideMenuOverlay.hidden = true;
-  });
-  sideMenuBackBtn.addEventListener('click', showSideMenuList);
-  sideMenuList.querySelectorAll('.side-menu-item').forEach(btn => {
-    btn.addEventListener('click', () => showSideMenuDetail(btn.dataset.topic));
+
+  menuToggleBtn.addEventListener('click', async () => {
+    await loadSideMenuBundle();
+    document.getElementById('side-menu-overlay').hidden = false;
   });
 
   /* ---------- 신체 데이터 수집 동의 ---------- */

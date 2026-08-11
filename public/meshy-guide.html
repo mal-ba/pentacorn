@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meshy AI GLB 가이드 — UNEXPOSED</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#0F2E2C; --mist:#F5F2EA; --paper:#FBFAF6; --star:#6FB8C2; --star-dark:#3E7F86;
+    --coral:#D8663F; --ink:#14201E; --ink-soft:#4A5654; --line:rgba(20,32,30,0.12); --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  body{ font-family:'Noto Sans KR', sans-serif; background:var(--paper); color:var(--ink); margin:0; line-height:1.7; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:18px 6vw; border-bottom:1px solid var(--line); }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:600; font-size:15px; text-decoration:none; color:var(--ink); }
+  .brand svg{ width:24px; height:24px; }
+  .back-link{ font-size:13.5px; color:var(--ink-soft); text-decoration:none; }
+  .back-link:hover{ color:var(--star-dark); }
+  main{ max-width:760px; margin:0 auto; padding:56px 6vw 100px; }
+  .eyebrow{ font-size:12.5px; letter-spacing:0.08em; color:var(--star-dark); font-weight:700; margin-bottom:10px; }
+  h1{ font-family:'Fraunces', serif; font-weight:500; font-size:clamp(28px,4vw,36px); margin:0 0 14px; }
+  .intro{ color:var(--ink-soft); font-size:15px; margin:0 0 36px; }
+  .steps{ display:flex; flex-direction:column; gap:22px; }
+  .step{ display:flex; gap:18px; align-items:flex-start; }
+  .step-icon{
+    width:52px; height:52px; border-radius:14px; background:var(--mist); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .step-num{ font-family:'Fraunces', serif; font-size:12px; color:var(--star-dark); font-weight:600; margin-bottom:4px; }
+  .step h3{ font-size:16px; font-weight:600; margin:0 0 6px; }
+  .step p{ color:var(--ink-soft); font-size:14.5px; margin:0; }
+  .note{
+    background:var(--mist); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px;
+    font-size:13.5px; color:var(--ink-soft); margin-top:32px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="/">
+    <svg viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
+    UNEXPOSED
+  </a>
+  <a class="back-link" href="/">← 홈으로</a>
+</header>
+
+<main>
+  <div class="eyebrow">MESHY AI GUIDE</div>
+  <h1>내 옷장 아이템,<br>직접 만들어보기</h1>
+  <p class="intro">옷장에 올리는 옷·아이템은 Meshy AI 같은 도구로 만든 3D 모델(.glb 파일)을 사용해요. 아래 순서대로 따라 하면 나만의 아이템을 옷장에 올릴 수 있어요.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><path d="M12 3l7 4v10l-7 4-7-4V7z"/><path d="M12 3v18M5 7l7 4 7-4"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 1</div>
+        <h3>meshy.ai에서 3D 모델 생성</h3>
+        <p>meshy.ai에 접속해서 텍스트로 설명하거나 참고 이미지를 넣어 원하는 옷·소품의 3D 모델을 만들어요.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 2</div>
+        <h3>GLB 형식으로 내보내기</h3>
+        <p>모델이 완성되면 Export(내보내기) 메뉴에서 <strong>.glb</strong> 형식을 선택해 다운로드해요. 다른 형식은 UNEXPOSED에서 지원하지 않아요.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 3</div>
+        <h3>UNEXPOSED에 업로드</h3>
+        <p>"3D로 꾸미기 시작" → 옷장 → "내 아이템 올리기"에서 방금 받은 .glb 파일과 썸네일 이미지를 함께 올려요.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg>
+      </div>
+      <div>
+        <div class="step-num">STEP 4</div>
+        <h3>마네킹에 바로 입혀보기</h3>
+        <p>업로드가 끝나면 바로 마네킹에 입혀볼 수 있고, 위치·크기·색을 슬라이더로 세밀하게 조정할 수 있어요.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">파일 용량이 크면 업로드·로딩이 느릴 수 있어요. 가능하면 텍스처 해상도를 낮추거나 압축해서 올리는 걸 추천해요.</div>
+</main>
+
+</body>
+</html>
