@@ -78,61 +78,31 @@ function createEyeliner(color){
   return group;
 }
 
-// 머리카락: 정수리를 덮는 돔 모양이에요. 눈(Y≈0.475)보다 한참 위인 Y≈0.58부터
-// 시작해서 정수리(Y=1.0)까지 덮기 때문에, 얼굴(눈·코·입)과는 절대 겹치지 않아요.
-//
-// cutoutCanvas가 있으면(AI가 사진에서 머리카락만 오려낸 이미지) 그 이미지를 돔의 앞면에
-// 텍스처로 입혀서 "그 사람 사진 속 머리카락"이 그대로 보이게 하고, 없으면(인식 실패 시)
-// 단색으로 채워요.
-function createHair(color, cutoutCanvas){
+// 머리카락 "정수리 캡": 4방향 사진으로도 안 찍히는 머리 꼭대기 부분만 작게 덮는 단색 돔이에요.
+// (Y≈0.82부터 정수리 Y=1.0까지만 — 나머지 옆·뒤는 createAngledPatch로 만든 실제 사진이 덮어요)
+function createHair(color){
   const group = new THREE.Group();
-  // phi: 정면(+Z)을 중심으로 좌우 약 91.5도씩, 총 183도 정도만 덮어요 (뒤통수는 안 덮음 —
-  // 카메라로 정면만 찍은 사진이라 뒤쪽 텍스처가 없기 때문에, 이렇게 해야 안 이상해요).
-  // theta: 정수리에서부터 눈썹보다 위(귀 윗부분 정도)까지만 덮어요.
-  const geo = new THREE.SphereGeometry(1, 48, 28, Math.PI / 2 - 1.6, 3.2, 0, Math.PI * 0.472);
-
-  let mat;
-  if(cutoutCanvas){
-    const texture = new THREE.CanvasTexture(cutoutCanvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    mat = new THREE.MeshStandardMaterial({
-      map: texture,
-      transparent: true,
-      alphaTest: 0.3, // 투명한 부분(머리카락이 아닌 부분)은 아예 안 그려서, 네모난 카드처럼 안 보이게 해요.
-      side: THREE.DoubleSide,
-      roughness: 0.75,
-      metalness: 0,
-    });
-  } else {
-    mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0, side: THREE.DoubleSide });
-  }
-
+  const geo = new THREE.SphereGeometry(1, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.29);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0, side: THREE.DoubleSide });
   const dome = new THREE.Mesh(geo, mat);
-  // 머리 폭(X 약 0.41), 앞뒤 깊이(이마~뒤통수)에 맞춰 타원형으로 눌러줘요.
   dome.scale.set(0.46, 0.46, 0.52);
-  // 정수리(Y=1.0)에 돔의 꼭짓점이 오도록, 돔 중심을 아래로 내려요. (1.0 - scaleY)
   dome.position.set(0, 1.0 - 0.46, -0.04);
   group.add(dome);
   group.name = 'hair';
   return group;
 }
 
-// 얼굴 패치: 사진에서 AI로 오려낸 "얼굴 피부" 부분을 얼굴 앞면에 곡면으로 입혀요.
-// 머리 모델 자체의 UV(원래 텍스처 좌표)는 하나도 안 건드리고, 카메라가 보는 방향(앞쪽) 기준으로
-// 완전히 새로운 곡면을 만들어서 그 위에 입히기 때문에, 목/턱 쪽으로 이상하게 늘어나 보이는 문제가 없어요.
+// 각도별 사진 곡면 패치를 만드는 범용 함수예요. 얼굴(정면/좌/우)이랑 머리카락 밴드(정면/좌/우/뒤)
+// 둘 다 이 함수 하나로 만들어요 — 어느 각도에서 찍은 사진인지(thetaCenter)와, 세로로 얼마나
+// 덮을지(yTop~yBottom)만 다르게 넣어주면 돼요.
 //
-// 턱(Y≈-0.19)부터 이마 위(Y≈0.58, 머리카락이 시작하는 지점)까지, 귀 조금 앞쪽까지만 감싸요.
-//
-// 참고: CylinderGeometry는 각도(theta) 0이 정면(+Z, 카메라 쪽)이에요 — Sphere(구)와 달리
-// 90도가 정면이 아니라서, 여기서는 0을 중심으로 좌우로 펼쳐요. (Sphere를 쓰는 머리카락과는
-// 각도 기준이 다르니 헷갈리지 않게 주의!)
-export function createFacePatch(cutoutCanvas){
+// 참고: CylinderGeometry는 각도(theta) 0이 정면(+Z, 카메라 쪽)이에요. theta가 양수면 +X(화면
+// 오른쪽), 음수면 -X(화면 왼쪽), π(180도)면 완전히 뒤쪽이에요.
+export function createAngledPatch({ cutoutCanvas, thetaCenter = 0, thetaWidth = 2.1, yTop, yBottom, radius = 0.5 }){
   if(!cutoutCanvas) return null;
-  const height = 0.58 - (-0.22);
-  const radius = 0.5;
-  const thetaLength = 2.1; // 좌우로 약 120도 정도
-  const thetaStart = -thetaLength / 2; // 0(정면, +Z)을 중심으로 좌우 대칭
-  const geo = new THREE.CylinderGeometry(radius, radius, height, 32, 1, true, thetaStart, thetaLength);
+  const height = yTop - yBottom;
+  const thetaStart = thetaCenter - thetaWidth / 2;
+  const geo = new THREE.CylinderGeometry(radius, radius, height, 28, 1, true, thetaStart, thetaWidth);
 
   const texture = new THREE.CanvasTexture(cutoutCanvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -141,22 +111,39 @@ export function createFacePatch(cutoutCanvas){
     transparent: true,
     alphaTest: 0.3,
     side: THREE.DoubleSide,
-    roughness: 0.85,
+    roughness: 0.8,
     metalness: 0,
     polygonOffset: true,
     polygonOffsetFactor: -1,
   });
   const patch = new THREE.Mesh(geo, mat);
-  patch.position.set(0, 0.58 - height / 2, 0);
-  patch.name = 'facePatch';
+  patch.position.set(0, yBottom + height / 2, 0);
+  patch.name = 'angledPatch';
   return patch;
 }
+
+// 각 부위별 각도 정보예요. 얼굴은 턱(Y≈-0.22)~이마 위(Y≈0.58)까지, 머리카락 밴드는
+// 이마 위(Y≈0.58)부터 정수리 캡이 시작하는 지점(Y≈0.82)까지를 덮어요.
+export const FACE_PATCH_ANGLES = [
+  { key: 'front', thetaCenter: 0, thetaWidth: 2.1 },
+  { key: 'left', thetaCenter: 1.75, thetaWidth: 1.5 },   // 사진 속 "얼굴 왼쪽"이 보이는 촬영본 → 정면 기준 +X(화면 오른쪽) 방향에 붙여요.
+  { key: 'right', thetaCenter: -1.75, thetaWidth: 1.5 }, // "얼굴 오른쪽" 촬영본 → -X(화면 왼쪽) 방향.
+];
+export const FACE_PATCH_Y = { yTop: 0.58, yBottom: -0.22, radius: 0.5 };
+
+export const HAIR_BAND_ANGLES = [
+  { key: 'front', thetaCenter: 0, thetaWidth: 2.6 },
+  { key: 'left', thetaCenter: 1.75, thetaWidth: 1.9 },
+  { key: 'right', thetaCenter: -1.75, thetaWidth: 1.9 },
+  { key: 'back', thetaCenter: Math.PI, thetaWidth: 2.3 },
+];
+export const HAIR_BAND_Y = { yTop: 0.85, yBottom: 0.55, radius: 0.47 };
 
 // 각 소품의 기본 정보예요. position은 makeup-face.glb 모델을 실제로 측정해서 얻은
 // 좌표라, 대부분은 슬라이더 없이도 바로 얼굴에 맞아요. 그래도 조금씩 다르게 나올 수 있어서
 // 미세 조정(좌우/위아래/앞뒤/크기) 슬라이더로 마지막 손질을 할 수 있게 해뒀어요.
 export const MAKEUP_PROP_DEFS = [
-  { id: 'hair', label: '머리카락', defaultColor: '#2B2320', create: createHair, position: [0, 0, 0] },
+  { id: 'hair', label: '머리카락(정수리)', defaultColor: '#2B2320', create: createHair, position: [0, 0, 0] },
   { id: 'lipstick', label: '립스틱', defaultColor: '#B23A48', create: createLipstick, position: [0, 0.075, 0.545] },
   { id: 'blush', label: '블러셔', defaultColor: '#E8A0A0', create: createBlush, position: [0, 0.20, 0.40] },
   { id: 'eyeshadow', label: '아이섀도우', defaultColor: '#8A6BAE', create: createEyeshadow, position: [0, 0.53, 0.36] },
