@@ -339,6 +339,37 @@
     scanHint.textContent = '동영상 업로드가 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
   });
 
+  /* ---------- 몸통 추가 각도 사진 (왼쪽/오른쪽/뒷모습, 선택사항) ---------- */
+  const bodyExtraPhotos = { left: null, right: null, back: null };
+  const bodyExtraThumbs = document.getElementById('body-scan-extra-thumbs');
+  const BODY_EXTRA_LABELS = { left: '왼쪽 옆모습', right: '오른쪽 옆모습', back: '뒷모습' };
+
+  function renderBodyExtraThumbs(){
+    if(!bodyExtraThumbs) return;
+    const entries = Object.entries(bodyExtraPhotos).filter(([, url]) => !!url);
+    if(entries.length === 0){ bodyExtraThumbs.innerHTML = ''; return; }
+    bodyExtraThumbs.innerHTML = entries.map(([key, url]) => `
+      <div class="wardrobe-card">
+        <div class="wardrobe-card-thumb"><img src="${url}" alt="${BODY_EXTRA_LABELS[key]}"></div>
+        <div class="wardrobe-card-name">${BODY_EXTRA_LABELS[key]}</div>
+      </div>`).join('');
+  }
+
+  ['left', 'right', 'back'].forEach(key => {
+    const input = document.getElementById(`body-scan-${key}-input`);
+    if(!input) return;
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        bodyExtraPhotos[key] = reader.result;
+        renderBodyExtraThumbs();
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
   scanGenerateBtn.addEventListener('click', () => {
     const height = parseFloat(scanHeightInput.value);
     const validHeight = (height && height >= 120 && height <= 210) ? height : 165;
@@ -349,6 +380,18 @@
       ? `${validHeight}cm 체형 데이터 기반 아바타 생성 완료 (데모)`
       : '키를 입력하지 않아 기본값(165cm) 비율로 생성했어요.';
     saveScanDataIfConsented(validHeight);
+
+    // 정면 사진(필수) + 추가 각도 사진(선택)을 AI로 분석해서, 몸통에 사진 패치를 입혀요.
+    const frontImg = scanPhotoSlot.querySelector('img');
+    const frontDataUrl = (frontImg && frontImg.src && frontImg.src.startsWith('data:')) ? frontImg.src : null;
+    if(frontDataUrl && typeof window.applyBodyTorsoPatchesFromPhotos === 'function'){
+      window.applyBodyTorsoPatchesFromPhotos({
+        front: frontDataUrl,
+        left: bodyExtraPhotos.left,
+        right: bodyExtraPhotos.right,
+        back: bodyExtraPhotos.back,
+      });
+    }
   });
 
   // 로그인 + 신체 데이터 수집에 동의한 경우에만, 방금 찍은 사진과 키를 서버에 저장해요.
