@@ -38,6 +38,7 @@
     background:#0F2E2C;
   }
   .scan-camera-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .body-scan-extra-angles{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
   .btn-ghost-dark{ background:transparent; color:var(--deep); border:1px solid var(--deep); }
   .scan-upload-label{
     display:inline-flex; align-items:center; gap:8px;
@@ -266,4 +267,3 @@
   .calc-total-label{ font-size:12px; color:#B9CBC7; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px; }
   .calc-total-amount{ font-size:32px; margin-bottom:10px; }
   .calc-total-note{ font-size:12px; color:#9BB3AF; }
-

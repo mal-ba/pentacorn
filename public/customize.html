@@ -48,6 +48,16 @@
             <label for="scan-nickname-input">머리 위 이름</label>
             <input type="text" id="scan-nickname-input" maxlength="16" placeholder="예: 홍길동">
           </div>
+
+          <div class="calc-label" style="margin-top:14px;">추가 각도 사진 (선택)</div>
+          <p class="wardrobe-hint">있으면 몸통 옆·뒤쪽 피부/옷도 사진 그대로 보여요. 정면 사진만 있어도 아바타는 만들어져요.</p>
+          <div class="body-scan-extra-angles" id="body-scan-extra-angles">
+            <label class="scan-upload-label">왼쪽 옆모습<input type="file" accept="image/*" id="body-scan-left-input" hidden></label>
+            <label class="scan-upload-label">오른쪽 옆모습<input type="file" accept="image/*" id="body-scan-right-input" hidden></label>
+            <label class="scan-upload-label">뒷모습<input type="file" accept="image/*" id="body-scan-back-input" hidden></label>
+          </div>
+          <div class="wardrobe-grid" id="body-scan-extra-thumbs"></div>
+
           <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
           <div class="scan-avatar-box">
             <div id="scan-avatar-3d"></div>

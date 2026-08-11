@@ -2,6 +2,8 @@
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { createAngledPatch, BODY_TORSO_ANGLES, BODY_TORSO_Y } from '/makeup-props.js';
+  import { analyzePhotoBySegments, sampleAverageColorFromPhoto, SEG_CATEGORY } from '/segment-utils.js';
 
   const scanAvatarLoading = document.getElementById('scan-avatar-loading');
   const scanAvatarHint = document.getElementById('scan-avatar-hint');
@@ -61,6 +63,11 @@
         applyHeightToMannequin(165);
         if(scanAvatarLoading) scanAvatarLoading.hidden = true;
         if(scanAvatarHint) scanAvatarHint.hidden = false;
+
+        if(pendingTorsoPhotos){
+          window.applyBodyTorsoPatchesFromPhotos(pendingTorsoPhotos);
+          pendingTorsoPhotos = null;
+        }
       },
       undefined,
       err => {
@@ -147,6 +154,61 @@
   }
 
   window.applyHeightToMannequin = applyHeightToMannequin;
+
+  /* ==========================================================================
+     몸통 사진 패치 — 얼굴(makeup.js)과 같은 방식이에요. mannequin.glb는 T포즈라
+     팔은 사진(팔을 내린 자세)이랑 안 맞아서 건너뛰고, 포즈 영향이 없는 몸통(어깨선~골반선)
+     에만 정면/좌/우/뒤 사진을 곡면 패치로 입혀요.
+     ========================================================================== */
+  let activeTorsoPatches = [];
+  let pendingTorsoPhotos = null;
+
+  window.applyBodyTorsoPatchesFromPhotos = async function(photos){
+    if(!scanMannequin){
+      pendingTorsoPhotos = photos; // 마네킹이 아직 안 불러와졌으면 대기했다가, 로드되면 자동 적용해요.
+      return;
+    }
+    const scanStatusEl = document.getElementById('scan-status');
+    if(scanStatusEl) scanStatusEl.textContent += ' · 몸통 사진을 인식하는 중이에요...';
+
+    const torsoCutouts = {}; // { front, left, right, back }
+    for(const key of ['front', 'left', 'right', 'back']){
+      const dataUrl = photos[key];
+      if(!dataUrl) continue;
+      try{
+        const segments = await analyzePhotoBySegments(dataUrl, {
+          torso: [SEG_CATEGORY.BODY_SKIN, SEG_CATEGORY.CLOTHES], // 피부 + 옷까지 같이 오려서, 지금 입은 옷도 그대로 보이게 해요.
+        });
+        if(segments.torso) torsoCutouts[key] = segments.torso;
+      } catch(err){
+        console.error(`몸통(${key}) 사진 AI 인식 실패:`, err);
+      }
+    }
+
+    // 기존 패치는 지우고 새로 붙여요 (다시 생성했을 때 중복 방지).
+    activeTorsoPatches.forEach(p => scanMannequin.remove(p));
+    activeTorsoPatches = [];
+
+    BODY_TORSO_ANGLES.forEach(angle => {
+      const cutout = torsoCutouts[angle.key];
+      if(!cutout) return;
+      const patch = createAngledPatch({
+        cutoutCanvas: cutout,
+        thetaCenter: angle.thetaCenter,
+        thetaWidth: angle.thetaWidth,
+        yTop: BODY_TORSO_Y.yTop,
+        yBottom: BODY_TORSO_Y.yBottom,
+        radius: BODY_TORSO_Y.radius,
+      });
+      if(patch){ scanMannequin.add(patch); activeTorsoPatches.push(patch); }
+    });
+
+    if(scanStatusEl){
+      scanStatusEl.textContent = Object.keys(torsoCutouts).length > 0
+        ? '몸통에 사진을 입혔어요! 옆·뒤가 안 맞으면 다른 각도 사진을 다시 올려보세요.'
+        : '몸통 인식에는 실패했어요. 밝은 곳에서 찍은 사진으로 다시 시도해보세요.';
+    }
+  };
 
   // "마네킹 상하 위치" 슬라이더: 값이 바뀔 때마다 현재 키 기준으로 위치를 다시 계산해요.
   const mannequinVposInput = document.getElementById('mannequin-vpos-input');
