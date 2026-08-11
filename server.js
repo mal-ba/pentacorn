@@ -660,13 +660,14 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   const {
     fabricAmount, detailAmount, finishAmount,
     fabricLabel, detailLabels, finishLabel, fabricNote, detailNote,
-    shipping, consent,
+    shipping, consent, designMode,
   } = req.body || {};
 
   const fa = Number(fabricAmount), da = Number(detailAmount), fi = Number(finishAmount);
   if (!ORDER_FABRIC_AMOUNTS.has(fa) || !ORDER_DETAIL_AMOUNTS.has(da) || !ORDER_FINISH_AMOUNTS.has(fi)) {
     return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않아요.' });
   }
+  const safeDesignMode = (designMode === '3d' || designMode === '2d') ? designMode : null;
 
   // "완제품 도어투도어 배송"을 선택했을 때만 배송지·동의가 필요해요 (패턴 PDF만이면 배송이 없어요).
   const needsShipping = fi === 30000;
@@ -687,6 +688,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     order_id: orderId,
     email: req.user.email,
     amount,
+    design_mode: safeDesignMode,
     fabric_label: fabricLabel || null,
     detail_labels: Array.isArray(detailLabels) ? detailLabels : null,
     finish_label: finishLabel || null,
@@ -771,6 +773,23 @@ app.get('/api/admin/orders', requireLogin, requireAdmin, async (req, res) => {
     .order('created_at', { ascending: false });
   if (error) return res.status(500).json({ ok: false, error: '주문 목록을 불러오지 못했어요.' });
   res.json({ ok: true, orders: data, isAdmin: true });
+});
+
+// 관리자 전용: 주문 하나를 완전히 삭제해요. (admin.html의 삭제 버튼에서 사용)
+app.delete('/api/admin/orders/:orderId', requireLogin, requireAdmin, async (req, res) => {
+  const { error } = await supabase.from('orders').delete().eq('order_id', req.params.orderId);
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  res.json({ ok: true });
+});
+
+// 관리자 전용: 구독 플랜(Basic/Standard/Pro) 목록. (맞춤 제작 주문과는 별개예요)
+app.get('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .order('subscribed_at', { ascending: false });
+  if (error) return res.status(500).json({ ok: false, error: '구독 목록을 불러오지 못했어요.' });
+  res.json({ ok: true, subscriptions: data });
 });
 
 // 관리자 여부만 가볍게 확인할 때 써요 (admin.html이 로그인 직후 이걸로 접근 권한을 확인해요).

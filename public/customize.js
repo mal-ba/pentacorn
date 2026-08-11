@@ -448,6 +448,7 @@
             finishLabel: getActiveChipLabel('finish'),
             fabricNote: customActive.fabric ? document.getElementById('custom-fabric-note').value : null,
             detailNote: customActive.detail ? document.getElementById('custom-detail-note').value : null,
+            designMode: currentDesignMode,
             consent: needsShipping ? orderShippingConsentCheckbox.checked : false,
             shipping: needsShipping ? {
               name: orderShippingName.value.trim(),

@@ -455,9 +455,31 @@
   .makeup-scan-stage-dots .stage-dot.stage-skipped{ text-decoration:line-through; opacity:0.5; }
   .makeup-scan-stage-dots .stage-dot.stage-current{ border-color:var(--star-dark); font-weight:700; }
 
+  /* ---------- 관리자 전용 플로팅 버튼 (우측 하단, 계속 떠있는 마스코트) ---------- */
+  #admin-fab{
+    position:fixed; right:20px; bottom:20px; width:52px; height:52px; border-radius:50%;
+    background:var(--deep); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 14px rgba(15,46,44,0.35); text-decoration:none; z-index:80;
+    animation:admin-fab-bob 2.6s ease-in-out infinite;
+  }
+  #admin-fab:hover{ background:var(--star-dark); }
+  #admin-fab-emoji{ font-size:24px; line-height:1; }
+  @keyframes admin-fab-bob{
+    0%, 100%{ transform:translateY(0); }
+    50%{ transform:translateY(-5px); }
+  }
+  @media(max-width:600px){
+    #admin-fab{ right:14px; bottom:14px; width:46px; height:46px; }
+    #admin-fab-emoji{ font-size:21px; }
+  }
+
 </style>
 </head>
 <body>
+
+<a id="admin-fab" href="/admin.html" hidden aria-label="관리자 사이트로 이동">
+  <span id="admin-fab-emoji">🦦</span>
+</a>
 
 <div class="inapp-banner" id="inapp-banner" hidden>
   <span id="inapp-banner-text">인앱 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.</span>
@@ -1216,6 +1238,21 @@
     googleLogoutBtn.hidden = true;
     privacySettingsBtn.hidden = true;
     if(typeof refreshWardrobeUploadAccess === 'function') refreshWardrobeUploadAccess();
+    const adminFab = document.getElementById('admin-fab');
+    if(adminFab) adminFab.hidden = true;
+  }
+
+  // 관리자 계정으로 로그인돼 있으면, 우측 하단에 관리자 사이트로 가는 플로팅 버튼을 계속 띄워둬요.
+  async function checkAdminAndShowFab(){
+    const adminFab = document.getElementById('admin-fab');
+    if(!adminFab) return;
+    try{
+      const res = await fetch('/api/admin/me');
+      const data = await res.json();
+      adminFab.hidden = !data.ok;
+    } catch(err){
+      adminFab.hidden = true;
+    }
   }
 
   // Google Identity Services가 로그인 성공 시 호출하는 콜백
@@ -1230,6 +1267,7 @@
       if(data.ok){
         setLoggedIn(data.user);
         planNote.textContent = `${data.user.name}님, 환영해요!`;
+        checkAdminAndShowFab();
         if(data.bodyDataConsent){
           setBodyDataConsentGranted(data.bodyDataConsent.consent);
           hasSavedConsentBefore = true;
@@ -1261,6 +1299,7 @@
       const data = await res.json();
       if(data.user){
         setLoggedIn(data.user);
+        checkAdminAndShowFab();
         if(data.bodyDataConsent){
           setBodyDataConsentGranted(data.bodyDataConsent.consent);
           hasSavedConsentBefore = true;
