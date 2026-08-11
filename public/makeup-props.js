@@ -139,6 +139,21 @@ export const HAIR_BAND_ANGLES = [
 ];
 export const HAIR_BAND_Y = { yTop: 0.85, yBottom: 0.55, radius: 0.47 };
 
+// ---------- 몸통(체형 스캔 마네킹, mannequin.glb) 패치 각도 정보 ----------
+// mannequin.glb는 팔을 양옆으로 뻗은 T포즈 리깅 캐릭터예요. 팔은 사진(팔을 내린 자세)이랑
+// 포즈가 안 맞아서 패치를 안 씌우고, 포즈 영향이 없는 "몸통(어깨선~골반선)"에만 씌워요.
+// 좌표는 mannequin.glb(키 1.596 기준)의 정점을 Python으로 직접 측정해서 얻었어요:
+//  - 어깨/목 밑동 높이: Y≈1.28
+//  - 골반(엉덩이) 높이: Y≈0.78
+//  - 허리 폭: X 약 ±0.13
+export const BODY_TORSO_ANGLES = [
+  { key: 'front', thetaCenter: 0, thetaWidth: 2.1 },
+  { key: 'left', thetaCenter: 1.75, thetaWidth: 1.6 },
+  { key: 'right', thetaCenter: -1.75, thetaWidth: 1.6 },
+  { key: 'back', thetaCenter: Math.PI, thetaWidth: 1.9 },
+];
+export const BODY_TORSO_Y = { yTop: 1.28, yBottom: 0.78, radius: 0.17 };
+
 // 각 소품의 기본 정보예요. position은 makeup-face.glb 모델을 실제로 측정해서 얻은
 // 좌표라, 대부분은 슬라이더 없이도 바로 얼굴에 맞아요. 그래도 조금씩 다르게 나올 수 있어서
 // 미세 조정(좌우/위아래/앞뒤/크기) 슬라이더로 마지막 손질을 할 수 있게 해뒀어요.
