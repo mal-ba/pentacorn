@@ -39,6 +39,212 @@
     });
   }
 
+  /* ---------- 무늬·패턴 만들기 (프리셋 / 직접 그리기 / 업로드) ----------
+     세 방식 다 최종적으로는 이미지(dataURL) 하나를 만들어서, 지금 입어본 옷 표면에
+     반복 텍스처로 입혀요 (customize-3d.js의 window.applyGarmentPatternTexture 사용). */
+  const patternModeBtns = document.querySelectorAll('.calc-chip[data-pattern-mode]');
+  const patternPanels = {
+    none: null,
+    preset: document.getElementById('pattern-mode-preset'),
+    draw: document.getElementById('pattern-mode-draw'),
+    upload: document.getElementById('pattern-mode-upload'),
+  };
+  const patternPreviewRow = document.getElementById('pattern-preview-row');
+  const patternPreviewSwatch = document.getElementById('pattern-preview-swatch');
+  const patternRepeatInput = document.getElementById('pattern-repeat-input');
+  const patternGarmentNote = document.getElementById('pattern-garment-note');
+
+  let currentPatternMode = 'none';
+  let currentPatternDataUrl = null;
+
+  function setPatternGarmentNote(){
+    if(!patternGarmentNote) return;
+    if(currentPatternMode === 'none'){ patternGarmentNote.hidden = true; return; }
+    if(typeof window.hasGarmentWorn === 'function' && window.hasGarmentWorn()){
+      patternGarmentNote.textContent = '지금 입혀본 옷에도 바로 반영됐어요.';
+    } else {
+      patternGarmentNote.textContent = '1단계에서 옷을 입어보면, 그 옷 표면에 이 무늬가 바로 입혀져요.';
+    }
+    patternGarmentNote.hidden = false;
+  }
+
+  function applyCurrentPattern(){
+    if(currentPatternMode === 'none' || !currentPatternDataUrl){
+      if(typeof window.clearGarmentPatternTexture === 'function') window.clearGarmentPatternTexture();
+      if(patternPreviewRow) patternPreviewRow.hidden = true;
+      setPatternGarmentNote();
+      return;
+    }
+    if(patternPreviewRow) patternPreviewRow.hidden = false;
+    if(patternPreviewSwatch) patternPreviewSwatch.style.backgroundImage = `url(${currentPatternDataUrl})`;
+    const repeat = parseInt(patternRepeatInput.value, 10) || 4;
+    if(typeof window.applyGarmentPatternTexture === 'function') window.applyGarmentPatternTexture(currentPatternDataUrl, repeat);
+    setPatternGarmentNote();
+  }
+
+  patternModeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      patternModeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPatternMode = btn.dataset.patternMode;
+      Object.entries(patternPanels).forEach(([key, panel]) => {
+        if(panel) panel.hidden = key !== currentPatternMode;
+      });
+      if(currentPatternMode === 'preset'){
+        regeneratePresetPattern();
+      } else if(currentPatternMode === 'none'){
+        currentPatternDataUrl = null;
+        applyCurrentPattern();
+      } else if(currentPatternMode === 'draw'){
+        currentPatternDataUrl = patternDrawCanvas.toDataURL('image/png');
+        applyCurrentPattern();
+      } else if(currentPatternMode === 'upload' && !currentPatternDataUrl){
+        if(patternPreviewRow) patternPreviewRow.hidden = true;
+      }
+    });
+  });
+
+  /* ---- 프리셋 패턴 생성 ---- */
+  const patternPresetBtns = document.querySelectorAll('.calc-chip[data-preset]');
+  const patternPresetBg = document.getElementById('pattern-preset-bg');
+  const patternPresetFg = document.getElementById('pattern-preset-fg');
+  const patternPresetScale = document.getElementById('pattern-preset-scale');
+  let currentPreset = 'stripes';
+
+  function generatePresetPatternDataUrl(type, bg, fg, unit){
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = fg;
+    if(type === 'stripes'){
+      for(let x = 0; x < size; x += unit * 2){
+        ctx.fillRect(x, 0, unit, size);
+      }
+    } else if(type === 'dots'){
+      const r = unit * 0.28;
+      for(let y = unit / 2; y < size; y += unit){
+        for(let x = unit / 2; x < size; x += unit){
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    } else if(type === 'checker'){
+      for(let y = 0; y < size; y += unit){
+        for(let x = 0; x < size; x += unit){
+          const isFg = ((Math.floor(x / unit) + Math.floor(y / unit)) % 2) === 0;
+          if(isFg) ctx.fillRect(x, y, unit, unit);
+        }
+      }
+    }
+    return canvas.toDataURL('image/png');
+  }
+
+  function regeneratePresetPattern(){
+    if(!patternPresetBg || !patternPresetFg || !patternPresetScale) return;
+    currentPatternDataUrl = generatePresetPatternDataUrl(
+      currentPreset, patternPresetBg.value, patternPresetFg.value, parseInt(patternPresetScale.value, 10)
+    );
+    applyCurrentPattern();
+  }
+
+  patternPresetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      patternPresetBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPreset = btn.dataset.preset;
+      regeneratePresetPattern();
+    });
+  });
+  [patternPresetBg, patternPresetFg, patternPresetScale].forEach(el => {
+    if(el) el.addEventListener('input', regeneratePresetPattern);
+  });
+
+  /* ---- 직접 그리기 ---- */
+  const patternDrawCanvas = document.getElementById('pattern-draw-canvas');
+  const patternDrawCtx = patternDrawCanvas ? patternDrawCanvas.getContext('2d') : null;
+  if(patternDrawCtx){
+    patternDrawCtx.fillStyle = '#ffffff';
+    patternDrawCtx.fillRect(0, 0, patternDrawCanvas.width, patternDrawCanvas.height);
+  }
+  const patternDrawColor = document.getElementById('pattern-draw-color');
+  const patternDrawSize = document.getElementById('pattern-draw-size');
+  const patternDrawClearBtn = document.getElementById('pattern-draw-clear-btn');
+  let isDrawingPattern = false;
+  let lastDrawPt = null;
+
+  function getCanvasPoint(e){
+    const rect = patternDrawCanvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: (clientX - rect.left) * (patternDrawCanvas.width / rect.width),
+      y: (clientY - rect.top) * (patternDrawCanvas.height / rect.height),
+    };
+  }
+  function startDraw(e){
+    isDrawingPattern = true;
+    lastDrawPt = getCanvasPoint(e);
+    e.preventDefault();
+  }
+  function moveDraw(e){
+    if(!isDrawingPattern) return;
+    const pt = getCanvasPoint(e);
+    patternDrawCtx.strokeStyle = patternDrawColor.value;
+    patternDrawCtx.lineWidth = parseInt(patternDrawSize.value, 10);
+    patternDrawCtx.lineCap = 'round';
+    patternDrawCtx.lineJoin = 'round';
+    patternDrawCtx.beginPath();
+    patternDrawCtx.moveTo(lastDrawPt.x, lastDrawPt.y);
+    patternDrawCtx.lineTo(pt.x, pt.y);
+    patternDrawCtx.stroke();
+    lastDrawPt = pt;
+    e.preventDefault();
+  }
+  function endDraw(){
+    if(!isDrawingPattern) return;
+    isDrawingPattern = false;
+    currentPatternDataUrl = patternDrawCanvas.toDataURL('image/png');
+    applyCurrentPattern();
+  }
+  if(patternDrawCanvas){
+    patternDrawCanvas.addEventListener('mousedown', startDraw);
+    patternDrawCanvas.addEventListener('mousemove', moveDraw);
+    window.addEventListener('mouseup', endDraw);
+    patternDrawCanvas.addEventListener('touchstart', startDraw, { passive: false });
+    patternDrawCanvas.addEventListener('touchmove', moveDraw, { passive: false });
+    patternDrawCanvas.addEventListener('touchend', endDraw);
+  }
+  if(patternDrawClearBtn){
+    patternDrawClearBtn.addEventListener('click', () => {
+      patternDrawCtx.fillStyle = '#ffffff';
+      patternDrawCtx.fillRect(0, 0, patternDrawCanvas.width, patternDrawCanvas.height);
+      currentPatternDataUrl = patternDrawCanvas.toDataURL('image/png');
+      applyCurrentPattern();
+    });
+  }
+
+  /* ---- 이미지 업로드 ---- */
+  const patternUploadInput = document.getElementById('pattern-upload-input');
+  if(patternUploadInput){
+    patternUploadInput.addEventListener('change', () => {
+      const file = patternUploadInput.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        currentPatternDataUrl = reader.result;
+        applyCurrentPattern();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if(patternRepeatInput) patternRepeatInput.addEventListener('input', applyCurrentPattern);
+
   function updateTotal(){
     const total = BASE + state.fabric + state.detail + state.finish;
     const totalEl = document.getElementById('calc-total');

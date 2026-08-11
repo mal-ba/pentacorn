@@ -254,8 +254,51 @@
       }
     });
   }
-  // 원단·디테일 선택(2단계) 화면의 색상 스와치에서도 이 함수를 쓸 수 있게 공유해요.
+
+  // 무늬/패턴(이미지)을 지금 입은 옷 표면에 반복 텍스처로 입혀요. 색상(applyGarmentColor)과는
+  // 별개로 같이 쓸 수 있어요 — 텍스처가 색과 곱해져서, 색을 바꾸면 무늬 톤도 같이 바뀌어요.
+  function applyGarmentPatternTexture(imageDataUrl, repeatCount = 4){
+    if(!currentGarment) return;
+    const loader = new THREE.TextureLoader();
+    loader.load(imageDataUrl, texture => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(repeatCount, repeatCount);
+      currentGarment.traverse(node => {
+        if(node.isMesh && node.material){
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          materials.forEach(mat => {
+            if('map' in mat){
+              mat.map = texture;
+              mat.needsUpdate = true;
+            }
+          });
+        }
+      });
+    });
+  }
+
+  // 무늬를 지우고 원단 색만 남겨요 (원래 옷 텍스처는 이미 사라졌으므로, 흰 바탕에 색만 입혀요).
+  function clearGarmentPatternTexture(){
+    if(!currentGarment) return;
+    currentGarment.traverse(node => {
+      if(node.isMesh && node.material){
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(mat => {
+          if('map' in mat){
+            mat.map = null;
+            mat.needsUpdate = true;
+          }
+        });
+      }
+    });
+  }
+
+  // 원단·디테일 선택(2단계) 화면의 색상 스와치/무늬 선택기에서도 이 함수들을 쓸 수 있게 공유해요.
   window.applyGarmentColor = applyGarmentColor;
+  window.applyGarmentPatternTexture = applyGarmentPatternTexture;
+  window.clearGarmentPatternTexture = clearGarmentPatternTexture;
   window.hasGarmentWorn = function(){ return !!currentGarment; };
 
   function updateGarmentTransform(){
@@ -299,14 +342,30 @@
         }
 
         // 마네킹의 기준점(원점)이 대략 배·허리 높이에 있어서, 아무 위치 지정 없이 입히면
-        // 전부 그 지점에서 시작해요. 카테고리별로 대략적인 시작 높이를 잡아줘서
-        // "일단 배에서 시작" 하는 문제를 줄여요 (그래도 정확한 위치는 슬라이더로 맞춰야 해요).
-        const categoryYOffset = {
-          top: 0.35, outer: 0.35, hair: 1.05, shoes: -0.95, bottom: -0.55, accessory: 0.3, makeup: 1.0,
-        }[category] || 0;
+        // 전부 그 지점에서 시작해요. 얼굴 메이크업 때처럼, 마네킹을 직접 측정해서 얻은
+        // 실측 좌표를 기준으로 카테고리별 "기준선"에 옷의 위쪽/아래쪽 끝을 맞춰요
+        // (그냥 옷 중심을 아무 높이에나 놓는 것보다 훨씬 정확하게 시작돼요).
+        //  - 어깨선 Y≈1.28 (상의·아우터를 이 높이에 걸쳐요)
+        //  - 골반/허리선 Y≈0.78 (하의 허리단을 이 높이에 맞춰요)
+        //  - 발바닥 Y≈0 (신발 밑창을 이 높이에 맞춰요)
+        //  - 머리 시작 Y≈1.30 (헤어 아이템 아래쪽을 이 높이부터 올려요)
+        const scaledMinY = garmentBox.min.y * autoScale;
+        const scaledMaxY = garmentBox.max.y * autoScale;
+        let targetY;
+        if(category === 'top' || category === 'outer'){
+          targetY = 1.28 - scaledMaxY; // 옷의 "위쪽 끝"(어깨선)을 마네킹 어깨선에 맞춰요.
+        } else if(category === 'bottom'){
+          targetY = 0.78 - scaledMaxY; // 옷의 "위쪽 끝"(허리단)을 마네킹 골반선에 맞춰요.
+        } else if(category === 'shoes'){
+          targetY = 0 - scaledMinY; // 신발의 "아래쪽 끝"(밑창)을 바닥(Y=0)에 맞춰요.
+        } else if(category === 'hair'){
+          targetY = 1.30 - scaledMinY; // 헤어의 "아래쪽 끝"을 목 밑동 높이부터 올려요.
+        } else {
+          targetY = 1.15 - (scaledMinY + scaledMaxY) / 2; // 장신구 등은 가슴~목 높이에 중심을 맞춰요.
+        }
 
         garmentX.value = 0;
-        garmentY.value = categoryYOffset.toFixed(2);
+        garmentY.value = targetY.toFixed(2);
         garmentZ.value = 0;
         garmentScaleInput.value = autoScale.toFixed(2);
         garmentColorInput.value = '#ffffff';

@@ -225,6 +225,53 @@
             </div>
             <p class="wardrobe-hint" id="fabric-color-garment-note" hidden></p>
           </div>
+
+          <div class="calc-group">
+            <div class="calc-label">무늬 · 패턴</div>
+            <p class="wardrobe-hint">프리셋으로 바로 만들거나, 직접 그리거나, 갖고 있는 이미지를 올려서 옷에 입혀보세요.</p>
+            <div class="pattern-choices" data-group="pattern-mode">
+              <button class="calc-chip active" data-pattern-mode="none" type="button">없음</button>
+              <button class="calc-chip" data-pattern-mode="preset" type="button">프리셋으로 만들기</button>
+              <button class="calc-chip" data-pattern-mode="draw" type="button">직접 그리기</button>
+              <button class="calc-chip" data-pattern-mode="upload" type="button">이미지 업로드</button>
+            </div>
+
+            <div class="pattern-mode-panel" id="pattern-mode-preset" hidden>
+              <div class="pattern-choices" data-group="pattern-preset">
+                <button class="calc-chip active" data-preset="stripes" type="button">줄무늬</button>
+                <button class="calc-chip" data-preset="dots" type="button">도트</button>
+                <button class="calc-chip" data-preset="checker" type="button">체크</button>
+              </div>
+              <div class="pattern-color-row">
+                <label>바탕색 <input type="color" id="pattern-preset-bg" value="#F5F2EA"></label>
+                <label>무늬색 <input type="color" id="pattern-preset-fg" value="#0F2E2C"></label>
+                <label>크기 <input type="range" id="pattern-preset-scale" min="10" max="80" value="30"></label>
+              </div>
+            </div>
+
+            <div class="pattern-mode-panel" id="pattern-mode-draw" hidden>
+              <canvas id="pattern-draw-canvas" width="256" height="256"></canvas>
+              <div class="pattern-color-row">
+                <label>펜 색 <input type="color" id="pattern-draw-color" value="#0F2E2C"></label>
+                <label>굵기 <input type="range" id="pattern-draw-size" min="2" max="24" value="6"></label>
+                <button class="btn btn-ghost-dark" id="pattern-draw-clear-btn" type="button">지우기</button>
+              </div>
+              <p class="wardrobe-hint">캔버스에 마우스(또는 손가락)로 그려보세요. 옷 표면에 타일처럼 반복돼서 입혀져요.</p>
+            </div>
+
+            <div class="pattern-mode-panel" id="pattern-mode-upload" hidden>
+              <label class="scan-upload-label">
+                패턴 이미지 업로드
+                <input type="file" accept="image/*" id="pattern-upload-input" hidden>
+              </label>
+            </div>
+
+            <div class="pattern-preview-row" id="pattern-preview-row" hidden>
+              <div class="pattern-preview-swatch" id="pattern-preview-swatch"></div>
+              <label>반복 크기 <input type="range" id="pattern-repeat-input" min="1" max="12" value="4"></label>
+            </div>
+            <p class="wardrobe-hint" id="pattern-garment-note" hidden></p>
+          </div>
           <div class="calc-group">
             <div class="calc-label">원단 등급</div>
             <div class="calc-choices" data-group="fabric">
