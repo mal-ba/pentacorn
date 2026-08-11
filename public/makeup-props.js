@@ -78,13 +78,35 @@ function createEyeliner(color){
   return group;
 }
 
-// 머리카락: 정수리를 덮는 반구(돔) 모양이에요. 눈(Y≈0.475)보다 한참 위인 Y≈0.58부터
+// 머리카락: 정수리를 덮는 돔 모양이에요. 눈(Y≈0.475)보다 한참 위인 Y≈0.58부터
 // 시작해서 정수리(Y=1.0)까지 덮기 때문에, 얼굴(눈·코·입)과는 절대 겹치지 않아요.
-function createHair(color){
+//
+// cutoutCanvas가 있으면(AI가 사진에서 머리카락만 오려낸 이미지) 그 이미지를 돔의 앞면에
+// 텍스처로 입혀서 "그 사람 사진 속 머리카락"이 그대로 보이게 하고, 없으면(인식 실패 시)
+// 단색으로 채워요.
+function createHair(color, cutoutCanvas){
   const group = new THREE.Group();
-  // thetaLength ≈ 85도: 정수리에서부터 눈썹보다 위(귀 윗부분 정도)까지만 덮어요.
-  const geo = new THREE.SphereGeometry(1, 40, 28, 0, Math.PI * 2, 0, Math.PI * 0.472);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0, side: THREE.DoubleSide });
+  // phi: 정면(+Z)을 중심으로 좌우 약 91.5도씩, 총 183도 정도만 덮어요 (뒤통수는 안 덮음 —
+  // 카메라로 정면만 찍은 사진이라 뒤쪽 텍스처가 없기 때문에, 이렇게 해야 안 이상해요).
+  // theta: 정수리에서부터 눈썹보다 위(귀 윗부분 정도)까지만 덮어요.
+  const geo = new THREE.SphereGeometry(1, 48, 28, Math.PI / 2 - 1.6, 3.2, 0, Math.PI * 0.472);
+
+  let mat;
+  if(cutoutCanvas){
+    const texture = new THREE.CanvasTexture(cutoutCanvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    mat = new THREE.MeshStandardMaterial({
+      map: texture,
+      transparent: true,
+      alphaTest: 0.3, // 투명한 부분(머리카락이 아닌 부분)은 아예 안 그려서, 네모난 카드처럼 안 보이게 해요.
+      side: THREE.DoubleSide,
+      roughness: 0.75,
+      metalness: 0,
+    });
+  } else {
+    mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0, side: THREE.DoubleSide });
+  }
+
   const dome = new THREE.Mesh(geo, mat);
   // 머리 폭(X 약 0.41), 앞뒤 깊이(이마~뒤통수)에 맞춰 타원형으로 눌러줘요.
   dome.scale.set(0.46, 0.46, 0.52);
