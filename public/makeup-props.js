@@ -122,12 +122,16 @@ function createHair(color, cutoutCanvas){
 // 완전히 새로운 곡면을 만들어서 그 위에 입히기 때문에, 목/턱 쪽으로 이상하게 늘어나 보이는 문제가 없어요.
 //
 // 턱(Y≈-0.19)부터 이마 위(Y≈0.58, 머리카락이 시작하는 지점)까지, 귀 조금 앞쪽까지만 감싸요.
+//
+// 참고: CylinderGeometry는 각도(theta) 0이 정면(+Z, 카메라 쪽)이에요 — Sphere(구)와 달리
+// 90도가 정면이 아니라서, 여기서는 0을 중심으로 좌우로 펼쳐요. (Sphere를 쓰는 머리카락과는
+// 각도 기준이 다르니 헷갈리지 않게 주의!)
 export function createFacePatch(cutoutCanvas){
   if(!cutoutCanvas) return null;
   const height = 0.58 - (-0.22);
   const radius = 0.5;
   const thetaLength = 2.1; // 좌우로 약 120도 정도
-  const thetaStart = Math.PI / 2 - thetaLength / 2;
+  const thetaStart = -thetaLength / 2; // 0(정면, +Z)을 중심으로 좌우 대칭
   const geo = new THREE.CylinderGeometry(radius, radius, height, 32, 1, true, thetaStart, thetaLength);
 
   const texture = new THREE.CanvasTexture(cutoutCanvas);
@@ -168,3 +172,4 @@ export function recolorProp(object3d, hexColor){
     }
   });
 }
+
