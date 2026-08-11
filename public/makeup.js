@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MAKEUP_PROP_DEFS, recolorProp, createAngledPatch, FACE_PATCH_ANGLES, FACE_PATCH_Y, HAIR_BAND_ANGLES, HAIR_BAND_Y } from '/makeup-props.js';
+import { SEG_CATEGORY, analyzePhotoBySegments, sampleAverageColorFromPhoto } from '/segment-utils.js';
 
 /* ==========================================================================
    STEP 1 : 얼굴 스캔 — 정면 → 왼쪽 옆모습 → 오른쪽 옆모습 → 뒷모습, 4단계로 찍어요.
@@ -164,137 +165,15 @@ rescanBtn.addEventListener('click', () => {
 
 renderStageUI();
 
-// ---------- 머리카락 AI 인식 (MediaPipe Image Segmenter, 브라우저 안에서 바로 실행) ----------
-// 사람 사진을 배경/머리카락/피부/옷 등으로 나눠주는 구글의 공개 모델을 그대로 브라우저에서 돌려요.
-// 서버로 사진을 보내지 않고, 사용자 기기 안에서 전부 처리돼요. 혹시 이 모델을 못 불러오면
-// (네트워크 문제 등) 자동으로 예전 방식(사진 위쪽 색 평균)으로 대체해요.
-const HAIR_CATEGORY_INDEX = 1; // selfie_multiclass 모델의 카테고리 순서: 0=배경,1=머리카락,2=몸피부,3=얼굴피부,4=옷,5=기타
-const FACE_CATEGORY_INDEXES = [2, 3]; // 얼굴 패치에는 얼굴 피부 + 목/몸 피부까지 살짝 포함해서, 턱선에서 뚝 끊기지 않게 해요.
-let imageSegmenterPromise = null;
-
-function getImageSegmenter(){
-  if(!imageSegmenterPromise){
-    imageSegmenterPromise = (async () => {
-      const { FilesetResolver, ImageSegmenter } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest');
-      const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm');
-      return await ImageSegmenter.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
-          delegate: 'CPU', // iOS Safari에서 GPU 딜리게이트를 쓰면 카테고리 순서가 뒤섞이는 알려진 버그가 있어서, 안정적인 CPU로 고정해요.
-        },
-        outputCategoryMask: true,
-        outputConfidenceMasks: false,
-        runningMode: 'IMAGE',
-      });
-    })();
-  }
-  return imageSegmenterPromise;
-}
-
-// 픽셀 좌표 하나가 주어진 카테고리 목록에 속하는지 잘라내서 캔버스로 만드는 공용 함수예요.
-// srcCanvas/imgDataOriginal은 이미 만들어둔 걸 재사용해서, 얼굴/머리카락을 한 번의 분석으로 같이 뽑아요.
-function cropByCategories(srcCanvas, originalImgData, maskData, maskW, maskH, categorySet){
-  const w0 = srcCanvas.width, h0 = srcCanvas.height;
-  const imgData = new ImageData(new Uint8ClampedArray(originalImgData.data), w0, h0); // 원본을 복사해서 이 카테고리 전용으로 잘라내요.
-  const px = imgData.data;
-  const scaleX = maskW / w0, scaleY = maskH / h0;
-  let minX = w0, minY = h0, maxX = 0, maxY = 0, found = false;
-
-  for(let y = 0; y < h0; y++){
-    const my = Math.min(maskH - 1, Math.floor(y * scaleY));
-    for(let x = 0; x < w0; x++){
-      const mx = Math.min(maskW - 1, Math.floor(x * scaleX));
-      const category = maskData[my * maskW + mx];
-      const idx = (y * w0 + x) * 4;
-      if(categorySet.has(category)){
-        found = true;
-        if(x < minX) minX = x;
-        if(x > maxX) maxX = x;
-        if(y < minY) minY = y;
-        if(y > maxY) maxY = y;
-      } else {
-        px[idx + 3] = 0;
-      }
-    }
-  }
-  if(!found) return null;
-
-  const cutCanvas = document.createElement('canvas');
-  cutCanvas.width = w0;
-  cutCanvas.height = h0;
-  cutCanvas.getContext('2d').putImageData(imgData, 0, 0);
-
-  const w = maxX - minX + 1, h = maxY - minY + 1;
-  const cropCanvas = document.createElement('canvas');
-  cropCanvas.width = w;
-  cropCanvas.height = h;
-  cropCanvas.getContext('2d').drawImage(cutCanvas, minX, minY, w, h, 0, 0, w, h);
-  return cropCanvas;
-}
-
-// 사진 한 장을 AI로 한 번만 분석해서, 머리카락 오려낸 것과 얼굴 피부 오려낸 것을 같이 돌려줘요.
-async function analyzePhotoSegments(dataUrl){
-  const img = await new Promise((resolve, reject) => {
-    const el = new Image();
-    el.onload = () => resolve(el);
-    el.onerror = reject;
-    el.src = dataUrl;
-  });
-
-  const segmenter = await getImageSegmenter();
-  const result = segmenter.segment(img);
-  const mask = result.categoryMask;
-  if(!mask) return { hairCutout: null, faceCutout: null };
-  const maskData = mask.getAsUint8Array();
-  const maskW = mask.width, maskH = mask.height;
-
-  const srcCanvas = document.createElement('canvas');
-  srcCanvas.width = img.naturalWidth;
-  srcCanvas.height = img.naturalHeight;
-  const ctx = srcCanvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-  const originalImgData = ctx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
-
-  const hairCutout = cropByCategories(srcCanvas, originalImgData, maskData, maskW, maskH, new Set([HAIR_CATEGORY_INDEX]));
-  const faceCutout = cropByCategories(srcCanvas, originalImgData, maskData, maskW, maskH, new Set(FACE_CATEGORY_INDEXES));
-
-  if(mask.close) mask.close(); // MPMask는 다 쓰고 나면 메모리를 명시적으로 해제해줘요.
-  return { hairCutout, faceCutout };
-}
-
-
-
-// 사진 위쪽(머리카락이 있을 확률이 높은 영역) 픽셀 색을 평균 내서, 대략적인 머리카락 색을 추정해요.
-// AI 인식이 실패했을 때만 쓰는 대체(fallback) 방식이에요.
-function sampleHairColorFromPhoto(dataUrl){
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => {
-      try{
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        const sampleHeight = Math.max(1, Math.floor(img.height * 0.22));
-        const { data } = ctx.getImageData(0, 0, img.width, sampleHeight);
-        let r = 0, g = 0, b = 0, count = 0;
-        for(let i = 0; i < data.length; i += 4 * 6){
-          r += data[i]; g += data[i + 1]; b += data[i + 2];
-          count++;
-        }
-        if(count === 0){ resolve(null); return; }
-        r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
-        const toHex = v => v.toString(16).padStart(2, '0');
-        resolve(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
-      } catch(err){
-        resolve(null);
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = dataUrl;
+// ---------- 머리카락·얼굴 AI 인식 (공용 segment-utils.js 사용) ----------
+// 혹시 이 모델을 못 불러오면(네트워크 문제 등) 자동으로 예전 방식(사진 위쪽 색 평균)으로 대체해요.
+function analyzePhotoSegments(dataUrl){
+  return analyzePhotoBySegments(dataUrl, {
+    hairCutout: [SEG_CATEGORY.HAIR],
+    faceCutout: [SEG_CATEGORY.BODY_SKIN, SEG_CATEGORY.FACE_SKIN], // 얼굴 패치에는 얼굴 피부 + 목/몸 피부까지 살짝 포함해서, 턱선에서 뚝 끊기지 않게 해요.
   });
 }
+const sampleHairColorFromPhoto = dataUrl => sampleAverageColorFromPhoto(dataUrl, 0.22);
 
 let pendingPhotosApply = null; // 얼굴 모델이 아직 안 불러와졌을 때, 분석 결과를 잠시 담아둬요.
 let activeFacePatches = []; // 정면/좌/우 얼굴 패치들
