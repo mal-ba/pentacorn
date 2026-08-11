@@ -223,6 +223,8 @@
   }
   .btn:hover{transform:translateY(-1px);}
   .btn[hidden]{ display:none; }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; filter:grayscale(0.4); }
+  .btn:disabled:hover{ transform:none; }
   .btn-primary{background:var(--star); color:var(--deep);}
   .btn-ghost{background:transparent; color:var(--paper); border-color:rgba(255,255,255,0.35);}
 
