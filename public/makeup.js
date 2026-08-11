@@ -216,8 +216,9 @@ function propCardHTML(def){
       </div>
       <button type="button" class="btn btn-ghost-dark makeup-prop-toggle-btn" data-prop-id="${def.id}">추가하기</button>
       <div class="makeup-prop-fine-tune" data-prop-id="${def.id}" hidden>
-        <label>좌우 <input type="range" class="prop-x" data-prop-id="${def.id}" min="-0.3" max="0.3" step="0.005" value="0"></label>
-        <label>위아래 <input type="range" class="prop-y" data-prop-id="${def.id}" min="-0.3" max="0.3" step="0.005" value="0"></label>
+        <label>좌우 <input type="range" class="prop-x" data-prop-id="${def.id}" min="-0.25" max="0.25" step="0.005" value="0"></label>
+        <label>위아래 <input type="range" class="prop-y" data-prop-id="${def.id}" min="-0.25" max="0.25" step="0.005" value="0"></label>
+        <label>앞뒤 <input type="range" class="prop-z" data-prop-id="${def.id}" min="-0.15" max="0.15" step="0.005" value="0"></label>
         <label>크기 <input type="range" class="prop-scale" data-prop-id="${def.id}" min="0.3" max="2.5" step="0.01" value="1"></label>
       </div>
     </div>`;
@@ -236,7 +237,7 @@ function renderMakeupPropsPanel(){
       if(active) recolorProp(active.object3d, input.value);
     });
   });
-  propsGridEl.querySelectorAll('.prop-x, .prop-y, .prop-scale').forEach(input => {
+  propsGridEl.querySelectorAll('.prop-x, .prop-y, .prop-z, .prop-scale').forEach(input => {
     input.addEventListener('input', () => updatePropTransform(input.dataset.propId));
   });
 }
@@ -248,8 +249,9 @@ function updatePropTransform(propId){
   const card = document.getElementById(`makeup-prop-card-${propId}`);
   const dx = parseFloat(card.querySelector('.prop-x').value);
   const dy = parseFloat(card.querySelector('.prop-y').value);
+  const dz = parseFloat(card.querySelector('.prop-z').value);
   const s = parseFloat(card.querySelector('.prop-scale').value);
-  active.object3d.position.set(def.position[0] + dx, def.position[1] + dy, def.position[2]);
+  active.object3d.position.set(def.position[0] + dx, def.position[1] + dy, def.position[2] + dz);
   active.object3d.scale.set(s, s, s);
 }
 
