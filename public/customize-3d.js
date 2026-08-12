@@ -112,8 +112,20 @@
     const distanceForWidth = (widthMeters * margin) / (2 * Math.tan(hFovRad / 2));
     const distance = Math.max(distanceForHeight, distanceForWidth);
 
-    scanCamera.position.set(0, mannequinVerticalOffset, distance);
-    scanControls.target.set(0, mannequinVerticalOffset, 0);
+    // 모델 원점이 발끝인 경우도, 허리인 경우도 있어서 mannequinVerticalOffset만으로는
+    // 카메라가 몸 중앙을 보게 만들 수 없어요. 실제 렌더링된(스케일·위치 적용된) 바운딩
+    // 박스를 구해서 그 세로 중앙(centerY)을 기준으로 카메라를 맞춰요 — 이러면 모델
+    // 원점이 어디든 상관없이 처음부터 전신이 화면 중앙에 들어와요.
+    let centerY = mannequinVerticalOffset;
+    if(scanMannequin){
+      const box = new THREE.Box3().setFromObject(scanMannequin);
+      if(isFinite(box.min.y) && isFinite(box.max.y)){
+        centerY = (box.min.y + box.max.y) / 2;
+      }
+    }
+
+    scanCamera.position.set(0, centerY, distance);
+    scanControls.target.set(0, centerY, 0);
     scanCamera.updateProjectionMatrix();
   }
 
