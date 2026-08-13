@@ -1,0 +1,41 @@
+/* ---------- 왼쪽 슬라이드 메뉴 (소개/이용방법/개인정보/배송/협력업체/Meshy 가이드) ---------- */
+.side-menu-overlay{
+  position:fixed; inset:0; background:rgba(15,25,23,0.45); z-index:90;
+  display:flex; justify-content:flex-start;
+}
+.side-menu-overlay[hidden]{ display:none; }
+.side-menu-panel{
+  width:340px; max-width:86vw; height:100%; background:var(--paper);
+  box-shadow:4px 0 24px rgba(15,25,23,0.18); display:flex; flex-direction:column;
+  padding:18px 20px 24px; overflow-y:auto;
+  animation:side-menu-slide-in 0.22s ease-out;
+}
+@keyframes side-menu-slide-in{
+  from{ transform:translateX(-16px); opacity:0.4; }
+  to{ transform:translateX(0); opacity:1; }
+}
+.side-menu-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.side-menu-header-title{ font-weight:600; font-size:15px; }
+.side-menu-close-btn{
+  width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--paper);
+  color:var(--ink-soft); cursor:pointer; margin-left:auto;
+}
+.side-menu-close-btn:hover{ border-color:var(--star-dark); }
+
+/* ---------- 메뉴 상단 로그인 영역 ---------- */
+.side-menu-auth{
+  padding:14px 12px; margin-bottom:14px; border-radius:12px; background:var(--mist);
+  min-height:40px; display:flex; flex-direction:column; align-items:stretch;
+}
+.side-menu-auth:empty{ display:none; }
+.side-menu-auth .menu-auth-status{ font-size:13.5px; font-weight:600; color:var(--ink); line-height:1.6; }
+.side-menu-auth .menu-auth-email{ font-size:11.5px; font-weight:400; color:var(--ink-soft); }
+.side-menu-auth .menu-auth-logout-btn{ margin-top:10px; font-size:12.5px; padding:8px 14px; width:100%; justify-content:center; }
+.side-menu-auth .menu-auth-settings-btn{ margin-top:12px; font-size:12.5px; padding:8px 14px; width:100%; justify-content:center; }
+#menu-google-signin-container{ display:flex; justify-content:center; width:100%; }
+.side-menu-list{ display:flex; flex-direction:column; gap:4px; }
+.side-menu-item{
+  text-align:left; background:none; border:none; border-radius:10px; padding:13px 12px;
+  font-size:14.5px; font-weight:500; color:var(--ink); cursor:pointer; text-decoration:none; display:block;
+}
+.side-menu-item:hover{ background:var(--mist); }
