@@ -393,6 +393,16 @@
       .map(c => c.textContent.trim());
   }
 
+  const orderShippingFieldEls = [orderShippingName, orderShippingPhone, orderShippingZipcode, orderShippingAddress1, orderShippingAddress2, orderShippingNote];
+
+  // 동의 체크박스를 누르기 전엔 배송지 입력칸 자체를 잠가둬요 — "동의 안 하면 배송지를
+  // 못 적는다"는 규칙을 검증 단계뿐 아니라 화면에서도 바로 보이게 해요.
+  function updateShippingFieldsLockState(){
+    if(!orderShippingConsentCheckbox) return;
+    const unlocked = orderShippingConsentCheckbox.checked;
+    orderShippingFieldEls.forEach(el => { if(el) el.disabled = !unlocked; });
+  }
+
   function updateOrderPayButtonState(){
     if(!orderShippingSection || orderShippingSection.hidden){
       orderPayBtn.disabled = false;
@@ -405,7 +415,26 @@
   [orderShippingName, orderShippingPhone, orderShippingZipcode, orderShippingAddress1, orderShippingConsentCheckbox].forEach(el => {
     if(el) el.addEventListener('input', updateOrderPayButtonState);
   });
-  if(orderShippingConsentCheckbox) orderShippingConsentCheckbox.addEventListener('change', updateOrderPayButtonState);
+  if(orderShippingConsentCheckbox){
+    orderShippingConsentCheckbox.addEventListener('change', () => {
+      updateShippingFieldsLockState();
+      updateOrderPayButtonState();
+    });
+  }
+  updateShippingFieldsLockState(); // 처음엔 동의 전이니 잠긴 상태로 시작해요.
+
+  // 프로필에 저장해둔 배송 동의·주소가 있으면, 주문할 때 자동으로 채워줘요 (직접 수정도 가능).
+  function prefillShippingFromProfile(){
+    const p = window.userProfile;
+    if(!p || !p.shippingConsent) return;
+    if(orderShippingName && !orderShippingName.value) orderShippingName.value = p.name || '';
+    if(orderShippingPhone && !orderShippingPhone.value) orderShippingPhone.value = p.phone || '';
+    if(orderShippingZipcode && !orderShippingZipcode.value) orderShippingZipcode.value = p.zipcode || '';
+    if(orderShippingAddress1 && !orderShippingAddress1.value) orderShippingAddress1.value = p.address1 || '';
+    if(orderShippingAddress2 && !orderShippingAddress2.value) orderShippingAddress2.value = p.address2 || '';
+    if(orderShippingConsentCheckbox) orderShippingConsentCheckbox.checked = true;
+    updateShippingFieldsLockState();
+  }
 
   if(orderOpenBtn){
     orderOpenBtn.addEventListener('click', () => {
@@ -424,6 +453,8 @@
       orderShippingSection.hidden = !needsShipping;
       orderModalNote.textContent = '';
       orderPayBtn.textContent = '결제하기';
+      updateShippingFieldsLockState();
+      if(needsShipping) prefillShippingFromProfile();
       updateOrderPayButtonState();
       orderModal.hidden = false;
     });
