@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -39,7 +40,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 // 유지해요. 이렇게 하면 Render 무료 서버가 15분 넘게 안 쓰여서 잠들었다가 다시
 // 깨어나도(=서버 재시작) 로그인이 풀리지 않고, 사용자가 직접 로그아웃하기 전까지
 // 계속 로그인 상태가 유지돼요.
-const AUTH_COOKIE_NAME = 'unexposed_auth';
+const AUTH_COOKIE_NAME = 'pentacorn_auth';
 const AUTH_TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365; // 1년
 
 function signAuthToken(user) {
@@ -52,6 +53,12 @@ function verifyAuthToken(token) {
   } catch (err) {
     return null;
   }
+}
+
+// ADMIN_EMAILS에 등록된 이메일이면 true. requireAdmin 미들웨어와 달리 403을 던지지 않고
+// 그냥 boolean만 돌려줘서, 일반 사용자도 /api/me·/api/auth/google 응답에서 안전하게 받을 수 있어요.
+function isAdminEmail(email) {
+  return ADMIN_EMAILS.includes(String(email || '').toLowerCase());
 }
 
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
@@ -90,19 +97,34 @@ function fixMulterFilenameEncoding(name) {
 
 // Supabase Storage에 파일을 올리고, 누구나 접근 가능한 공개 URL을 돌려줘요.
 // itemId로 폴더를 나눠서, 서로 다른 아이템끼리 파일 이름이 겹쳐도 안전해요.
-// buffer는 원본 바이너리 그대로 받아요 (base64로 부풀리지 않아서 대용량 파일에도 안전해요).
-async function uploadToWardrobeBucket(itemId, buffer, desiredFileName, defaultContentType) {
+// filePath는 디스크에 임시로 저장된 파일 경로예요 — 파일 전체를 메모리에 올리지 않고
+// 스트림으로 읽어서 그대로 Supabase에 흘려보내요(대용량 파일에도 RAM 부담이 거의 없어요).
+async function uploadToWardrobeBucket(itemId, filePath, desiredFileName, defaultContentType) {
   const safeName = sanitizeFilename(desiredFileName);
   const storagePath = `${itemId}/${Date.now()}_${safeName}`;
   const contentType = guessContentType(safeName) || defaultContentType;
 
   const { error } = await supabase.storage
     .from(WARDROBE_BUCKET)
-    .upload(storagePath, buffer, { contentType, upsert: false });
+    .upload(storagePath, fs.createReadStream(filePath), {
+      contentType,
+      upsert: false,
+      duplex: 'half', // Node의 fetch가 스트림 body를 보낼 때 요구하는 옵션이에요.
+    });
   if (error) throw error;
 
   const { data } = supabase.storage.from(WARDROBE_BUCKET).getPublicUrl(storagePath);
   return { publicUrl: data.publicUrl, storagePath };
+}
+
+// multer가 diskStorage로 임시 폴더에 남긴 파일들을 정리해요. 업로드 성공/실패 여부와
+// 상관없이 항상 호출해서, 임시 폴더에 파일이 계속 쌓이는 걸 막아요.
+function cleanupTempUploadFiles(reqFiles){
+  if(!reqFiles) return;
+  const all = [...(reqFiles.glbFile || []), ...(reqFiles.thumbnailFile || [])];
+  for(const f of all){
+    fs.unlink(f.path, () => {}); // 실패해도(이미 지워졌거나) 무시해요.
+  }
 }
 
 function guessContentType(filename) {
@@ -202,9 +224,15 @@ app.set('trust proxy', 1); // Render/Railway 같은 리버스 프록시 뒤에�
 app.use(express.json({ limit: '2mb' })); // 신체 스캔 썸네일 등 작은 JSON 요청용 (큰 파일은 multer로 따로 처리)
 app.use(cookieParser());
 
-// 옷/장신구 파일 업로드용: base64 대신 원본 바이너리 그대로 받아서 용량 부풀림 없이 처리해요.
+// 옷/장신구 파일 업로드용: RAM에 통째로 올리는 memoryStorage 대신, 잠깐 디스크(임시 폴더)에
+// 스트리밍해서 저장해요. 여러 명이 동시에 큰 파일(최대 35MB)을 업로드해도 서버 RAM이
+// 한꺼번에 튀지 않아요 — Render 무료 요금제(RAM 512MB)에서 특히 중요해요.
+// Supabase로 올린 뒤엔 각 요청 핸들러에서 임시 파일을 바로 지워요.
 const wardrobeUpload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (req, file, cb) => cb(null, `wardrobe_${crypto.randomUUID()}${path.extname(file.originalname || '')}`),
+  }),
   limits: { fileSize: 35 * 1024 * 1024 }, // 파일 하나당 최대 35MB
 });
 
@@ -234,7 +262,25 @@ app.get('/admin.html', (req, res) => {
 
 // index: false 로 설정해서 static 미들웨어가 '/' 요청에서
 // public/index.html을 자동으로 가로채지 않게 해요.
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+//
+// setHeaders로 파일 종류별 캐싱 기간을 다르게 줘요:
+// - 아이콘/이미지/GLB/폰트처럼 한번 올리면 잘 안 바뀌는 파일 → 길게 캐싱(30일)
+//   그래도 완전히 안전하려면 파일명이 바뀔 때만 갱신되는 게 맞지만, 지금 구조에선
+//   가끔 교체될 수 있으니 "immutable"까지는 안 쓰고 30일 정도로만 잡아요.
+// - HTML/JS/CSS처럼 자주 수정하는 파일 → 짧게(5분)만 캐싱해서, 배포해도
+//   "분명 고쳤는데 반영이 안 된다" 하는 혼란이 안 생기게 해요.
+const LONG_CACHE_EXTS = new Set(['.glb', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico', '.woff', '.woff2']);
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false,
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    if (LONG_CACHE_EXTS.has(ext)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30일
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=300'); // 5분 (html/js/css 등)
+    }
+  },
+}));
 
 /* ---------------- Google 로그인 ---------------- */
 
@@ -271,7 +317,27 @@ app.post('/api/auth/google', async (req, res) => {
       maxAge: AUTH_TOKEN_MAX_AGE_MS,
     });
 
-    return res.json({ ok: true, user });
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('email', user.email)
+      .maybeSingle();
+
+    return res.json({
+      ok: true,
+      user,
+      isAdmin: isAdminEmail(user.email),
+      hasProfile: !!profile, // 참고용으로 남겨둬요 (지금은 프로필 모달을 로그인마다 항상 띄워요).
+      profile: profile ? {
+        name: profile.name,
+        contactEmail: profile.contact_email,
+        phone: profile.phone,
+        zipcode: profile.zipcode,
+        address1: profile.address1,
+        address2: profile.address2,
+        shippingConsent: profile.shipping_consent,
+      } : null,
+    });
   } catch (err) {
     console.error('Google 토큰 검증 실패:', err.message);
     return res.status(401).json({ ok: false, error: '로그인 검증에 실패했어요.' });
@@ -287,17 +353,77 @@ app.get('/api/me', async (req, res) => {
   const user = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
   if (!user) return res.json({ user: null });
 
-  const [{ data: sub }, { data: consent }] = await Promise.all([
+  const [{ data: sub }, { data: consent }, { data: profile }] = await Promise.all([
     supabase.from('subscriptions').select('*').eq('email', user.email).maybeSingle(),
     supabase.from('body_data_consents').select('*').eq('email', user.email).maybeSingle(),
+    supabase.from('user_profiles').select('*').eq('email', user.email).maybeSingle(),
   ]);
 
   res.json({
     user,
+    isAdmin: isAdminEmail(user.email),
     subscription: sub
       ? { plan: sub.plan, amount: sub.amount, subscribedAt: sub.subscribed_at, paymentKey: sub.payment_key, orderId: sub.order_id }
       : null,
     bodyDataConsent: consent ? { consent: consent.consent, updatedAt: consent.updated_at } : null,
+    profile: profile ? {
+      name: profile.name,
+      contactEmail: profile.contact_email,
+      phone: profile.phone,
+      zipcode: profile.zipcode,
+      address1: profile.address1,
+      address2: profile.address2,
+      shippingConsent: profile.shipping_consent,
+    } : null,
+  });
+});
+
+/* ---------------- 프로필(이름·연락처·배송지) ---------------- */
+// 로그인 직후 한 번 입력받는 프로필이에요. 배송 정보 수집에 동의한 사람만
+// 주소·전화번호가 실제로 저장되고, 동의하지 않으면 이름만 저장돼요(주소류는 비워둬요).
+app.post('/api/profile', requireLogin, async (req, res) => {
+  const { name, contactEmail, phone, zipcode, address1, address2, shippingConsent } = req.body || {};
+  const consent = !!shippingConsent;
+
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ ok: false, error: '이름을 입력해주세요.' });
+  }
+  if (consent && (!phone || !zipcode || !address1)) {
+    return res.status(400).json({ ok: false, error: '배송 정보에 동의하려면 연락처·우편번호·주소를 모두 입력해주세요.' });
+  }
+
+  const row = {
+    email: req.user.email,
+    name: String(name).trim(),
+    contact_email: (contactEmail && String(contactEmail).trim()) || req.user.email,
+    phone: consent ? String(phone).trim() : null,
+    zipcode: consent ? String(zipcode).trim() : null,
+    address1: consent ? String(address1).trim() : null,
+    address2: consent ? (address2 ? String(address2).trim() : null) : null,
+    shipping_consent: consent,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from('user_profiles').upsert(row);
+  if (error) {
+    console.error('프로필 저장 오류:', error);
+    return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했어요.' });
+  }
+  res.json({ ok: true, profile: row });
+});
+
+app.get('/api/profile', requireLogin, async (req, res) => {
+  const { data } = await supabase.from('user_profiles').select('*').eq('email', req.user.email).maybeSingle();
+  res.json({
+    profile: data ? {
+      name: data.name,
+      contactEmail: data.contact_email,
+      phone: data.phone,
+      zipcode: data.zipcode,
+      address1: data.address1,
+      address2: data.address2,
+      shippingConsent: data.shipping_consent,
+    } : null,
   });
 });
 
@@ -451,17 +577,19 @@ app.post('/api/wardrobe', requireLogin, wardrobeUpload.fields([{ name: 'glbFile'
 
   try {
     if (glbFile) {
-      const uploaded = await uploadToWardrobeBucket(id, glbFile.buffer, fixMulterFilenameEncoding(glbFile.originalname) || `${id}.glb`, 'model/gltf-binary');
+      const uploaded = await uploadToWardrobeBucket(id, glbFile.path, fixMulterFilenameEncoding(glbFile.originalname) || `${id}.glb`, 'model/gltf-binary');
       glbUrl = uploaded.publicUrl;
     }
     if (thumbnailFile) {
-      const uploaded = await uploadToWardrobeBucket(id, thumbnailFile.buffer, fixMulterFilenameEncoding(thumbnailFile.originalname) || `${id}.png`, 'image/png');
+      const uploaded = await uploadToWardrobeBucket(id, thumbnailFile.path, fixMulterFilenameEncoding(thumbnailFile.originalname) || `${id}.png`, 'image/png');
       thumbnailUrl = uploaded.publicUrl;
     }
   } catch (err) {
     console.error('옷장 파일 저장 실패:', err.message || err);
+    cleanupTempUploadFiles(req.files);
     return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했어요.' });
   }
+  cleanupTempUploadFiles(req.files);
 
   const row = {
     id,
@@ -511,18 +639,20 @@ app.put('/api/wardrobe/:id', requireLogin, wardrobeUpload.fields([{ name: 'glbFi
   try {
     if (glbFile) {
       await deleteFromWardrobeBucketIfManaged(item.glb_url);
-      const uploaded = await uploadToWardrobeBucket(item.id, glbFile.buffer, fixMulterFilenameEncoding(glbFile.originalname) || `${item.id}.glb`, 'model/gltf-binary');
+      const uploaded = await uploadToWardrobeBucket(item.id, glbFile.path, fixMulterFilenameEncoding(glbFile.originalname) || `${item.id}.glb`, 'model/gltf-binary');
       updates.glb_url = uploaded.publicUrl;
     }
     if (thumbnailFile) {
       await deleteFromWardrobeBucketIfManaged(item.thumbnail_url);
-      const uploaded = await uploadToWardrobeBucket(item.id, thumbnailFile.buffer, fixMulterFilenameEncoding(thumbnailFile.originalname) || `${item.id}.png`, 'image/png');
+      const uploaded = await uploadToWardrobeBucket(item.id, thumbnailFile.path, fixMulterFilenameEncoding(thumbnailFile.originalname) || `${item.id}.png`, 'image/png');
       updates.thumbnail_url = uploaded.publicUrl;
     }
   } catch (err) {
     console.error('옷장 파일 수정 실패:', err.message || err);
+    cleanupTempUploadFiles(req.files);
     return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했어요.' });
   }
+  cleanupTempUploadFiles(req.files);
 
   const { data: updated, error: updateError } = await supabase
     .from('wardrobe_items')
@@ -588,7 +718,7 @@ app.post('/api/payments/create-order', requireLogin, (req, res) => {
     ok: true,
     orderId,
     amount: plan.amount,
-    orderName: `UNEXPOSED ${plan.name} 플랜 구독`,
+    orderName: `pentacorn ${plan.name} 플랜 구독`,
   });
 });
 
@@ -708,7 +838,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했어요.' });
   }
 
-  res.json({ ok: true, orderId, amount, orderName: 'UNEXPOSED 맞춤 제작 주문' });
+  res.json({ ok: true, orderId, amount, orderName: 'pentacorn 맞춤 제작 주문' });
 });
 
 // Toss 결제창에서 successUrl로 돌아온 뒤, 프론트가 이 API로 실제 결제를 승인(confirm)해요.
@@ -812,7 +942,7 @@ app.use((err, req, res, next) => {
 async function start() {
   await seedBuiltinWardrobeIfEmpty();
   app.listen(PORT, () => {
-    console.log(`UNEXPOSED 서버 실행 중: http://localhost:${PORT}`);
+    console.log(`pentacorn 서버 실행 중: http://localhost:${PORT}`);
     if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있어요. .env 파일을 확인하세요.');
     if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) console.warn('⚠️  Supabase 설정이 비어있어요. .env 파일을 확인하세요.');
   });

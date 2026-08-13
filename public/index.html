@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UNEXPOSED — 데모</title>
+<title>pentacorn — 데모</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0F2E2C">
 <link rel="icon" href="/icon-192.png">
@@ -251,17 +251,6 @@
   .price-card.selected .plan-select-btn{ background:var(--deep); color:var(--paper); border-color:var(--deep); }
   .plan-selected-note{ font-size:13px; color:var(--star-dark); font-weight:600; margin-top:16px; min-height:18px; }
 
-  /* ---------- AUTH BAR ---------- */
-  .auth-bar{
-    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-    background:var(--mist); border:1px solid var(--line); border-radius:14px;
-    padding:16px 20px; margin-bottom:28px;
-  }
-  .auth-bar-info{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft); }
-  .auth-bar.logged-in{ background:#EAF3F1; border-color:var(--star-dark); }
-  #google-signin-container{ display:inline-flex; }
-  #google-signin-container[hidden]{ display:none; }
-
   /* ---------- MODAL ---------- */
   .modal-overlay{
     position:fixed; inset:0; background:rgba(15,46,44,0.45); z-index:200;
@@ -305,6 +294,20 @@
   }
   .consent-check input[type="checkbox"]{ margin-top:2px; width:16px; height:16px; flex-shrink:0; }
   .consent-history{ font-size:11.5px; color:var(--star-dark); margin-top:10px; min-height:14px; }
+
+  /* ---------- PROFILE MODAL ---------- */
+  .profile-field{ display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--ink-soft); margin-bottom:12px; }
+  .profile-field input{
+    padding:10px 12px; border-radius:8px; border:1px solid var(--line);
+    font-family:inherit; font-size:14px; color:var(--ink); background:var(--paper); outline:none;
+  }
+  .profile-field input:focus{ border-color:var(--star-dark); }
+  .profile-shipping-fields{ margin-top:14px; padding-top:14px; border-top:1px dashed var(--line); }
+  .profile-shipping-fields[hidden]{ display:none; }
+  .admin-badge{
+    display:inline-block; font-size:10.5px; font-weight:700; color:var(--paper); background:var(--deep);
+    padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle;
+  }
 
   /* ---------- DESIGN WIZARD MODAL ---------- */
   .design-cta-box{
@@ -419,7 +422,7 @@
     </button>
     <div class="brand">
       <svg class="mark" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
-      UNEXPOSED
+      pentacorn
     </div>
   </div>
   <div class="nav-links">
@@ -436,7 +439,7 @@
 
 <section class="hero">
   <svg class="hero-star" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#F5F2EA"/></svg>
-  <div class="eyebrow">UNEXPOSED</div>
+  <div class="eyebrow">pentacorn</div>
   <h1 class="serif">숨겨진 몸의 서사를,<br><em>내가 디자인한</em> 옷으로</h1>
   <p>신체를 스캔하면 AI가 나만의 아바타를 만들고, 그 위에서 바로 옷을 커스터마이징합니다. 완성된 디자인은 실제 제작 가능한 도면으로 변환돼요.</p>
   <div class="hero-actions">
@@ -484,7 +487,7 @@
   <div class="sec-head">
     <div class="eyebrow">PRODUCT</div>
     <h2 class="serif">제품 구성</h2>
-    <p>UNEXPOSED는 3가지 핵심 기능으로 이루어져 있습니다. 신체 스캔부터 실제 제작 도면까지 하나의 흐름으로 이어집니다.</p>
+    <p>pentacorn는 3가지 핵심 기능으로 이루어져 있습니다. 신체 스캔부터 실제 제작 도면까지 하나의 흐름으로 이어집니다.</p>
   </div>
 
   <div class="flow" style="margin-bottom:56px;">
@@ -617,31 +620,7 @@
   <div class="sec-head">
     <div class="eyebrow">SUBSCRIPTION</div>
     <h2 class="serif">서비스 이용료는 무료부터, 부담 없이</h2>
-    <p>앱 이용 자체는 무료로 시작할 수 있고, 다운로드·제작 연결 단계에서만 등급을 올리면 됩니다. 유료 플랜은 Google 계정으로 로그인 후 결제할 수 있어요.</p>
-  </div>
-
-  <div class="auth-bar" id="auth-bar">
-    <div class="auth-bar-info">
-      <svg class="google-g" viewBox="0 0 48 48" width="20" height="20"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.8 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.8 1.1 8 2.9l6-6C34.6 5.1 29.6 3 24 3 16.3 3 9.7 7.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.3-5.1l-6.6-5.4C29.7 36.2 27 37 24 37c-5.4 0-9.8-3.4-11.4-8.1l-6.6 5.1C9.6 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.6 5.4C41.5 36 45 30.5 45 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
-      <span id="auth-status-text">로그인하지 않았어요 · 유료 플랜은 로그인 후 결제할 수 있어요</span>
-    </div>
-    <div id="google-signin-container">
-      <div id="g_id_onload"
-           data-client_id="%%GOOGLE_CLIENT_ID%%"
-           data-callback="handleGoogleCredential"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin"
-           data-type="standard"
-           data-size="medium"
-           data-theme="outline"
-           data-text="signin_with"
-           data-shape="pill"
-           data-logo_alignment="left">
-      </div>
-    </div>
-    <button class="btn btn-ghost-dark" id="privacy-settings-btn" type="button" hidden>개인정보 설정</button>
-    <button class="btn btn-ghost-dark" id="google-logout-btn" type="button" hidden>로그아웃</button>
+    <p>앱 이용 자체는 무료로 시작할 수 있고, 다운로드·제작 연결 단계에서만 등급을 올리면 됩니다. 유료 플랜은 Google 계정으로 로그인 후 결제할 수 있어요. 로그인은 왼쪽 상단 메뉴에서 할 수 있어요.</p>
   </div>
 
   <div class="price-grid price-grid-3">
@@ -806,7 +785,7 @@
 
 <footer>
   <div>
-    <div class="brand" style="font-weight:600; margin-bottom:6px;">UNEXPOSED</div>
+    <div class="brand" style="font-weight:600; margin-bottom:6px;">pentacorn</div>
     PentaCorp. · 문의는 오른쪽 위 상단 보다는 제작자한테 하면 더 좋음
   </div>
   <div class="footer-social">
@@ -824,7 +803,7 @@
 
     <div class="consent-section">
       <div class="consent-scroll">
-        UNEXPOSED는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
+        pentacorn는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
         (1) 본 서비스는 데모 버전이며 실제 약관은 추후 정식 서비스 출시 시 변호사 검토를 거쳐 제공됩니다.
         (2) 이용자는 본인의 신체 정보를 자발적으로 입력합니다.
         (3) 계정 및 결제 정보는 관련 법령에 따라 안전하게 관리됩니다.
@@ -856,6 +835,45 @@
       <button class="btn btn-primary" id="consent-save-btn" type="button" disabled>저장하기</button>
     </div>
     <p class="modal-note" id="consent-save-note"></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profile-modal" hidden>
+  <div class="modal-box consent-box">
+    <h3 class="serif">프로필 설정</h3>
+    <p class="consent-desc">로그인 계정으로 표시할 이름을 정하고, 원하면 배송에 쓸 연락처를 등록해두세요.</p>
+
+    <div class="consent-section">
+      <label class="profile-field">이름 <input type="text" id="profile-name-input" placeholder="예: 홍길동" maxlength="30"></label>
+    </div>
+
+    <div class="consent-section">
+      <div class="consent-label-row">
+        <span class="consent-title">배송 정보 등록 <span class="consent-optional">(선택)</span></span>
+      </div>
+      <p class="consent-desc">
+        동의하면 아래 연락처·주소가 저장되어, 나중에 주문할 때 자동으로 채워져요.
+        <b>동의하지 않아도 서비스는 그대로 이용할 수 있지만</b>, 그 경우 실물 배송이 필요한 주문은 할 수 없고 패턴/도면 다운로드만 가능해요.
+        나중에 원하면 이 화면에서 다시 바꿀 수 있어요.
+      </p>
+      <label class="consent-check">
+        <input type="checkbox" id="profile-shipping-consent-checkbox">
+        <span>배송용 연락처·주소를 저장하는 데 동의합니다</span>
+      </label>
+      <div class="profile-shipping-fields" id="profile-shipping-fields" hidden>
+        <label class="profile-field">연락처 이메일 <input type="email" id="profile-email-input" placeholder="비워두면 로그인 이메일을 사용해요"></label>
+        <label class="profile-field">전화번호 <input type="tel" id="profile-phone-input" placeholder="예: 010-1234-5678"></label>
+        <label class="profile-field">우편번호 <input type="text" id="profile-zipcode-input" placeholder="예: 06134"></label>
+        <label class="profile-field">주소 <input type="text" id="profile-address1-input" placeholder="예: 서울시 강남구 테헤란로 123"></label>
+        <label class="profile-field">상세주소 (선택) <input type="text" id="profile-address2-input" placeholder="예: 101동 1001호"></label>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost-dark" id="profile-close-btn" type="button">닫기</button>
+      <button class="btn btn-primary" id="profile-save-btn" type="button" disabled>저장하기</button>
+    </div>
+    <p class="modal-note" id="profile-save-note"></p>
   </div>
 </div>
 
@@ -967,14 +985,21 @@
 
   /* ---------- AUTH (real Google login) ---------- */
   const TOSS_CLIENT_KEY = "%%TOSS_CLIENT_KEY%%";
-  const authState = { loggedIn: false, email: null, name: null };
+  const GOOGLE_CLIENT_ID = "%%GOOGLE_CLIENT_ID%%";
+  const authState = { loggedIn: false, email: null, name: null, isAdmin: false };
   window.authState = authState; // 옷장 기능이 들어있는 별도 모듈 스크립트에서도 로그인 상태를 볼 수 있게 공유해요.
-  const authBar = document.getElementById('auth-bar');
-  const authStatusText = document.getElementById('auth-status-text');
-  const googleSigninContainer = document.getElementById('google-signin-container');
-  const googleLogoutBtn = document.getElementById('google-logout-btn');
-  const privacySettingsBtn = document.getElementById('privacy-settings-btn');
+  window.userProfile = null; // 로그인한 사람의 저장된 프로필(이름/배송지). customize.js에서 주문할 때 자동으로 채우는 데 써요.
   const planNote = document.getElementById('plan-selected-note');
+
+  // 예전엔 index.html의 data-client_id 속성으로 Google 버튼이 페이지 로드 시 자동으로 그려졌는데,
+  // 이제 버튼을 메뉴(나중에 fetch로 불러오는 별도 파일) 안에 넣어야 해서, 메뉴가 열릴 때
+  // JS로 직접 initialize + renderButton을 호출해요.
+  let googleIdInitialized = false;
+  function ensureGoogleIdInitialized(){
+    if(googleIdInitialized || !window.google || !GOOGLE_CLIENT_ID) return;
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+    googleIdInitialized = true;
+  }
   let bodyDataConsentGranted = null; // null = 아직 선택 안 함, true/false = 선택함
   // customize.js(별도 파일)에서도 이 값을 읽을 수 있게, 바뀔 때마다 window에도 같이 반영해요.
   function setBodyDataConsentGranted(value){
@@ -982,31 +1007,193 @@
     window.bodyDataConsentGranted = value;
   }
 
-  function setLoggedIn(user){
+  function adminBadgeHtml(isAdmin){
+    return isAdmin ? '<span class="admin-badge">관리자</span>' : '';
+  }
+
+  function setLoggedIn(user, isAdmin){
     authState.loggedIn = true;
     authState.email = user.email;
     authState.name = user.name;
-    authBar.classList.add('logged-in');
-    authStatusText.textContent = `${user.name} (${user.email}) 로 로그인됨`;
-    googleSigninContainer.hidden = true;
-    googleLogoutBtn.hidden = false;
-    privacySettingsBtn.hidden = false;
+    authState.isAdmin = !!isAdmin;
     if(typeof refreshWardrobeUploadAccess === 'function') refreshWardrobeUploadAccess();
+    renderMenuAuthUI();
   }
   function setLoggedOut(){
     authState.loggedIn = false;
     authState.email = null;
     authState.name = null;
+    authState.isAdmin = false;
+    window.userProfile = null;
     setBodyDataConsentGranted(null);
-    authBar.classList.remove('logged-in');
-    authStatusText.textContent = '로그인하지 않았어요 · 유료 플랜은 로그인 후 결제할 수 있어요';
-    googleSigninContainer.hidden = false;
-    googleLogoutBtn.hidden = true;
-    privacySettingsBtn.hidden = true;
     if(typeof refreshWardrobeUploadAccess === 'function') refreshWardrobeUploadAccess();
     const adminFab = document.getElementById('admin-fab');
     if(adminFab) adminFab.hidden = true;
+    document.querySelectorAll('.price-card').forEach(c => {
+      c.classList.remove('selected');
+      const btn = c.querySelector('.plan-select-btn');
+      if(btn) btn.textContent = c.dataset.price === '0' ? '선택하기' : '구독하기';
+    });
+    if(planNote) planNote.textContent = '';
+    renderMenuAuthUI();
   }
+
+  /* ---------- 메뉴 안의 로그인 영역 ---------- */
+  // 메뉴는 처음 열 때 fetch로 불러와지기 때문에, 아직 안 불러와진 상태에서 로그인 상태가
+  // 바뀌면(예: 페이지 로드 시 자동 로그인 복원) 그때는 그냥 넘어가고, 메뉴가 열릴 때 다시 그려줘요.
+  function renderMenuAuthUI(){
+    const box = document.getElementById('menu-auth-box');
+    if(!box) return; // 메뉴가 아직 로드되지 않았어요.
+    if(authState.loggedIn){
+      box.innerHTML = `
+        <div class="menu-auth-status">${authState.name}${adminBadgeHtml(authState.isAdmin)}<br><span class="menu-auth-email">${authState.email}</span></div>
+        <button class="btn btn-ghost-dark menu-auth-settings-btn" id="menu-profile-settings-btn" type="button">개인정보 · 배송 설정</button>
+        <button class="btn btn-ghost-dark menu-auth-settings-btn" id="menu-bodydata-settings-btn" type="button">신체 데이터 동의 설정</button>
+        <button class="btn btn-ghost-dark menu-auth-logout-btn" id="menu-logout-btn" type="button">로그아웃</button>
+      `;
+      document.getElementById('menu-logout-btn').addEventListener('click', async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        setLoggedOut();
+      });
+      document.getElementById('menu-bodydata-settings-btn').addEventListener('click', () => {
+        document.getElementById('side-menu-overlay').hidden = true;
+        openConsentModal();
+      });
+      // "개인정보 · 배송 설정" — 언제든 다시 눌러서 이름/배송지/동의를 확인·수정할 수 있어요.
+      // 저장된 프로필이 있으면 그 값으로 미리 채워서 보여줘요.
+      document.getElementById('menu-profile-settings-btn').addEventListener('click', async () => {
+        document.getElementById('side-menu-overlay').hidden = true;
+        let existing = window.userProfile;
+        try{
+          const res = await fetch('/api/profile');
+          const data = await res.json();
+          if(data.profile) existing = data.profile;
+        } catch(err){ /* 저장된 게 없으면 그냥 빈 폼으로 열어요 */ }
+        openProfileModal(null, existing);
+      });
+    } else {
+      box.innerHTML = `<div id="menu-google-signin-container"></div>`;
+      renderGoogleSigninButton();
+    }
+  }
+
+  // Google Identity Services 스크립트가 async로 로드되기 때문에, 메뉴를 아주 빨리 열면
+  // 아직 window.google이 준비 안 됐을 수 있어요. 그럴 땐 잠깐 기다렸다 다시 시도해요.
+  function renderGoogleSigninButton(attempt){
+    const container = document.getElementById('menu-google-signin-container');
+    if(!container) return;
+    if(!window.google || !GOOGLE_CLIENT_ID){
+      if((attempt || 0) < 20) setTimeout(() => renderGoogleSigninButton((attempt || 0) + 1), 150);
+      return;
+    }
+    ensureGoogleIdInitialized();
+    google.accounts.id.renderButton(container, {
+      type: 'standard', size: 'medium', theme: 'outline', text: 'signin_with', shape: 'pill', logo_alignment: 'left',
+    });
+  }
+
+  /* ---------- 프로필 모달 (로그인 직후 한 번) ---------- */
+  const profileModal = document.getElementById('profile-modal');
+  const profileNameInput = document.getElementById('profile-name-input');
+  const profileEmailInput = document.getElementById('profile-email-input');
+  const profilePhoneInput = document.getElementById('profile-phone-input');
+  const profileZipcodeInput = document.getElementById('profile-zipcode-input');
+  const profileAddress1Input = document.getElementById('profile-address1-input');
+  const profileAddress2Input = document.getElementById('profile-address2-input');
+  const profileShippingConsentCheckbox = document.getElementById('profile-shipping-consent-checkbox');
+  const profileShippingFields = document.getElementById('profile-shipping-fields');
+  const profileSaveBtn = document.getElementById('profile-save-btn');
+  const profileSaveNote = document.getElementById('profile-save-note');
+
+  function updateProfileSaveBtnState(){
+    const nameOk = profileNameInput.value.trim().length > 0;
+    if(!profileShippingConsentCheckbox.checked){
+      profileSaveBtn.disabled = !nameOk;
+      return;
+    }
+    const shippingOk = profilePhoneInput.value.trim() && profileZipcodeInput.value.trim() && profileAddress1Input.value.trim();
+    profileSaveBtn.disabled = !(nameOk && shippingOk);
+  }
+  [profileNameInput, profilePhoneInput, profileZipcodeInput, profileAddress1Input].forEach(el => {
+    el.addEventListener('input', updateProfileSaveBtnState);
+  });
+  profileShippingConsentCheckbox.addEventListener('change', () => {
+    profileShippingFields.hidden = !profileShippingConsentCheckbox.checked;
+    updateProfileSaveBtnState();
+  });
+
+  let profileModalDoneCallback = null;
+
+  function openProfileModal(onDone, existingProfile){
+    profileModalDoneCallback = onDone || null;
+    const p = existingProfile || null;
+    profileNameInput.value = (p && p.name) || authState.name || '';
+    profileEmailInput.value = (p && p.contactEmail) || '';
+    profilePhoneInput.value = (p && p.phone) || '';
+    profileZipcodeInput.value = (p && p.zipcode) || '';
+    profileAddress1Input.value = (p && p.address1) || '';
+    profileAddress2Input.value = (p && p.address2) || '';
+    profileShippingConsentCheckbox.checked = !!(p && p.shippingConsent);
+    profileShippingFields.hidden = !profileShippingConsentCheckbox.checked;
+    profileSaveNote.textContent = '';
+    updateProfileSaveBtnState();
+    profileModal.hidden = false;
+  }
+  const profileCloseBtn = document.getElementById('profile-close-btn');
+  profileCloseBtn.addEventListener('click', () => {
+    profileModal.hidden = true;
+    if(profileModalDoneCallback){ profileModalDoneCallback(); profileModalDoneCallback = null; }
+  });
+
+  // 로그인 직후에 뜰 수 있는 모달이 두 개(프로필/신체데이터 동의)라, 겹치지 않게 순서대로 띄워요.
+  // 프로필을 먼저 보여주고, 그게 끝나면(저장 or 없으면 바로) 신체 데이터 동의를 보여줘요.
+  // needsProfile 여부와 상관없이, 로그인할 때마다(=Google 로그인 버튼을 눌렀을 때마다) 매번 띄워서
+  // 이름/배송지를 확인·수정할 기회를 줘요.
+  function runLoginFollowups({ existingProfile, bodyDataConsent }){
+    function showConsentIfNeeded(){
+      if(bodyDataConsent){
+        setBodyDataConsentGranted(bodyDataConsent.consent);
+        hasSavedConsentBefore = true;
+      } else {
+        openConsentModal();
+      }
+    }
+    openProfileModal(showConsentIfNeeded, existingProfile);
+  }
+
+  profileSaveBtn.addEventListener('click', async () => {
+    profileSaveBtn.disabled = true;
+    profileSaveBtn.textContent = '저장 중...';
+    try{
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profileNameInput.value.trim(),
+          contactEmail: profileEmailInput.value.trim(),
+          phone: profilePhoneInput.value.trim(),
+          zipcode: profileZipcodeInput.value.trim(),
+          address1: profileAddress1Input.value.trim(),
+          address2: profileAddress2Input.value.trim(),
+          shippingConsent: profileShippingConsentCheckbox.checked,
+        }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        window.userProfile = data.profile;
+        profileModal.hidden = true;
+        if(profileModalDoneCallback){ profileModalDoneCallback(); profileModalDoneCallback = null; }
+      } else {
+        profileSaveNote.textContent = data.error || '저장에 실패했어요.';
+      }
+    } catch(err){
+      profileSaveNote.textContent = '저장 중 오류가 발생했어요.';
+    } finally {
+      profileSaveBtn.disabled = false;
+      profileSaveBtn.textContent = '저장하기';
+      updateProfileSaveBtnState();
+    }
+  });
 
   // 관리자 계정으로 로그인돼 있으면, 우측 하단에 관리자 사이트로 가는 플로팅 버튼을 계속 띄워둬요.
   async function checkAdminAndShowFab(){
@@ -1031,16 +1218,11 @@
       });
       const data = await res.json();
       if(data.ok){
-        setLoggedIn(data.user);
+        setLoggedIn(data.user, data.isAdmin);
         planNote.textContent = `${data.user.name}님, 환영해요!`;
         checkAdminAndShowFab();
-        if(data.bodyDataConsent){
-          setBodyDataConsentGranted(data.bodyDataConsent.consent);
-          hasSavedConsentBefore = true;
-        } else {
-          // 아직 한 번도 선택한 적이 없으면 동의 화면을 띄워요.
-          openConsentModal();
-        }
+        if(data.profile) window.userProfile = data.profile;
+        runLoginFollowups({ existingProfile: data.profile, bodyDataConsent: data.bodyDataConsent });
       } else {
         planNote.textContent = data.error || '로그인에 실패했어요.';
       }
@@ -1049,27 +1231,21 @@
     }
   };
 
-  googleLogoutBtn.addEventListener('click', async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setLoggedOut();
-    document.querySelectorAll('.price-card').forEach(c => {
-      c.classList.remove('selected');
-      c.querySelector('.plan-select-btn').textContent = c.dataset.price === '0' ? '선택하기' : '구독하기';
-    });
-    planNote.textContent = '';
-  });
-
   async function checkAuthOnLoad(){
     try{
       const res = await fetch('/api/me');
       const data = await res.json();
       if(data.user){
-        setLoggedIn(data.user);
+        setLoggedIn(data.user, data.isAdmin);
         checkAdminAndShowFab();
+        if(data.profile) window.userProfile = data.profile;
         if(data.bodyDataConsent){
           setBodyDataConsentGranted(data.bodyDataConsent.consent);
           hasSavedConsentBefore = true;
         }
+        // 페이지를 새로고침해서 세션이 복원된 경우(=이미 로그인한 적 있는 사람)에는
+        // 프로필 모달을 다시 띄우지 않아요. "로그인 직후 한 번"은 실제로 로그인 버튼을
+        // 눌렀을 때(handleGoogleCredential)만 해당돼요.
         if(data.subscription){
           const card = document.querySelector(`.price-card[data-plan="${data.subscription.plan}"]`);
           if(card){
@@ -1106,6 +1282,7 @@
       overlay.addEventListener('click', e => { if(e.target === overlay) overlay.hidden = true; });
 
       sideMenuLoaded = true;
+      renderMenuAuthUI(); // 메뉴가 막 로드됐으니, 지금 로그인 상태에 맞춰 상단 로그인 영역을 그려줘요.
     })();
     return sideMenuLoading;
   }
@@ -1149,7 +1326,6 @@
     consentModal.hidden = false;
   }
 
-  privacySettingsBtn.addEventListener('click', openConsentModal);
   consentLaterBtn.addEventListener('click', () => { consentModal.hidden = true; });
 
   consentSaveBtn.addEventListener('click', async () => {
@@ -1218,8 +1394,8 @@
         return;
       }
       if(!authState.loggedIn){
-        planNote.textContent = '유료 플랜은 Google 계정으로 로그인한 뒤 구독할 수 있어요.';
-        authBar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        planNote.textContent = '유료 플랜은 Google 계정으로 로그인한 뒤 구독할 수 있어요. 왼쪽 상단 메뉴에서 로그인해주세요.';
+        menuToggleBtn.click();
         return;
       }
 

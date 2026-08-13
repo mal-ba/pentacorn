@@ -1,7 +1,7 @@
 {
-  "name": "unexposed-server",
+  "name": "pentacorn-server",
   "version": "1.0.0",
-  "description": "UNEXPOSED 데모 - 구글 로그인 + 토스페이먼츠 결제 연동 서버",
+  "description": "pentacorn 데모 - 구글 로그인 + 토스페이먼츠 결제 연동 서버",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -13,6 +13,7 @@
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.6.2",
     "google-auth-library": "^9.11.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0"
