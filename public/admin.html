@@ -71,6 +71,10 @@
     display:inline-block; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:700;
     background:var(--deep); color:#fff; margin-left:6px;
   }
+  .legacy-badge{
+    display:inline-block; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:700;
+    background:var(--mist); color:var(--ink-soft); border:1px solid var(--line); margin-left:6px;
+  }
   .admin-add-form{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
   .admin-add-form input{
     padding:9px 12px; border-radius:8px; border:1px solid var(--line); font-size:13px;
@@ -298,7 +302,7 @@
   }
 
   /* ---------- 관리자 관리 (대빵 전용) ---------- */
-  function renderAdmins(superAdmin, admins){
+  function renderAdmins(superAdmin, admins, legacyAdmins){
     const rows = [];
     if(superAdmin){
       rows.push(`
@@ -321,6 +325,15 @@
           <td class="del-cell"><button class="del-btn" data-admin-email="${a.email}" title="삭제" type="button">✕</button></td>
         </tr>`);
     });
+    (legacyAdmins || []).forEach(email => {
+      rows.push(`
+        <tr>
+          <td>${email} <span class="legacy-badge">환경변수 등록</span></td>
+          <td colspan="2" style="color:var(--ink-soft);">Render의 ADMIN_EMAILS로 등록됨 · 여기선 삭제 불가</td>
+          <td></td>
+          <td></td>
+        </tr>`);
+    });
     adminsTbody.innerHTML = rows.join('');
   }
 
@@ -333,7 +346,7 @@
         return;
       }
       adminManagementSection.hidden = false;
-      renderAdmins(data.superAdmin, data.admins);
+      renderAdmins(data.superAdmin, data.admins, data.legacyAdmins);
     } catch(err){
       adminManagementSection.hidden = true;
     }

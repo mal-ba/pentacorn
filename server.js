@@ -985,6 +985,11 @@ app.get('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) =
     .select('*')
     .order('created_at', { ascending: true });
   if (error) return res.status(500).json({ ok: false, error: '관리자 목록을 불러오지 못했어요.' });
+  const dbEmails = new Set((data || []).map(row => row.email));
+  // Render의 ADMIN_EMAILS 환경변수에 등록된 계정도 같이 보여줘요(이미 DB에도 있거나
+  // 대빵인 건 중복이니 빼고). 이 계정들은 사이트에서 추가한 게 아니라 환경변수로
+  // 등록된 거라, 삭제 버튼으로는 못 빼요 — 진짜로 빼려면 Render 환경변수를 고쳐야 해요.
+  const legacyAdmins = ADMIN_EMAILS.filter(email => email !== SUPER_ADMIN_EMAIL && !dbEmails.has(email));
   res.json({
     ok: true,
     superAdmin: SUPER_ADMIN_EMAIL,
@@ -994,6 +999,7 @@ app.get('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) =
       addedBy: row.added_by,
       createdAt: row.created_at,
     })),
+    legacyAdmins, // ADMIN_EMAILS 환경변수 기반, 읽기 전용
   });
 });
 
