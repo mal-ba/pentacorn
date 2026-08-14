@@ -67,6 +67,27 @@
     padding:9px 18px; border-radius:999px; border:1px solid var(--coral); background:var(--coral);
     color:#fff; font-size:13px; font-weight:600; cursor:pointer;
   }
+  .owner-badge{
+    display:inline-block; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:700;
+    background:var(--deep); color:#fff; margin-left:6px;
+  }
+  .admin-add-form{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .admin-add-form input{
+    padding:9px 12px; border-radius:8px; border:1px solid var(--line); font-size:13px;
+    font-family:inherit; background:var(--paper); color:var(--ink);
+  }
+  .admin-add-form input[name="email"]{ flex:1; min-width:200px; }
+  .admin-add-form input[name="note"]{ width:160px; }
+  .admin-add-btn{
+    padding:9px 16px; border-radius:999px; border:1px solid var(--deep); background:var(--deep);
+    color:#fff; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .admin-add-btn:hover{ opacity:0.9; }
+  .admin-note-input{
+    padding:5px 8px; border-radius:6px; border:1px solid var(--line); font-size:12.5px;
+    font-family:inherit; width:140px; background:var(--paper); color:var(--ink);
+  }
+  .admin-form-error{ font-size:12.5px; color:var(--coral); margin:-6px 0 14px; min-height:16px; }
 </style>
 </head>
 <body>
@@ -141,6 +162,30 @@
     </table>
     <div class="empty-note" id="subs-empty" hidden>아직 구독자가 없어요.</div>
   </div>
+
+  <div id="admin-management-section" hidden>
+    <div class="section-title">관리자 관리 <span style="font-size:12px; font-weight:400; color:var(--ink-soft);">(대빵 전용)</span></div>
+    <form class="admin-add-form" id="admin-add-form">
+      <input type="email" name="email" placeholder="추가할 관리자 이메일" required>
+      <input type="text" name="note" placeholder="메모(선택, 예: 재고 담당)">
+      <button class="admin-add-btn" type="submit">관리자 추가</button>
+    </form>
+    <p class="admin-form-error" id="admin-form-error"></p>
+    <div class="table-scroll">
+      <table id="admins-table">
+        <thead>
+          <tr>
+            <th>이메일</th>
+            <th>메모</th>
+            <th>추가한 사람</th>
+            <th>추가일시</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="admins-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -154,6 +199,10 @@
   const subsTbody = document.getElementById('subs-tbody');
   const subsEmpty = document.getElementById('subs-empty');
   const subsTable = document.getElementById('subs-table');
+  const adminManagementSection = document.getElementById('admin-management-section');
+  const adminsTbody = document.getElementById('admins-tbody');
+  const adminAddForm = document.getElementById('admin-add-form');
+  const adminFormError = document.getElementById('admin-form-error');
 
   function showView(view){
     loginView.hidden = view !== 'login';
@@ -248,6 +297,122 @@
     } catch(err){ /* 무시해도 괜찮아요 */ }
   }
 
+  /* ---------- 관리자 관리 (대빵 전용) ---------- */
+  function renderAdmins(superAdmin, admins){
+    const rows = [];
+    if(superAdmin){
+      rows.push(`
+        <tr>
+          <td>${superAdmin} <span class="owner-badge">대빵</span></td>
+          <td colspan="2" style="color:var(--ink-soft);">최고관리자 · 삭제 불가</td>
+          <td></td>
+          <td></td>
+        </tr>`);
+    }
+    admins.forEach(a => {
+      rows.push(`
+        <tr data-email="${a.email}">
+          <td>${a.email}</td>
+          <td>
+            <input class="admin-note-input" type="text" value="${(a.note || '').replace(/"/g, '&quot;')}" data-email="${a.email}" placeholder="메모">
+          </td>
+          <td>${a.addedBy || '-'}</td>
+          <td>${fmtDate(a.createdAt)}</td>
+          <td class="del-cell"><button class="del-btn" data-admin-email="${a.email}" title="삭제" type="button">✕</button></td>
+        </tr>`);
+    });
+    adminsTbody.innerHTML = rows.join('');
+  }
+
+  async function loadAdmins(){
+    try{
+      const res = await fetch('/api/admin/admins');
+      const data = await res.json();
+      if(!data.ok){
+        adminManagementSection.hidden = true; // 대빵이 아니면 403 → 섹션 자체를 숨겨요.
+        return;
+      }
+      adminManagementSection.hidden = false;
+      renderAdmins(data.superAdmin, data.admins);
+    } catch(err){
+      adminManagementSection.hidden = true;
+    }
+  }
+
+  adminAddForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    adminFormError.textContent = '';
+    const email = adminAddForm.email.value.trim();
+    const note = adminAddForm.note.value.trim();
+    try{
+      const res = await fetch('/api/admin/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, note }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        adminAddForm.reset();
+        loadAdmins();
+      } else {
+        adminFormError.textContent = data.error || '추가에 실패했어요.';
+      }
+    } catch(err){
+      adminFormError.textContent = '추가 중 오류가 발생했어요.';
+    }
+  });
+
+  // 메모 입력칸에서 포커스가 빠져나갈 때(입력 끝냈을 때) 자동으로 저장해요.
+  adminsTbody.addEventListener('change', async e => {
+    const input = e.target.closest('.admin-note-input');
+    if(!input) return;
+    try{
+      await fetch(`/api/admin/admins/${encodeURIComponent(input.dataset.email)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: input.value.trim() }),
+      });
+    } catch(err){ /* 실패해도 다음 저장 때 다시 시도하면 돼요 */ }
+  });
+
+  adminsTbody.addEventListener('click', e => {
+    const btn = e.target.closest('.del-btn[data-admin-email]');
+    if(!btn) return;
+    showDeleteAdminConfirm(btn.dataset.adminEmail);
+  });
+
+  function showDeleteAdminConfirm(email){
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <h3 style="margin:0 0 4px;">이 관리자를 삭제할까요?</h3>
+        <p>${email} 계정의 관리자 권한이 즉시 사라져요.</p>
+        <div class="confirm-actions">
+          <button class="confirm-cancel" type="button">취소</button>
+          <button class="confirm-delete" type="button">삭제하기</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+    overlay.querySelector('.confirm-delete').addEventListener('click', async () => {
+      overlay.querySelector('.confirm-delete').textContent = '삭제 중...';
+      try{
+        const res = await fetch(`/api/admin/admins/${encodeURIComponent(email)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.ok){
+          overlay.remove();
+          loadAdmins();
+        } else {
+          overlay.querySelector('p').textContent = data.error || '삭제에 실패했어요.';
+        }
+      } catch(err){
+        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했어요.';
+      }
+    });
+  }
+
   // 삭제 버튼 클릭 → "진짜 삭제할까요?" 확인 팝업 → 확인해야만 실제로 지워요.
   ordersTbody.addEventListener('click', e => {
     const btn = e.target.closest('.del-btn');
@@ -306,6 +471,7 @@
       showView('dashboard');
       loadOrders();
       loadSubscriptions();
+      loadAdmins();
     } catch(err){
       showView('login');
     }
@@ -329,7 +495,7 @@
     }
   };
 
-  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); });
+  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); loadAdmins(); });
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     location.reload();

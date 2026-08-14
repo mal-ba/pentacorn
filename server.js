@@ -19,11 +19,18 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-only-secret-change-me'
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
 const WARDROBE_BUCKET = 'wardrobe-assets';
-// 쉼표로 여러 개 등록 가능: 이 이메일로 로그인해서 올린 옷장 아이템은 "공식" 배지가 붙어요.
+// 쉼표로 여러 개 등록 가능: 예전 방식의 관리자 목록이에요. 지금은 Supabase의
+// admin_accounts 테이블로 실시간 관리하는 게 기본이지만, 혹시 그 테이블이 비어있거나
+// 문제가 생겨도 로그인이 완전히 막히지 않도록 안전장치로 계속 같이 확인해요.
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(',')
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
+// 최고관리자("대빵") — 딱 한 명, 환경변수로 고정해요. DB에만 의존하면 실수로 관리자
+// 테이블을 잘못 건드렸을 때 아무도 못 고치는 상황이 생길 수 있어서, 이 계정만큼은
+// 항상(테이블 상태와 무관하게) 최고 권한을 갖도록 별도로 둬요. 다른 관리자를
+// 추가·삭제·수정할 수 있는 건 이 계정뿐이에요.
+const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -32,6 +39,9 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 // 재시작되거나 잠들었다 깨어나도 데이터와 업로드한 파일이 사라지지 않아요.
 if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
   console.warn('⚠️  SUPABASE_URL / SUPABASE_SECRET_KEY가 설정되어 있지 않아요. .env 파일을 확인하세요.');
+}
+if (!SUPER_ADMIN_EMAIL) {
+  console.warn('⚠️  SUPER_ADMIN_EMAIL이 설정되어 있지 않아요. 최고관리자(대빵) 계정을 .env에 등록해주세요.');
 }
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
@@ -57,8 +67,36 @@ function verifyAuthToken(token) {
 
 // ADMIN_EMAILS에 등록된 이메일이면 true. requireAdmin 미들웨어와 달리 403을 던지지 않고
 // 그냥 boolean만 돌려줘서, 일반 사용자도 /api/me·/api/auth/google 응답에서 안전하게 받을 수 있어요.
+//
+// 관리자 목록은 이제 두 군데에서 합쳐져요:
+//  1) SUPER_ADMIN_EMAIL — 대빵. 항상 관리자예요.
+//  2) dynamicAdminEmails — Supabase admin_accounts 테이블에서 실시간으로 불러온 목록.
+//     대빵이 웹사이트에서 관리자를 추가/삭제하면 이 캐시가 바로 갱신돼서, 서버를
+//     재배포하지 않아도 즉시 반영돼요.
+//  (+ 예전 ADMIN_EMAILS 환경변수도 안전장치로 계속 같이 확인해요.)
+let dynamicAdminEmails = [];
+
+async function refreshAdminEmailsCache() {
+  try {
+    const { data, error } = await supabase.from('admin_accounts').select('email');
+    if (error) {
+      console.error('관리자 목록을 불러오지 못했어요:', error.message);
+      return;
+    }
+    dynamicAdminEmails = (data || []).map(row => String(row.email || '').toLowerCase());
+  } catch (err) {
+    console.error('관리자 목록 캐시 갱신 실패:', err.message);
+  }
+}
+
+function isSuperAdminEmail(email) {
+  return !!SUPER_ADMIN_EMAIL && String(email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
+}
+
 function isAdminEmail(email) {
-  return ADMIN_EMAILS.includes(String(email || '').toLowerCase());
+  const e = String(email || '').toLowerCase();
+  if (!e) return false;
+  return isSuperAdminEmail(e) || dynamicAdminEmails.includes(e) || ADMIN_EMAILS.includes(e);
 }
 
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
@@ -191,13 +229,13 @@ async function seedBuiltinWardrobeIfEmpty() {
 
 function isOfficialUploader(uploadedBy) {
   if (uploadedBy === 'builtin') return true;
-  return ADMIN_EMAILS.includes(String(uploadedBy).toLowerCase());
+  return isAdminEmail(uploadedBy);
 }
 
 function canEditItem(item, viewerEmail) {
   if (!viewerEmail) return false;
   if (item.uploaded_by === viewerEmail) return true; // 본인이 올린 아이템
-  if (item.uploaded_by === 'builtin' && ADMIN_EMAILS.includes(viewerEmail.toLowerCase())) return true; // 관리자는 기본 제공 아이템도 수정 가능
+  if (item.uploaded_by === 'builtin' && isAdminEmail(viewerEmail)) return true; // 관리자는 기본 제공 아이템도 수정 가능
   return false;
 }
 
@@ -327,6 +365,7 @@ app.post('/api/auth/google', async (req, res) => {
       ok: true,
       user,
       isAdmin: isAdminEmail(user.email),
+      isSuperAdmin: isSuperAdminEmail(user.email),
       hasProfile: !!profile, // 참고용으로 남겨둬요 (지금은 프로필 모달을 로그인마다 항상 띄워요).
       profile: profile ? {
         name: profile.name,
@@ -362,6 +401,7 @@ app.get('/api/me', async (req, res) => {
   res.json({
     user,
     isAdmin: isAdminEmail(user.email),
+    isSuperAdmin: isSuperAdminEmail(user.email),
     subscription: sub
       ? { plan: sub.plan, amount: sub.amount, subscribedAt: sub.subscribed_at, paymentKey: sub.payment_key, orderId: sub.order_id }
       : null,
@@ -885,12 +925,19 @@ app.post('/api/orders/confirm', requireLogin, async (req, res) => {
   }
 });
 
-// 관리자(ADMIN_EMAILS에 등록된 이메일)만 통과되는 미들웨어예요.
-// "공식" 옷장 배지에 이미 쓰던 것과 같은 ADMIN_EMAILS 목록을 그대로 재사용해요.
+// 관리자(대빵 + 실시간 관리자 목록)만 통과되는 미들웨어예요.
 function requireAdmin(req, res, next) {
-  const email = String(req.user.email || '').toLowerCase();
-  if (!ADMIN_EMAILS.includes(email)) {
+  if (!isAdminEmail(req.user.email)) {
     return res.status(403).json({ ok: false, error: '관리자 계정으로 로그인해주세요.' });
+  }
+  next();
+}
+
+// 대빵(SUPER_ADMIN_EMAIL)만 통과되는 미들웨어예요. 다른 관리자를 추가·삭제·수정하는
+// 것처럼 특히 민감한 작업에 써요 — 일반 관리자는 여기 못 들어와요.
+function requireSuperAdmin(req, res, next) {
+  if (!isSuperAdminEmail(req.user.email)) {
+    return res.status(403).json({ ok: false, error: '최고관리자만 할 수 있어요.' });
   }
   next();
 }
@@ -924,7 +971,64 @@ app.get('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res)
 
 // 관리자 여부만 가볍게 확인할 때 써요 (admin.html이 로그인 직후 이걸로 접근 권한을 확인해요).
 app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
-  res.json({ ok: true, isAdmin: true });
+  res.json({ ok: true, isAdmin: true, isSuperAdmin: isSuperAdminEmail(req.user.email) });
+});
+
+/* ---------------- 관리자 관리 (대빵 전용) ----------------
+   대빵이 다른 관리자를 실시간으로 추가·수정·삭제할 수 있어요. 재배포 없이 바로 반영돼요
+   (등록/삭제할 때마다 refreshAdminEmailsCache()로 캐시를 즉시 갱신해요). */
+app.get('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('admin_accounts')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (error) return res.status(500).json({ ok: false, error: '관리자 목록을 불러오지 못했어요.' });
+  res.json({
+    ok: true,
+    superAdmin: SUPER_ADMIN_EMAIL,
+    admins: (data || []).map(row => ({
+      email: row.email,
+      note: row.note || '',
+      addedBy: row.added_by,
+      createdAt: row.created_at,
+    })),
+  });
+});
+
+app.post('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const note = (req.body?.note || '').trim().slice(0, 200);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ ok: false, error: '올바른 이메일을 입력해주세요.' });
+  }
+  if (isSuperAdminEmail(email)) {
+    return res.status(400).json({ ok: false, error: '대빵 계정은 이미 최고관리자예요.' });
+  }
+  const { error } = await supabase
+    .from('admin_accounts')
+    .upsert({ email, note, added_by: req.user.email });
+  if (error) return res.status(500).json({ ok: false, error: '관리자 추가 중 오류가 발생했어요.' });
+  await refreshAdminEmailsCache(); // 재배포 없이 즉시 반영돼요.
+  res.json({ ok: true });
+});
+
+app.put('/api/admin/admins/:email', requireLogin, requireSuperAdmin, async (req, res) => {
+  const email = String(req.params.email || '').trim().toLowerCase();
+  const note = (req.body?.note || '').trim().slice(0, 200);
+  const { error } = await supabase.from('admin_accounts').update({ note }).eq('email', email);
+  if (error) return res.status(500).json({ ok: false, error: '수정 중 오류가 발생했어요.' });
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/admins/:email', requireLogin, requireSuperAdmin, async (req, res) => {
+  const email = String(req.params.email || '').trim().toLowerCase();
+  if (isSuperAdminEmail(email)) {
+    return res.status(400).json({ ok: false, error: '대빵 계정은 삭제할 수 없어요.' });
+  }
+  const { error } = await supabase.from('admin_accounts').delete().eq('email', email);
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  await refreshAdminEmailsCache(); // 재배포 없이 즉시 반영돼요.
+  res.json({ ok: true });
 });
 
 // 업로드 용량 초과 등 multer 에러를 깔끔한 JSON으로 응답해요.
@@ -941,6 +1045,7 @@ app.use((err, req, res, next) => {
 
 async function start() {
   await seedBuiltinWardrobeIfEmpty();
+  await refreshAdminEmailsCache();
   app.listen(PORT, () => {
     console.log(`pentacorn 서버 실행 중: http://localhost:${PORT}`);
     if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있어요. .env 파일을 확인하세요.');
