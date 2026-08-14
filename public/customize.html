@@ -1,0 +1,373 @@
+<!-- customize.html : 3D/2D 꾸미기 팝업 HTML 조각. index.html이 동적으로 불러와서 삽입해요. -->
+<div class="modal-overlay wizard-overlay" id="design-modal" hidden>
+  <div class="modal-box wizard-box">
+    <div class="wizard-header">
+      <div class="wizard-steps">
+        <span class="wizard-step active" id="wizard-step-indicator-1">1. 스캔</span>
+        <span class="wizard-step-arrow">→</span>
+        <span class="wizard-step" id="wizard-step-indicator-2">2. 원단·디테일 선택</span>
+      </div>
+      <button class="wizard-close" id="design-modal-close" type="button" aria-label="닫기">✕</button>
+    </div>
+
+    <div class="wizard-panel" id="wizard-panel-scan">
+      <div class="sec-head" style="text-align:left; margin-bottom:20px;">
+        <div class="eyebrow">STEP 1</div>
+        <h2 class="serif" style="font-size:26px;" id="scan-step-title">카메라로 체형 스캔해보기</h2>
+        <p id="scan-step-desc">정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
+      </div>
+      <div class="scan-wrap">
+        <div class="scan-camera">
+          <video id="scan-video" autoplay playsinline muted></video>
+          <canvas id="scan-canvas" hidden></canvas>
+          <div class="scan-camera-actions">
+            <button id="scan-start-btn" class="btn btn-primary" type="button">카메라 켜기</button>
+            <button id="scan-capture-btn" class="btn btn-ghost-dark" type="button" hidden>사진 촬영</button>
+            <button id="scan-record-btn" class="btn btn-ghost-dark" type="button" hidden>동영상 녹화 (5초)</button>
+            <label class="scan-upload-label">
+              사진 업로드
+              <input type="file" accept="image/*" id="scan-file-input" hidden>
+            </label>
+            <label class="scan-upload-label">
+              동영상 업로드
+              <input type="file" accept="video/*" id="scan-video-file-input" hidden>
+            </label>
+          </div>
+          <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담겨요. 카메라를 쓸 수 없다면 파일을 업로드해도 돼요.</p>
+        </div>
+        <div class="scan-result">
+          <div class="scan-photo-slot" id="scan-photo-slot">
+            <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시돼요</span>
+          </div>
+          <div class="scan-height-row">
+            <label for="scan-height-input">키 (cm)</label>
+            <input type="number" id="scan-height-input" placeholder="예: 165" min="120" max="210">
+          </div>
+          <div id="wizard-3d-only-block">
+          <div class="scan-height-row">
+            <label for="scan-nickname-input">머리 위 이름</label>
+            <input type="text" id="scan-nickname-input" maxlength="16" placeholder="예: 홍길동">
+          </div>
+
+          <div class="calc-label" style="margin-top:14px;">추가 각도 사진 (선택)</div>
+          <p class="wardrobe-hint">있으면 몸통 옆·뒤쪽 피부/옷도 사진 그대로 보여요. 정면 사진만 있어도 아바타는 만들어져요.</p>
+          <div class="body-scan-extra-angles" id="body-scan-extra-angles">
+            <label class="scan-upload-label">왼쪽 옆모습<input type="file" accept="image/*" id="body-scan-left-input" hidden></label>
+            <label class="scan-upload-label">오른쪽 옆모습<input type="file" accept="image/*" id="body-scan-right-input" hidden></label>
+            <label class="scan-upload-label">뒷모습<input type="file" accept="image/*" id="body-scan-back-input" hidden></label>
+          </div>
+          <div class="wardrobe-grid" id="body-scan-extra-thumbs"></div>
+
+          <button id="scan-generate-btn" class="btn btn-primary" type="button">아바타 생성하기</button>
+          <div class="scan-avatar-box">
+            <div id="scan-avatar-3d"></div>
+            <div class="scan-nameplate" id="scan-nameplate" hidden></div>
+            <div class="scan-avatar-loading" id="scan-avatar-loading">3D 마네킹 불러오는 중...</div>
+            <div class="scan-avatar-hint" id="scan-avatar-hint" hidden>드래그해서 360도 돌려보기</div>
+          </div>
+          <div class="scan-height-row">
+            <label for="mannequin-vpos-input">마네킹 상하 위치</label>
+            <input type="range" id="mannequin-vpos-input" min="-1.5" max="1.5" step="0.01" value="0">
+          </div>
+          <p class="scan-status" id="scan-status"></p>
+
+          <div class="wardrobe-box">
+            <div class="calc-label">옷장 &amp; 꾸미기</div>
+            <div class="wardrobe-tabs">
+              <button class="wardrobe-tab active" data-tab="recommend" type="button">추천받기</button>
+              <button class="wardrobe-tab" data-tab="browse" type="button">옷장 둘러보기</button>
+              <button class="wardrobe-tab" data-tab="upload" type="button">내 아이템 올리기</button>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-recommend">
+              <div class="wardrobe-recommend-row">
+                <select id="recommend-age-select">
+                  <option value="">연령대 선택</option>
+                  <option value="10s">10대</option>
+                  <option value="20s">20대</option>
+                  <option value="30s40s">30~40대</option>
+                  <option value="50s+">50대 이상</option>
+                </select>
+                <select id="recommend-occasion-select">
+                  <option value="">상황 (선택)</option>
+                  <option value="casual">캐주얼</option>
+                  <option value="formal">포멀</option>
+                  <option value="sporty">스포티</option>
+                  <option value="street">스트릿</option>
+                </select>
+                <button class="btn btn-primary" id="recommend-btn" type="button">추천받기</button>
+              </div>
+              <p class="wardrobe-hint">태그 매칭 기반 추천이에요 (생성형 AI 추천은 추후 연동 가능해요).</p>
+              <div class="wardrobe-grid" id="recommend-results"></div>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-browse" hidden>
+              <div class="wardrobe-filter-row">
+                <button class="wardrobe-filter-chip active" data-category="">전체</button>
+                <button class="wardrobe-filter-chip" data-category="top">상의</button>
+                <button class="wardrobe-filter-chip" data-category="bottom">하의</button>
+                <button class="wardrobe-filter-chip" data-category="outer">아우터</button>
+                <button class="wardrobe-filter-chip" data-category="accessory">장신구</button>
+                <button class="wardrobe-filter-chip" data-category="shoes">신발</button>
+                <button class="wardrobe-filter-chip" data-category="hair">헤어</button>
+                <button class="wardrobe-filter-chip" data-category="makeup">메이크업</button>
+              </div>
+              <div class="wardrobe-grid" id="wardrobe-browse-results"></div>
+              <div class="wardrobe-edit-box" id="wardrobe-edit-box" hidden>
+                <div class="calc-label">"<span id="wardrobe-edit-name"></span>"에 사진·3D 파일 채우기</div>
+                <label>썸네일 이미지
+                  <input type="file" accept="image/*" id="wardrobe-edit-thumbnail">
+                </label>
+                <label>3D 파일 .glb
+                  <input type="file" accept=".glb,.gltf" id="wardrobe-edit-glb">
+                </label>
+                <div class="wardrobe-edit-actions">
+                  <button class="btn btn-ghost-dark" type="button" id="wardrobe-edit-cancel-btn">취소</button>
+                  <button class="btn btn-primary" type="button" id="wardrobe-edit-save-btn">저장하기</button>
+                </div>
+                <p class="wardrobe-hint" id="wardrobe-edit-status"></p>
+              </div>
+            </div>
+
+            <div class="wardrobe-panel" id="wardrobe-panel-upload" hidden>
+              <p class="wardrobe-hint" id="wardrobe-upload-login-notice">아이템을 올리려면 먼저 Google 계정으로 로그인해주세요.</p>
+              <form class="wardrobe-upload-form" id="wardrobe-upload-form" hidden>
+                <label>이름
+                  <input type="text" id="upload-item-name" maxlength="60" placeholder="예: 스트라이프 니트">
+                </label>
+                <label>카테고리
+                  <select id="upload-item-category">
+                    <option value="top">상의</option>
+                    <option value="bottom">하의</option>
+                    <option value="outer">아우터</option>
+                    <option value="accessory">장신구</option>
+                    <option value="shoes">신발</option>
+                    <option value="hair">헤어</option>
+                    <option value="makeup">메이크업</option>
+                  </select>
+                </label>
+                <label>색상
+                  <input type="text" id="upload-item-color" maxlength="20" placeholder="예: 네이비">
+                </label>
+                <div class="upload-checkbox-group">
+                  <span class="upload-group-label">어울리는 상황</span>
+                  <label><input type="checkbox" value="casual" class="upload-occasion"> 캐주얼</label>
+                  <label><input type="checkbox" value="formal" class="upload-occasion"> 포멀</label>
+                  <label><input type="checkbox" value="sporty" class="upload-occasion"> 스포티</label>
+                  <label><input type="checkbox" value="street" class="upload-occasion"> 스트릿</label>
+                </div>
+                <div class="upload-checkbox-group">
+                  <span class="upload-group-label">추천 연령대 (1개 이상)</span>
+                  <label><input type="checkbox" value="10s" class="upload-agegroup"> 10대</label>
+                  <label><input type="checkbox" value="20s" class="upload-agegroup"> 20대</label>
+                  <label><input type="checkbox" value="30s40s" class="upload-agegroup"> 30~40대</label>
+                  <label><input type="checkbox" value="50s+" class="upload-agegroup"> 50대 이상</label>
+                </div>
+                <label>썸네일 이미지 (필수)
+                  <input type="file" accept="image/*" id="upload-item-thumbnail">
+                </label>
+                <label>3D 파일 .glb (선택 — 없으면 카탈로그에만 표시돼요)
+                  <input type="file" accept=".glb,.gltf" id="upload-item-glb">
+                </label>
+                <button class="btn btn-primary" type="button" id="upload-item-submit-btn">옷장에 올리기</button>
+                <p class="wardrobe-hint" id="upload-status"></p>
+              </form>
+            </div>
+
+            <div class="garment-fit-controls" id="garment-controls" hidden>
+              <div class="calc-label">입은 아이템</div>
+              <p class="garment-fit-note">몸 크기·부위에 맞춰 자동으로 입혀져요. 상의·하의 등 여러 부위를 동시에 입어볼 수 있어요 — 아래에서 색을 바꿀 부위를 골라주세요.</p>
+              <div class="worn-garment-chips" id="worn-garment-chips"></div>
+              <label>선택한 아이템 색상 <input type="color" id="garment-color" value="#ffffff"></label>
+              <div class="garment-fit-actions">
+                <button id="garment-color-reset-btn" class="btn btn-ghost-dark" type="button">색상 초기화</button>
+                <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">선택한 부위 벗기기</button>
+              </div>
+            </div>
+            <p class="garment-status" id="garment-status"></p>
+          </div>
+          </div>
+        </div>
+      </div>
+      <div class="wizard-actions">
+        <span></span>
+        <button class="btn btn-primary" id="wizard-to-step2-btn" type="button">다음: 원단·디테일 선택하기 →</button>
+      </div>
+    </div>
+
+    <div class="wizard-panel" id="wizard-panel-customize" hidden>
+      <div class="sec-head" style="text-align:left; margin-bottom:20px;">
+        <div class="eyebrow">STEP 2</div>
+        <h2 class="serif" style="font-size:26px;">원단·디테일을 선택해보세요</h2>
+        <p>실제 제작 비용은 원단·디테일·완성도에 따라 달라집니다. 아래에서 직접 옵션을 눌러보세요.</p>
+      </div>
+      <p class="wardrobe-hint" id="wizard-2d-mode-note" hidden>2D 모드로 진행 중이에요 — 방금 스캔한 사진이 내 2D 캐릭터예요. 아래에서 원단·색상·디테일을 골라 꾸며보세요.</p>
+      <div class="scan-2d-character-preview" id="scan-2d-character-preview" hidden>
+        <img id="scan-2d-character-img" alt="내 2D 캐릭터">
+      </div>
+      <div class="calc-wrap">
+        <div class="calc-options">
+          <div class="calc-group">
+            <div class="calc-label">색상 <span class="fabric-color-preview" id="fabric-color-preview" style="background:#F5F2EA;"></span></div>
+            <div class="calc-color-swatches">
+              <button class="color-swatch active" type="button" data-color="#F5F2EA" style="background:#F5F2EA;" aria-label="아이보리"></button>
+              <button class="color-swatch" type="button" data-color="#0F2E2C" style="background:#0F2E2C;" aria-label="딥그린"></button>
+              <button class="color-swatch" type="button" data-color="#1A1A1A" style="background:#1A1A1A;" aria-label="블랙"></button>
+              <button class="color-swatch" type="button" data-color="#D8663F" style="background:#D8663F;" aria-label="러스트"></button>
+              <button class="color-swatch" type="button" data-color="#3E7F86" style="background:#3E7F86;" aria-label="틸블루"></button>
+              <button class="color-swatch" type="button" data-color="#8B7355" style="background:#8B7355;" aria-label="카멜"></button>
+              <button class="color-swatch" type="button" data-color="#C4C4C4" style="background:#C4C4C4;" aria-label="그레이"></button>
+              <label class="color-swatch color-swatch-custom" aria-label="직접 색상 선택">
+                <input type="color" id="fabric-color-custom" value="#f5f2ea">
+              </label>
+            </div>
+            <p class="wardrobe-hint" id="fabric-color-garment-note" hidden></p>
+          </div>
+
+          <div class="calc-group">
+            <div class="calc-label">무늬 · 패턴</div>
+            <p class="wardrobe-hint">프리셋으로 바로 만들거나, 직접 그리거나, 갖고 있는 이미지를 올려서 옷에 입혀보세요.</p>
+            <div class="pattern-choices" data-group="pattern-mode">
+              <button class="calc-chip active" data-pattern-mode="none" type="button">없음</button>
+              <button class="calc-chip" data-pattern-mode="preset" type="button">프리셋으로 만들기</button>
+              <button class="calc-chip" data-pattern-mode="draw" type="button">직접 그리기</button>
+              <button class="calc-chip" data-pattern-mode="upload" type="button">이미지 업로드</button>
+            </div>
+
+            <div class="pattern-mode-panel" id="pattern-mode-preset" hidden>
+              <div class="pattern-choices" data-group="pattern-preset">
+                <button class="calc-chip active" data-preset="stripes" type="button">줄무늬</button>
+                <button class="calc-chip" data-preset="dots" type="button">도트</button>
+                <button class="calc-chip" data-preset="checker" type="button">체크</button>
+              </div>
+              <div class="pattern-color-row">
+                <label>바탕색 <input type="color" id="pattern-preset-bg" value="#F5F2EA"></label>
+                <label>무늬색 <input type="color" id="pattern-preset-fg" value="#0F2E2C"></label>
+                <label>크기 <input type="range" id="pattern-preset-scale" min="10" max="80" value="30"></label>
+              </div>
+            </div>
+
+            <div class="pattern-mode-panel" id="pattern-mode-draw" hidden>
+              <canvas id="pattern-draw-canvas" width="256" height="256"></canvas>
+              <div class="pattern-color-row">
+                <label>펜 색 <input type="color" id="pattern-draw-color" value="#0F2E2C"></label>
+                <label>굵기 <input type="range" id="pattern-draw-size" min="2" max="24" value="6"></label>
+                <button class="btn btn-ghost-dark" id="pattern-draw-clear-btn" type="button">지우기</button>
+              </div>
+              <p class="wardrobe-hint">캔버스에 마우스(또는 손가락)로 그려보세요. 옷 표면에 타일처럼 반복돼서 입혀져요.</p>
+            </div>
+
+            <div class="pattern-mode-panel" id="pattern-mode-upload" hidden>
+              <label class="scan-upload-label">
+                패턴 이미지 업로드
+                <input type="file" accept="image/*" id="pattern-upload-input" hidden>
+              </label>
+            </div>
+
+            <div class="pattern-part-row" id="pattern-part-row" hidden>
+              <label for="pattern-part-select">적용할 부위</label>
+              <select id="pattern-part-select">
+                <option value="">전체</option>
+              </select>
+            </div>
+
+            <div class="pattern-preview-row" id="pattern-preview-row" hidden>
+              <div class="pattern-preview-swatch" id="pattern-preview-swatch"></div>
+              <label>반복 크기 <input type="range" id="pattern-repeat-input" min="1" max="12" value="4"></label>
+            </div>
+            <p class="wardrobe-hint" id="pattern-garment-note" hidden></p>
+          </div>
+          <div class="calc-group">
+            <div class="calc-label">원단 등급</div>
+            <div class="calc-choices" data-group="fabric">
+              <button class="calc-chip active" data-value="0">베이직 · +0원</button>
+              <button class="calc-chip" data-value="20000">프리미엄 · +20,000원</button>
+              <button class="calc-chip" data-value="40000">스페셜(가죽/특수직물) · +40,000원</button>
+              <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
+            </div>
+            <div class="calc-custom" id="calc-custom-fabric" hidden>
+              <label for="custom-fabric-note">원하시는 원단·재질이나 디자인 방식을 자유롭게 적어주세요</label>
+              <textarea id="custom-fabric-note" placeholder="예: 리사이클 폴리에스터로 제작하고 싶어요 / 특정 원단 샘플 참고 가능 / 발수 가공 원단 원해요"></textarea>
+              <label class="calc-custom-file-label">
+                + 참고 이미지 첨부
+                <input type="file" accept="image/*" id="custom-fabric-file" hidden>
+              </label>
+              <div class="calc-custom-file-preview" id="custom-fabric-file-preview"></div>
+              <div class="calc-custom-note">직접 요청 원단은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+            </div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-label">디테일 옵션 (중복 선택 가능)</div>
+            <div class="calc-choices" data-group="detail" data-multi="true">
+              <button class="calc-chip" data-value="10000">자수/나염 · +10,000원</button>
+              <button class="calc-chip" data-value="15000">특수 재단(드레이핑 등) · +15,000원</button>
+              <button class="calc-chip" data-value="0" data-custom="true">기타(직접 요청) · 별도 협의</button>
+            </div>
+            <div class="calc-custom" id="calc-custom-detail" hidden>
+              <label for="custom-detail-note">원하시는 디테일이나 나만의 디자인을 자유롭게 적어주세요</label>
+              <textarea id="custom-detail-note" placeholder="예: 소매 끝단에 레이스 추가 / 뒷면 지퍼 대신 단추로 변경 / 안감 추가 / 직접 그린 디자인 참고"></textarea>
+              <label class="calc-custom-file-label">
+                + 디자인 이미지 첨부
+                <input type="file" accept="image/*" id="custom-detail-file" hidden>
+              </label>
+              <div class="calc-custom-file-preview" id="custom-detail-file-preview"></div>
+              <div class="calc-custom-note">직접 요청 디테일·디자인은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+            </div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-label">완성 형태</div>
+            <div class="calc-choices" data-group="finish">
+              <button class="calc-chip active" data-value="0">패턴 PDF만 · +0원</button>
+              <button class="calc-chip" data-value="30000">완제품 도어투도어 배송 · +30,000원</button>
+            </div>
+          </div>
+        </div>
+        <div class="calc-total">
+          <div class="calc-total-label">예상 제작 견적</div>
+          <div class="calc-total-amount serif" id="calc-total">30,000원</div>
+          <div class="calc-total-note">기본 제작비 30,000원 + 선택 옵션</div>
+        </div>
+        <button class="btn btn-primary" id="order-open-btn" type="button" style="width:100%; margin-top:8px;">주문하기 →</button>
+      </div>
+      <div class="wizard-actions">
+        <button class="btn btn-ghost-dark" id="wizard-to-step1-btn" type="button">← 이전: 스캔으로 돌아가기</button>
+        <button class="btn btn-primary" id="wizard-finish-btn" type="button">완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 주문 전 배송지 입력 + 동의 모달 -->
+<div class="modal-overlay" id="order-modal" hidden>
+  <div class="modal-box consent-box">
+    <h3 class="serif" style="font-size:20px; margin-bottom:6px;">주문 확인</h3>
+    <p class="wardrobe-hint" id="order-summary-text"></p>
+
+    <div class="consent-section" id="order-shipping-section" hidden>
+      <div class="consent-title">배송지 입력</div>
+      <p class="consent-desc">완제품을 도어투도어로 보내드리기 위해 필요해요. 결제 전에 입력해주세요.</p>
+      <div class="order-shipping-fields">
+        <label>받는 분 이름 <input type="text" id="order-shipping-name" placeholder="예: 홍길동"></label>
+        <label>연락처 <input type="tel" id="order-shipping-phone" placeholder="예: 010-1234-5678"></label>
+        <label>우편번호 <input type="text" id="order-shipping-zipcode" placeholder="예: 06134"></label>
+        <label>주소 <input type="text" id="order-shipping-address1" placeholder="예: 서울시 강남구 테헤란로 123"></label>
+        <label>상세주소 (선택) <input type="text" id="order-shipping-address2" placeholder="예: 101동 1001호"></label>
+        <label>배송 메모 (선택) <input type="text" id="order-shipping-note" placeholder="예: 부재 시 경비실에 맡겨주세요"></label>
+      </div>
+      <div class="consent-desc" style="margin-top:10px;">
+        입력하신 이름·연락처·주소는 제작·배송 목적으로만 쓰이고, 배송 완료 후 일정 기간 뒤 파기돼요.
+        정식 개인정보처리방침은 서비스 정식 출시 전 별도로 안내드릴게요.
+      </div>
+      <label class="consent-check">
+        <input type="checkbox" id="order-shipping-consent-checkbox">
+        <span>위 배송지 정보 수집·이용에 동의합니다. (필수)</span>
+      </label>
+    </div>
+
+    <p class="modal-note" id="order-modal-note"></p>
+    <div class="wizard-actions" style="margin-top:14px;">
+      <button class="btn btn-ghost-dark" id="order-cancel-btn" type="button">취소</button>
+      <button class="btn btn-primary" id="order-pay-btn" type="button" disabled>결제하기</button>
+    </div>
+  </div>
+</div>
