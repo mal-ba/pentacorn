@@ -244,10 +244,6 @@
   let currentGarment = null;
   const garmentControls = document.getElementById('garment-controls');
   const garmentStatus = document.getElementById('garment-status');
-  const garmentX = document.getElementById('garment-x');
-  const garmentY = document.getElementById('garment-y');
-  const garmentZ = document.getElementById('garment-z');
-  const garmentScaleInput = document.getElementById('garment-scale');
   const garmentColorInput = document.getElementById('garment-color');
   const garmentColorResetBtn = document.getElementById('garment-color-reset-btn');
   const garmentRemoveBtn = document.getElementById('garment-remove-btn');
@@ -341,16 +337,6 @@
   window.clearGarmentPatternTexture = clearGarmentPatternTexture;
   window.getGarmentParts = getGarmentParts;
   window.hasGarmentWorn = function(){ return !!currentGarment; };
-  function updateGarmentTransform(){
-    if(!currentGarment) return;
-    currentGarment.position.set(
-      parseFloat(garmentX.value),
-      parseFloat(garmentY.value),
-      parseFloat(garmentZ.value)
-    );
-    const s = parseFloat(garmentScaleInput.value);
-    currentGarment.scale.set(s, s, s);
-  }
 
   function wearGarmentFromUrl(url, label, category){
     if(!scanMannequin){
@@ -404,14 +390,13 @@
           targetY = 1.15 - (scaledMinY + scaledMaxY) / 2; // 장신구 등은 가슴~목 높이에 중심을 맞춰요.
         }
 
-        garmentX.value = 0;
-        garmentY.value = targetY.toFixed(2);
-        garmentZ.value = 0;
-        garmentScaleInput.value = autoScale.toFixed(2);
         garmentColorInput.value = '#ffffff';
-        updateGarmentTransform();
+        // 슬라이더 없이, 방금 계산한 위치·크기를 옷에 바로 적용해요 — 몸(카테고리별 기준선)에
+        // 맞춰 자동으로 입혀지고, 사람이 따로 맞출 필요가 없어요.
+        currentGarment.position.set(0, targetY, 0);
+        currentGarment.scale.set(autoScale, autoScale, autoScale);
         garmentControls.hidden = false;
-        garmentStatus.textContent = `${label || '아이템'}을(를) 입혔어요! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
+        garmentStatus.textContent = `${label || '아이템'}을(를) 몸에 맞춰 입혔어요!`;
         garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         // 새 옷을 입었으니, 2단계 무늬 패널의 "적용할 부위" 목록도 새로 고쳐줘요.
         if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
@@ -422,10 +407,6 @@
       }
     );
   }
-
-  [garmentX, garmentY, garmentZ, garmentScaleInput].forEach(el => {
-    el.addEventListener('input', updateGarmentTransform);
-  });
 
   garmentColorInput.addEventListener('input', () => applyGarmentColor(garmentColorInput.value));
   garmentColorResetBtn.addEventListener('click', () => {
