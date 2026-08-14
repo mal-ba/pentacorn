@@ -119,31 +119,44 @@
   // 세로 기준 거리와 가로(T포즈 폭) 기준 거리를 각각 계산해서 더 넉넉한 쪽을 써요.
   // 모델마다 발끝/원점 위치가 제각각이라 자동 계산이 어려운 경우가 있어서,
   // "마네킹 상하 위치" 슬라이더로 직접 눈으로 보면서 맞출 수 있게 해뒀어요.
+  let mannequinHeadTopY = 1.75; // 매 프레임 다시 재지 않도록, 카메라를 다시 잡을 때(frameCameraToFullBody)만 갱신해요.
+
   function frameCameraToFullBody(heightMeters){
     if(!scanCamera || !scanControls) return;
     const vFovRad = THREE.MathUtils.degToRad(scanCamera.fov);
     const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * scanCamera.aspect);
     const margin = 1.9; // 위아래·좌우 여유 공간
 
-    const widthMeters = heightMeters * scanMannequinWidthRatio;
-    const distanceForHeight = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
-    const distanceForWidth = (widthMeters * margin) / (2 * Math.tan(hFovRad / 2));
+    // heightMeters(목표 키)를 그대로 믿고 거리를 계산하면, 혹시 스케일 계산이 어떤
+    // 이유로든 어긋나서 마네킹이 실제로는 훨씬 크거나 작게 렌더링될 때 카메라가 엉뚱한
+    // 거리에 놓여요(예: 실제로 훨씬 큰데 1.65m라고 가정하면 카메라가 너무 가까워져서
+    // 다리 부분만 화면 가득 보이게 돼요). 그래서 실제로 지금 화면에 렌더링된 마네킹의
+    // 크기를 직접 측정해서 써요 — 이러면 스케일이 어떻게 계산됐든 항상 "실제 눈에 보이는
+    // 크기"에 맞춰 전신이 프레임 안에 들어와요.
+    let actualHeight = heightMeters;
+    let actualWidth = heightMeters * scanMannequinWidthRatio;
+    let centerY = mannequinVerticalOffset;
+
+    if(scanMannequin){
+      const box = new THREE.Box3().setFromObject(scanMannequin);
+      const measuredHeight = box.max.y - box.min.y;
+      if(isFinite(measuredHeight) && measuredHeight > 0){
+        actualHeight = measuredHeight;
+        centerY = (box.min.y + box.max.y) / 2;
+        mannequinHeadTopY = box.max.y + measuredHeight * 0.06; // 이름표는 머리 꼭대기보다 살짝 위에 떠요.
+      }
+      const measuredWidth = Math.max(box.max.x - box.min.x, box.max.z - box.min.z);
+      if(isFinite(measuredWidth) && measuredWidth > 0){
+        actualWidth = measuredWidth;
+      }
+    }
+
+    const distanceForHeight = (actualHeight * margin) / (2 * Math.tan(vFovRad / 2));
+    const distanceForWidth = (actualWidth * margin) / (2 * Math.tan(hFovRad / 2));
     let distance = Math.max(distanceForHeight, distanceForWidth);
     // 계산값이 이상하면(모델 크기 이상 등으로) 카메라가 마네킹 안에 파묻히거나 무한히
     // 멀어지는 걸 막기 위해, 말이 안 되는 값이면 무난한 기본 거리로 대체해요.
     if(!isFinite(distance) || distance <= 0) distance = 3.5;
-
-    // 모델 원점이 발끝인 경우도, 허리인 경우도 있어서 mannequinVerticalOffset만으로는
-    // 카메라가 몸 중앙을 보게 만들 수 없어요. 실제 렌더링된(스케일·위치 적용된) 바운딩
-    // 박스를 구해서 그 세로 중앙(centerY)을 기준으로 카메라를 맞춰요 — 이러면 모델
-    // 원점이 어디든 상관없이 처음부터 전신이 화면 중앙에 들어와요.
-    let centerY = mannequinVerticalOffset;
-    if(scanMannequin){
-      const box = new THREE.Box3().setFromObject(scanMannequin);
-      if(isFinite(box.min.y) && isFinite(box.max.y)){
-        centerY = (box.min.y + box.max.y) / 2;
-      }
-    }
 
     scanCamera.position.set(0, centerY, distance);
     scanControls.target.set(0, centerY, 0);
@@ -176,7 +189,9 @@
   // 이름표가 항상 머리 위에 붙어 따라오게 해요. "마네킹 상하 위치" 조정값도 같이 반영해요.
   function updateNameplatePosition(container){
     if(!scanNameplate || scanNameplate.hidden || !scanCamera || !scanMannequin) return;
-    const headWorldPos = new THREE.Vector3(0, lastAppliedHeightMeters * 0.45 + 0.1 + mannequinVerticalOffset, 0);
+    // 매 프레임 바운딩 박스를 새로 재는 대신, frameCameraToFullBody가 계산해둔 머리 꼭대기
+    // 값(mannequinHeadTopY)을 그대로 써요 — 실제 렌더링 크기 기준이라 정확하면서도 가벼워요.
+    const headWorldPos = new THREE.Vector3(0, mannequinHeadTopY, 0);
     const ndc = headWorldPos.project(scanCamera);
     if(ndc.z > 1){ scanNameplate.style.display = 'none'; return; }
     scanNameplate.style.display = 'block';
