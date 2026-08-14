@@ -17,6 +17,32 @@
   let scanMannequinDefaultMinY = 0; // 원본(스케일 1) 상태에서 발끝의 y좌표 (옷을 입혀도 이 값은 안 바뀌어요)
   let scanMannequinWidthRatio = 1; // 모델 너비(팔 벌린 폭) / 키 비율
 
+  // mannequin.glb는 관절(Armature/스킨)이 있는 리깅된 모델이에요. THREE.Box3().setFromObject()는
+  // 스킨 변형(관절이 정점을 움직이는 것)을 무시하고 메쉬 노드의 단순 변환만 계산해서 크기를
+  // 재는데, 이 모델처럼 관절 계층 중간(Armature)에 큰 스케일(0.01배)이 끼어 있으면 실제
+  // 크기와 완전히 다른(최대 100배까지 차이 나는) 값이 나와요 — 마네킹이 감당 안 될 만큼
+  // 커지거나 카메라가 이상한 곳에 맺히는 버그가 이것 때문이었어요.
+  // 대신 실제 메쉬 지오메트리 자체의 "로컬" 크기(관절·스킨과 무관하게 항상 정확해요, 바인드
+  // 포즈 기준)를 직접 재서 써요.
+  function findMannequinMesh(root){
+    let found = null;
+    root.traverse(node => { if(!found && node.isMesh && node.geometry) found = node; });
+    return found;
+  }
+  function getMannequinLocalBounds(root){
+    const mesh = findMannequinMesh(root);
+    if(!mesh) return null;
+    if(!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    const box = mesh.geometry.boundingBox;
+    if(!box || !isFinite(box.min.y) || !isFinite(box.max.y)) return null;
+    return {
+      height: box.max.y - box.min.y,
+      width: Math.max(box.max.x - box.min.x, box.max.z - box.min.z),
+      minY: box.min.y,
+      maxY: box.max.y,
+    };
+  }
+
   function initMannequinViewer(){
     const container = document.getElementById('scan-avatar-3d');
     if(!container){
@@ -43,8 +69,8 @@
     scanControls = new OrbitControls(scanCamera, scanRenderer.domElement);
     scanControls.enableDamping = true;
     scanControls.enablePan = false;
-    scanControls.minDistance = 1.2;
-    scanControls.maxDistance = 14;
+    scanControls.minDistance = 0.3;
+    scanControls.maxDistance = 14; // 마네킹 크기를 실제로 측정한 뒤(frameCameraToFullBody) 여기에 맞춰 자동으로 늘어나요.
     scanControls.target.set(0, 1, 0);
 
     const loader = new GLTFLoader();
@@ -55,22 +81,35 @@
           scanMannequin = gltf.scene;
           scanScene.add(scanMannequin);
 
-          const box0 = new THREE.Box3().setFromObject(scanMannequin);
-          let rawHeight = box0.max.y - box0.min.y;
+          // 스킨(관절) 있는 모델은 Box3().setFromObject()로 재면 안 돼서(위 설명 참고),
+          // 메쉬 지오메트리 자체의 로컬 크기를 직접 재요. 혹시 메쉬를 못 찾거나(구조가
+          // 다른 GLB로 바뀌는 등) 이상한 경우엔 예전 방식(전체 계층 재기)으로 대체해요.
+          const localBounds = getMannequinLocalBounds(scanMannequin);
+          let rawHeight, rawWidth, rawMinY;
+          if(localBounds){
+            rawHeight = localBounds.height;
+            rawWidth = localBounds.width;
+            rawMinY = localBounds.minY;
+          } else {
+            console.warn('마네킹에서 메쉬를 못 찾았어요 — 예전 방식(전체 계층 측정)으로 대체해요. 스킨/관절이 있는 모델이면 크기가 부정확할 수 있어요.');
+            const box0 = new THREE.Box3().setFromObject(scanMannequin);
+            rawHeight = box0.max.y - box0.min.y;
+            rawWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
+            rawMinY = box0.min.y;
+          }
 
           // 모델 안에 눈에 안 보이는 이상한 요소(빈 노드, 원점에서 멀리 떨어진 헬퍼 등)가
-          // 섞여 있으면 바운딩 박스가 비정상적으로 커지거나(수백~수천 단위) 0에 가깝게 나올 수
+          // 섞여 있으면 크기가 비정상적으로 크게 나오거나(수백~수천 단위) 0에 가깝게 나올 수
           // 있어요. 그러면 스케일 계산이 완전히 틀어져서 마네킹이 실제로는 화면 밖으로 벗어날
           // 만큼 커지거나 작아지고, 카메라도 엉뚱한 곳을 보게 돼요. 말이 안 되는 값이면
           // 콘솔에 경고를 남기고 안전한 기본값(사람 키다운 범위)으로 대체해요.
           if(!isFinite(rawHeight) || rawHeight <= 0 || rawHeight > 100){
-            console.warn(`mannequin.glb 모델 크기가 이상해요 (원본 높이: ${rawHeight}). 기본값(1.0)으로 대체해요. GLB 안에 스케일이 이상한 요소가 섞여 있는지 확인해보세요.`);
-            rawHeight = 1.0;
+            console.warn(`mannequin.glb 모델 크기가 이상해요 (원본 높이: ${rawHeight}). 기본값(1.6)으로 대체해요. GLB 안에 스케일이 이상한 요소가 섞여 있는지 확인해보세요.`);
+            rawHeight = 1.6;
           }
           scanMannequinDefaultHeight = rawHeight;
-          scanMannequinDefaultMinY = box0.min.y;
-          const defaultWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
-          scanMannequinWidthRatio = (defaultWidth > 0 && isFinite(defaultWidth)) ? defaultWidth / scanMannequinDefaultHeight : 0.4;
+          scanMannequinDefaultMinY = rawMinY;
+          scanMannequinWidthRatio = (rawWidth > 0 && isFinite(rawWidth)) ? rawWidth / scanMannequinDefaultHeight : 0.4;
 
           applyHeightToMannequin(165);
           if(scanAvatarLoading) scanAvatarLoading.hidden = true;
@@ -138,16 +177,21 @@
     let centerY = mannequinVerticalOffset;
 
     if(scanMannequin){
-      const box = new THREE.Box3().setFromObject(scanMannequin);
-      const measuredHeight = box.max.y - box.min.y;
-      if(isFinite(measuredHeight) && measuredHeight > 0){
-        actualHeight = measuredHeight;
-        centerY = (box.min.y + box.max.y) / 2;
-        mannequinHeadTopY = box.max.y + measuredHeight * 0.06; // 이름표는 머리 꼭대기보다 살짝 위에 떠요.
-      }
-      const measuredWidth = Math.max(box.max.x - box.min.x, box.max.z - box.min.z);
-      if(isFinite(measuredWidth) && measuredWidth > 0){
-        actualWidth = measuredWidth;
+      // 스킨(관절) 모델은 Box3().setFromObject()로 전체 계층을 재면 부정확해서(위 설명 참고),
+      // 로드할 때 재둔 "메쉬 로컬 크기"에 지금 스케일/위치만 곱해서 실제 크기를 구해요.
+      const localBounds = getMannequinLocalBounds(scanMannequin);
+      if(localBounds){
+        const sx = scanMannequin.scale.x, sy = scanMannequin.scale.y;
+        const measuredHeight = localBounds.height * sy;
+        if(isFinite(measuredHeight) && measuredHeight > 0){
+          actualHeight = measuredHeight;
+          centerY = mannequinVerticalOffset + ((localBounds.minY + localBounds.maxY) / 2) * sy;
+          mannequinHeadTopY = mannequinVerticalOffset + (localBounds.maxY + (localBounds.maxY - localBounds.minY) * 0.06) * sy; // 이름표는 머리 꼭대기보다 살짝 위에 떠요.
+        }
+        const measuredWidth = localBounds.width * sx;
+        if(isFinite(measuredWidth) && measuredWidth > 0){
+          actualWidth = measuredWidth;
+        }
       }
     }
 
@@ -158,9 +202,19 @@
     // 멀어지는 걸 막기 위해, 말이 안 되는 값이면 무난한 기본 거리로 대체해요.
     if(!isFinite(distance) || distance <= 0) distance = 3.5;
 
+    // OrbitControls는 min/maxDistance 범위를 벗어난 위치를 다음 update()에서 강제로
+    // 다시 그 범위 안으로 당겨버려요. 그래서 마네킹이 예상보다 훨씬 크게(또는 작게)
+    // 렌더링돼서 계산된 distance가 원래 걸어둔 고정 범위(예: 최대 14)를 벗어나면,
+    // 힘들게 계산한 값이 적용되자마자 그 상한선에 다시 눌려서 "줌아웃 해도 그 이상은
+    // 안 빠지는" 현상이 생겨요. 그래서 범위 자체를 지금 계산된 거리에 맞춰 넉넉하게
+    // 늘려줘요(사용자가 손으로 더 당겨볼 여유도 남겨둬요).
+    scanControls.minDistance = Math.min(0.3, distance * 0.1);
+    scanControls.maxDistance = Math.max(14, distance * 2.5);
+
     scanCamera.position.set(0, centerY, distance);
     scanControls.target.set(0, centerY, 0);
     scanCamera.updateProjectionMatrix();
+    scanControls.update(); // 지금 바로 반영해서, 다음 프레임에 예전 클램프 값으로 되돌아가지 않게 해요.
   }
 
   function applyHeightToMannequin(heightCm){
