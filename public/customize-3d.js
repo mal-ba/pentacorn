@@ -51,22 +51,40 @@
     loader.load(
       '/models/mannequin.glb?v=4',
       gltf => {
-        scanMannequin = gltf.scene;
-        scanScene.add(scanMannequin);
+        try {
+          scanMannequin = gltf.scene;
+          scanScene.add(scanMannequin);
 
-        const box0 = new THREE.Box3().setFromObject(scanMannequin);
-        scanMannequinDefaultHeight = box0.max.y - box0.min.y;
-        scanMannequinDefaultMinY = box0.min.y;
-        const defaultWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
-        scanMannequinWidthRatio = defaultWidth / scanMannequinDefaultHeight;
+          const box0 = new THREE.Box3().setFromObject(scanMannequin);
+          let rawHeight = box0.max.y - box0.min.y;
 
-        applyHeightToMannequin(165);
-        if(scanAvatarLoading) scanAvatarLoading.hidden = true;
-        if(scanAvatarHint) scanAvatarHint.hidden = false;
+          // 모델 안에 눈에 안 보이는 이상한 요소(빈 노드, 원점에서 멀리 떨어진 헬퍼 등)가
+          // 섞여 있으면 바운딩 박스가 비정상적으로 커지거나(수백~수천 단위) 0에 가깝게 나올 수
+          // 있어요. 그러면 스케일 계산이 완전히 틀어져서 마네킹이 실제로는 화면 밖으로 벗어날
+          // 만큼 커지거나 작아지고, 카메라도 엉뚱한 곳을 보게 돼요. 말이 안 되는 값이면
+          // 콘솔에 경고를 남기고 안전한 기본값(사람 키다운 범위)으로 대체해요.
+          if(!isFinite(rawHeight) || rawHeight <= 0 || rawHeight > 100){
+            console.warn(`mannequin.glb 모델 크기가 이상해요 (원본 높이: ${rawHeight}). 기본값(1.0)으로 대체해요. GLB 안에 스케일이 이상한 요소가 섞여 있는지 확인해보세요.`);
+            rawHeight = 1.0;
+          }
+          scanMannequinDefaultHeight = rawHeight;
+          scanMannequinDefaultMinY = box0.min.y;
+          const defaultWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
+          scanMannequinWidthRatio = (defaultWidth > 0 && isFinite(defaultWidth)) ? defaultWidth / scanMannequinDefaultHeight : 0.4;
 
-        if(pendingTorsoPhotos){
-          window.applyBodyTorsoPatchesFromPhotos(pendingTorsoPhotos);
-          pendingTorsoPhotos = null;
+          applyHeightToMannequin(165);
+          if(scanAvatarLoading) scanAvatarLoading.hidden = true;
+          if(scanAvatarHint) scanAvatarHint.hidden = false;
+
+          if(pendingTorsoPhotos){
+            window.applyBodyTorsoPatchesFromPhotos(pendingTorsoPhotos);
+            pendingTorsoPhotos = null;
+          }
+        } catch(err){
+          // 여기서 에러가 나면 예전엔 "불러오는 중" 문구만 뜬 채로 조용히 멈춰서 원인을
+          // 알 수 없었어요. 이제는 에러를 콘솔에 남기고, 화면에도 실패했다고 알려줘요.
+          console.error('마네킹 초기 설정 중 오류:', err);
+          if(scanAvatarLoading) scanAvatarLoading.textContent = '3D 마네킹 설정 중 오류가 발생했어요. (콘솔 확인)';
         }
       },
       undefined,
@@ -110,7 +128,10 @@
     const widthMeters = heightMeters * scanMannequinWidthRatio;
     const distanceForHeight = (heightMeters * margin) / (2 * Math.tan(vFovRad / 2));
     const distanceForWidth = (widthMeters * margin) / (2 * Math.tan(hFovRad / 2));
-    const distance = Math.max(distanceForHeight, distanceForWidth);
+    let distance = Math.max(distanceForHeight, distanceForWidth);
+    // 계산값이 이상하면(모델 크기 이상 등으로) 카메라가 마네킹 안에 파묻히거나 무한히
+    // 멀어지는 걸 막기 위해, 말이 안 되는 값이면 무난한 기본 거리로 대체해요.
+    if(!isFinite(distance) || distance <= 0) distance = 3.5;
 
     // 모델 원점이 발끝인 경우도, 허리인 경우도 있어서 mannequinVerticalOffset만으로는
     // 카메라가 몸 중앙을 보게 만들 수 없어요. 실제 렌더링된(스케일·위치 적용된) 바운딩
