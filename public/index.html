@@ -390,6 +390,10 @@
     box-shadow:0 4px 14px rgba(15,46,44,0.35); text-decoration:none; z-index:80;
     animation:admin-fab-bob 2.6s ease-in-out infinite;
   }
+  /* #admin-fab의 display:flex가 브라우저 기본 [hidden]{display:none} 규칙보다 우선순위가
+     높아서(ID 선택자 > 속성 선택자), hidden 속성을 켜도 안 먹히고 계속 보이던 버그가
+     있었어요. 이 규칙을 명시적으로 추가해서 hidden일 땐 확실히 숨겨지게 해요. */
+  #admin-fab[hidden]{ display:none; }
   #admin-fab:hover{ background:var(--star-dark); }
   #admin-fab-emoji{ font-size:24px; line-height:1; }
   @keyframes admin-fab-bob{
