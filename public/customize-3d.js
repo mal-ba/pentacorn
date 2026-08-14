@@ -43,6 +43,31 @@
     };
   }
 
+  // 옷/장신구 아이템에도 같은 문제가 생길 수 있어요(Meshy 등에서 관절 있는 채로 내보내진
+  // 경우). 스킨(SkinnedMesh)이 있으면 메쉬 로컬 지오메트리를 직접 재고, 없으면(대부분의
+  // 옷은 이 경우예요) Box3().setFromObject()로 재도 정확해서 그대로 써요.
+  function measureObjectBounds(root){
+    let skinnedMesh = null;
+    root.traverse(node => { if(node.isSkinnedMesh && !skinnedMesh) skinnedMesh = node; });
+    if(skinnedMesh && skinnedMesh.geometry){
+      if(!skinnedMesh.geometry.boundingBox) skinnedMesh.geometry.computeBoundingBox();
+      const box = skinnedMesh.geometry.boundingBox;
+      if(box && isFinite(box.min.y) && isFinite(box.max.y)){
+        return {
+          minY: box.min.y, maxY: box.max.y,
+          height: box.max.y - box.min.y,
+          width: Math.max(box.max.x - box.min.x, box.max.z - box.min.z),
+        };
+      }
+    }
+    const wbox = new THREE.Box3().setFromObject(root);
+    return {
+      minY: wbox.min.y, maxY: wbox.max.y,
+      height: wbox.max.y - wbox.min.y,
+      width: Math.max(wbox.max.x - wbox.min.x, wbox.max.z - wbox.min.z),
+    };
+  }
+
   function initMannequinViewer(){
     const container = document.getElementById('scan-avatar-3d');
     if(!container){
@@ -330,17 +355,55 @@
     initMannequinViewer();
   };
 
-  /* ---------- 옷/장신구 입혀보기 (파일 URL 기반, 옷장 아이템 공용) ---------- */
-  let currentGarment = null;
+  /* ---------- 옷/장신구 입혀보기 (파일 URL 기반, 옷장 아이템 공용) ----------
+     상의·하의·아우터·신발·헤어·장신구를 카테고리별로 각각 따로 들고 있어서,
+     여러 부위를 동시에 입어볼 수 있어요(예: 상의+하의를 같이 입고 전체 코디 확인). */
+  const GARMENT_CATEGORIES = ['top', 'bottom', 'outer', 'shoes', 'hair', 'accessory'];
+  const wornGarments = {}; // { top: THREE.Object3D, bottom: ..., ... } — 입은 부위만 키가 존재해요.
+  let activeGarmentCategory = null; // 지금 색상/무늬 편집 대상으로 선택된 부위
   const garmentControls = document.getElementById('garment-controls');
   const garmentStatus = document.getElementById('garment-status');
   const garmentColorInput = document.getElementById('garment-color');
   const garmentColorResetBtn = document.getElementById('garment-color-reset-btn');
   const garmentRemoveBtn = document.getElementById('garment-remove-btn');
+  const wornGarmentChipsEl = document.getElementById('worn-garment-chips');
+
+  const CATEGORY_LABEL_3D = { top: '상의', bottom: '하의', outer: '아우터', accessory: '장신구', shoes: '신발', hair: '헤어' };
+
+  function activeGarment(){
+    return activeGarmentCategory ? wornGarments[activeGarmentCategory] : null;
+  }
+
+  // 입고 있는 부위들을 칩으로 보여줘요. 칩을 누르면 그 부위가 "지금 색칠/무늬 편집 대상"이 돼요.
+  function renderWornGarmentChips(){
+    if(!wornGarmentChipsEl) return;
+    const worn = GARMENT_CATEGORIES.filter(cat => wornGarments[cat]);
+    if(worn.length === 0){
+      wornGarmentChipsEl.innerHTML = '';
+      garmentControls.hidden = true;
+      return;
+    }
+    garmentControls.hidden = false;
+    wornGarmentChipsEl.innerHTML = worn.map(cat => `
+      <button type="button" class="worn-garment-chip${cat === activeGarmentCategory ? ' active' : ''}" data-category="${cat}">
+        ${CATEGORY_LABEL_3D[cat] || cat}
+      </button>
+    `).join('');
+    wornGarmentChipsEl.querySelectorAll('.worn-garment-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        activeGarmentCategory = chip.dataset.category;
+        renderWornGarmentChips();
+        garmentStatus.textContent = `${CATEGORY_LABEL_3D[activeGarmentCategory] || activeGarmentCategory} 색상/무늬를 편집할 수 있어요.`;
+        garmentColorInput.value = '#ffffff';
+        if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
+      });
+    });
+  }
 
   function applyGarmentColor(hexColor){
-    if(!currentGarment) return;
-    currentGarment.traverse(node => {
+    const g = activeGarment();
+    if(!g) return;
+    g.traverse(node => {
       if(node.isMesh && node.material){
         const materials = Array.isArray(node.material) ? node.material : [node.material];
         materials.forEach(mat => {
@@ -353,18 +416,19 @@
     });
   }
 
-  // 무늬/패턴(이미지)을 지금 입은 옷 표면에 반복 텍스처로 입혀요. 색상(applyGarmentColor)과는
+  // 무늬/패턴(이미지)을 지금 선택된(활성) 옷 표면에 반복 텍스처로 입혀요. 색상(applyGarmentColor)과는
   // 별개로 같이 쓸 수 있어요 — 텍스처가 색과 곱해져서, 색을 바꾸면 무늬 톤도 같이 바뀌어요.
   // partId를 주면 그 부위(재질)에만 입히고, 안 주면(null) 옷 전체에 입혀요.
   function applyGarmentPatternTexture(imageDataUrl, repeatCount = 4, partId = null){
-    if(!currentGarment) return;
+    const g = activeGarment();
+    if(!g) return;
     const loader = new THREE.TextureLoader();
     loader.load(imageDataUrl, texture => {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(repeatCount, repeatCount);
-      currentGarment.traverse(node => {
+      g.traverse(node => {
         if(node.isMesh && node.material){
           const materials = Array.isArray(node.material) ? node.material : [node.material];
           materials.forEach(mat => {
@@ -381,8 +445,9 @@
 
   // 무늬를 지워요. partId를 주면 그 부위만, 안 주면 옷 전체 무늬를 지워요.
   function clearGarmentPatternTexture(partId = null){
-    if(!currentGarment) return;
-    currentGarment.traverse(node => {
+    const g = activeGarment();
+    if(!g) return;
+    g.traverse(node => {
       if(node.isMesh && node.material){
         const materials = Array.isArray(node.material) ? node.material : [node.material];
         materials.forEach(mat => {
@@ -396,15 +461,16 @@
     });
   }
 
-  // 지금 입은 옷을 이루는 부위(재질) 목록을 뽑아요. 옷마다 실제로 몇 개 부위로 나뉘어
+  // 지금 선택된(활성) 옷을 이루는 부위(재질) 목록을 뽑아요. 옷마다 실제로 몇 개 부위로 나뉘어
   // 있는지가 달라서(소매/몸판이 따로 분리된 옷도 있고, 통짜 재질 하나인 옷도 있어요),
   // 있는 그대로의 개수·이름을 돌려줘요 — 없는 부위를 억지로 만들어내진 않아요.
   function getGarmentParts(){
-    if(!currentGarment) return [];
+    const g = activeGarment();
+    if(!g) return [];
     const parts = [];
     const seen = new Set();
     let idx = 0;
-    currentGarment.traverse(node => {
+    g.traverse(node => {
       if(node.isMesh && node.material){
         const materials = Array.isArray(node.material) ? node.material : [node.material];
         materials.forEach(mat => {
@@ -426,30 +492,34 @@
   window.applyGarmentPatternTexture = applyGarmentPatternTexture;
   window.clearGarmentPatternTexture = clearGarmentPatternTexture;
   window.getGarmentParts = getGarmentParts;
-  window.hasGarmentWorn = function(){ return !!currentGarment; };
+  window.hasGarmentWorn = function(){ return !!activeGarment(); };
 
   function wearGarmentFromUrl(url, label, category){
     if(!scanMannequin){
       garmentStatus.textContent = '먼저 마네킹이 다 불러와질 때까지 잠시 기다려주세요.';
       return;
     }
+    const cat = category || 'accessory';
     garmentStatus.textContent = `${label || '아이템'}을(를) 불러오는 중...`;
     const loader = new GLTFLoader();
     loader.load(
       url,
       gltf => {
-        if(currentGarment) scanMannequin.remove(currentGarment);
-        currentGarment = gltf.scene;
-        currentGarment.scale.set(1, 1, 1);
-        currentGarment.position.set(0, 0, 0);
+        // 같은 부위(카테고리)에 이미 입은 게 있으면 그것만 벗기고 새로 입혀요.
+        // 다른 부위(예: 하의)에 입은 건 그대로 남아있어요 — 상의+하의를 같이 입어볼 수 있어요.
+        if(wornGarments[cat]) scanMannequin.remove(wornGarments[cat]);
+
+        const garment = gltf.scene;
+        garment.scale.set(1, 1, 1);
+        garment.position.set(0, 0, 0);
         // 마네킹의 자식으로 붙여서, 키 조정으로 마네킹 크기가 바뀌면 옷도 같이 커지고 작아져요.
-        scanMannequin.add(currentGarment);
+        scanMannequin.add(garment);
 
         // 옷마다 Meshy에서 만들어진 원래 크기 단위가 제각각이라(예: 몸통보다 훨씬 크게 나올 수 있어요),
-        // 마네킹 키를 기준으로 대략 맞는 크기부터 자동으로 시작하게 해요. 정확하진 않아서
-        // 슬라이더로 미세 조정하는 건 여전히 필요할 수 있어요.
-        const garmentBox = new THREE.Box3().setFromObject(currentGarment);
-        const garmentHeight = garmentBox.max.y - garmentBox.min.y;
+        // 마네킹 키를 기준으로 대략 맞는 크기부터 자동으로 시작하게 해요. 스킨(관절) 있는 옷이면
+        // measureObjectBounds가 그 문제도 알아서 피해가요(마네킹 크기 버그와 같은 원리).
+        const bounds = measureObjectBounds(garment);
+        const garmentHeight = bounds.height;
         let autoScale = 1;
         if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
           const targetFraction = 0.5; // 몸 키의 절반 정도 크기로 시작하는 대략적인 기준값
@@ -465,28 +535,29 @@
         //  - 골반/허리선 Y≈0.78 (하의 허리단을 이 높이에 맞춰요)
         //  - 발바닥 Y≈0 (신발 밑창을 이 높이에 맞춰요)
         //  - 머리 시작 Y≈1.30 (헤어 아이템 아래쪽을 이 높이부터 올려요)
-        const scaledMinY = garmentBox.min.y * autoScale;
-        const scaledMaxY = garmentBox.max.y * autoScale;
+        const scaledMinY = bounds.minY * autoScale;
+        const scaledMaxY = bounds.maxY * autoScale;
         let targetY;
-        if(category === 'top' || category === 'outer'){
+        if(cat === 'top' || cat === 'outer'){
           targetY = 1.28 - scaledMaxY; // 옷의 "위쪽 끝"(어깨선)을 마네킹 어깨선에 맞춰요.
-        } else if(category === 'bottom'){
+        } else if(cat === 'bottom'){
           targetY = 0.78 - scaledMaxY; // 옷의 "위쪽 끝"(허리단)을 마네킹 골반선에 맞춰요.
-        } else if(category === 'shoes'){
+        } else if(cat === 'shoes'){
           targetY = 0 - scaledMinY; // 신발의 "아래쪽 끝"(밑창)을 바닥(Y=0)에 맞춰요.
-        } else if(category === 'hair'){
+        } else if(cat === 'hair'){
           targetY = 1.30 - scaledMinY; // 헤어의 "아래쪽 끝"을 목 밑동 높이부터 올려요.
         } else {
           targetY = 1.15 - (scaledMinY + scaledMaxY) / 2; // 장신구 등은 가슴~목 높이에 중심을 맞춰요.
         }
 
+        garment.position.set(0, targetY, 0);
+        garment.scale.set(autoScale, autoScale, autoScale);
+
+        wornGarments[cat] = garment;
+        activeGarmentCategory = cat; // 방금 입은 걸 바로 색칠/무늬 편집할 수 있게 활성화해요.
         garmentColorInput.value = '#ffffff';
-        // 슬라이더 없이, 방금 계산한 위치·크기를 옷에 바로 적용해요 — 몸(카테고리별 기준선)에
-        // 맞춰 자동으로 입혀지고, 사람이 따로 맞출 필요가 없어요.
-        currentGarment.position.set(0, targetY, 0);
-        currentGarment.scale.set(autoScale, autoScale, autoScale);
-        garmentControls.hidden = false;
-        garmentStatus.textContent = `${label || '아이템'}을(를) 몸에 맞춰 입혔어요!`;
+        renderWornGarmentChips();
+        garmentStatus.textContent = `${label || '아이템'}을(를) 몸에 맞춰 입혔어요! (${CATEGORY_LABEL_3D[cat] || cat})`;
         garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         // 새 옷을 입었으니, 2단계 무늬 패널의 "적용할 부위" 목록도 새로 고쳐줘요.
         if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
@@ -505,12 +576,17 @@
   });
 
   garmentRemoveBtn.addEventListener('click', () => {
-    if(currentGarment){
-      scanMannequin.remove(currentGarment);
-      currentGarment = null;
+    if(activeGarmentCategory && wornGarments[activeGarmentCategory]){
+      scanMannequin.remove(wornGarments[activeGarmentCategory]);
+      const removedLabel = CATEGORY_LABEL_3D[activeGarmentCategory] || activeGarmentCategory;
+      delete wornGarments[activeGarmentCategory];
+      // 남아있는 다른 부위가 있으면 그중 하나를 새로 활성화하고, 없으면 패널을 접어요.
+      const remaining = GARMENT_CATEGORIES.filter(cat => wornGarments[cat]);
+      activeGarmentCategory = remaining[0] || null;
+      renderWornGarmentChips();
+      garmentStatus.textContent = `${removedLabel}을(를) 벗었어요.`;
+      if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
     }
-    garmentControls.hidden = true;
-    garmentStatus.textContent = '';
   });
 
   /* ---------- 옷장: 탭 전환 ---------- */

@@ -176,11 +176,12 @@
 
             <div class="garment-fit-controls" id="garment-controls" hidden>
               <div class="calc-label">입은 아이템</div>
-              <p class="garment-fit-note">몸 크기·부위에 맞춰 자동으로 입혀져요.</p>
-              <label>색상 <input type="color" id="garment-color" value="#ffffff"></label>
+              <p class="garment-fit-note">몸 크기·부위에 맞춰 자동으로 입혀져요. 상의·하의 등 여러 부위를 동시에 입어볼 수 있어요 — 아래에서 색을 바꿀 부위를 골라주세요.</p>
+              <div class="worn-garment-chips" id="worn-garment-chips"></div>
+              <label>선택한 아이템 색상 <input type="color" id="garment-color" value="#ffffff"></label>
               <div class="garment-fit-actions">
                 <button id="garment-color-reset-btn" class="btn btn-ghost-dark" type="button">색상 초기화</button>
-                <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">벗기기</button>
+                <button id="garment-remove-btn" class="btn btn-ghost-dark" type="button">선택한 부위 벗기기</button>
               </div>
             </div>
             <p class="garment-status" id="garment-status"></p>
