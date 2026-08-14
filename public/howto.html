@@ -33,17 +33,30 @@
     background:var(--mist); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px;
     font-size:13.5px; color:var(--ink-soft); margin-top:32px;
   }
+  .nav-left{ display:flex; align-items:center; gap:14px; }
+  .menu-toggle-btn{
+    width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--paper);
+    color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .menu-toggle-btn:hover{ border-color:var(--star-dark); }
 </style>
 </head>
 <body>
 
 <header>
-  <a class="brand" href="/">
-    <svg viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
-    pentacorn
-  </a>
+  <div class="nav-left">
+    <button class="menu-toggle-btn" id="menu-toggle-btn" type="button" aria-label="메뉴 열기">
+      <svg viewBox="0 0 20 14" width="20" height="14"><rect width="20" height="2" rx="1" fill="currentColor"/><rect y="6" width="20" height="2" rx="1" fill="currentColor"/><rect y="12" width="20" height="2" rx="1" fill="currentColor"/></svg>
+    </button>
+    <a class="brand" href="/">
+      <svg viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
+      pentacorn
+    </a>
+  </div>
   <a class="back-link" href="/">← 홈으로</a>
 </header>
+
+<div id="side-menu-mount"></div>
 
 <main>
   <div class="eyebrow">HOW TO USE</div>
@@ -95,5 +108,6 @@
   <div class="note">데모 단계라 일부 기능은 실제 제작·배송까지 이어지지 않을 수 있어요. 주문이 접수되면 팀이 직접 안내드려요.</div>
 </main>
 
+<script src="/menu-loader.js"></script>
 </body>
 </html>
