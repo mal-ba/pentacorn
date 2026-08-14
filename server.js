@@ -30,7 +30,12 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
 // 테이블을 잘못 건드렸을 때 아무도 못 고치는 상황이 생길 수 있어서, 이 계정만큼은
 // 항상(테이블 상태와 무관하게) 최고 권한을 갖도록 별도로 둬요. 다른 관리자를
 // 추가·삭제·수정할 수 있는 건 이 계정뿐이에요.
-const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
+// 최고관리자("대빵") — 딱 한 명. 코드에 기본값을 미리 박아둬서, Render에 환경변수를
+// 따로 안 걸어도 바로 동작해요(설정 실수로 아무도 최고관리자가 안 되는 상황을 막아줘요).
+// 그래도 필요하면 Render 환경변수 SUPER_ADMIN_EMAIL로 덮어쓸 수 있게 남겨뒀어요
+// (환경변수가 설정돼 있으면 그게 우선이에요).
+const DEFAULT_SUPER_ADMIN_EMAIL = 'jehoon100703@gmail.com';
+const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL || DEFAULT_SUPER_ADMIN_EMAIL).trim().toLowerCase();
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -39,9 +44,6 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 // 재시작되거나 잠들었다 깨어나도 데이터와 업로드한 파일이 사라지지 않아요.
 if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
   console.warn('⚠️  SUPABASE_URL / SUPABASE_SECRET_KEY가 설정되어 있지 않아요. .env 파일을 확인하세요.');
-}
-if (!SUPER_ADMIN_EMAIL) {
-  console.warn('⚠️  SUPER_ADMIN_EMAIL이 설정되어 있지 않아요. 최고관리자(대빵) 계정을 .env에 등록해주세요.');
 }
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
