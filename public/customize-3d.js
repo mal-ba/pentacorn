@@ -588,16 +588,22 @@
         };
         let autoScale = 1;
         if(cat === 'top' || cat === 'outer'){
-          // 상의·아우터는 세로 길이보다 "소매가 마네킹의 T포즈 팔 벌린 폭과 맞는지"가 훨씬
-          // 눈에 잘 띄어요. 옷마다 원래 만들어진 가로세로 비율이 서로 달라서(팔을 넓게 벌린
-          // 형태로 만들어진 옷도 있어요), 세로 길이 기준으로 맞추면 소매가 마네킹 팔보다
-          // 훨씬 좁아져서 몸에 딱 붙어 보이는 문제가 있었어요. 그래서 마네킹의 실제 팔 벌린
-          // 폭에 맞춰 스케일을 잡아요.
+          // 상의·아우터는 "소매가 마네킹의 T포즈 팔 벌린 폭과 맞는지"(폭 기준)랑 "몸통
+          // 길이가 자연스러운지"(세로 기준)를 둘 다 신경 써야 해요. 근데 옷마다 원래
+          // 만들어진 가로세로 비율이 실제 사람 비율이랑 딱 안 맞을 수 있어서, 두 기준을
+          // 동시에 100% 만족시키는 게 항상 가능하진 않아요. 그래서 두 스케일을 각각
+          // 계산해서 "더 작은 쪽"을 써요 — 이러면 몸통이 지나치게 길어지지도, 소매가
+          // 지나치게 넓어지지도 않게(둘 다 과하게 커지는 걸 막는 쪽으로) 타협돼요.
+          // (어깨 위치 자체는 이 스케일 값과 무관하게 항상 정확히 맞춰져요.)
           const mannequinWidth = scanMannequinDefaultHeight * scanMannequinWidthRatio;
-          if(bounds.width > 0 && mannequinWidth > 0){
-            autoScale = mannequinWidth / bounds.width;
-          } else if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
-            autoScale = (scanMannequinDefaultHeight * CATEGORY_TARGET_FRACTION[cat]) / garmentHeight; // 폭 정보가 없을 때의 대체 계산
+          const widthBasedScale = (bounds.width > 0 && mannequinWidth > 0) ? mannequinWidth / bounds.width : null;
+          const heightBasedScale = (garmentHeight > 0 && scanMannequinDefaultHeight > 0)
+            ? (scanMannequinDefaultHeight * CATEGORY_TARGET_FRACTION[cat]) / garmentHeight
+            : null;
+          if(widthBasedScale && heightBasedScale){
+            autoScale = Math.min(widthBasedScale, heightBasedScale);
+          } else {
+            autoScale = widthBasedScale || heightBasedScale || 1;
           }
         } else if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
           const targetFraction = CATEGORY_TARGET_FRACTION[cat] ?? 0.35;
