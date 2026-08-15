@@ -253,6 +253,24 @@
   @media(min-width:1080px){ .price-grid-4{ grid-template-columns:repeat(4,1fr); } }
 
 
+/* ---------- 빠른 시작 템플릿 ---------- */
+  .template-quickstart{ margin-top:24px; }
+  .template-quickstart-note{ font-size:12px; color:var(--ink-soft); font-weight:400; display:block; margin-top:4px; }
+  .template-quickstart-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:10px; margin-top:12px;
+  }
+  .template-card{
+    display:flex; flex-direction:column; align-items:center; gap:7px; padding:12px 8px;
+    border:1px solid var(--line); border-radius:12px; background:var(--paper); cursor:pointer;
+    font-family:inherit; transition:border-color .15s;
+  }
+  .template-card:hover{ border-color:var(--star-dark); }
+  .template-card.active{ border:2px solid var(--deep); }
+  .template-card-swatch{
+    width:44px; height:44px; border-radius:50%; border:1px solid rgba(0,0,0,0.1); flex-shrink:0;
+  }
+  .template-card-label{ font-size:11.5px; color:var(--ink); font-weight:600; text-align:center; line-height:1.3; }
+
 /* ---------- CALCULATOR ---------- */
   /* ---------- CALCULATOR ---------- */
   .calc-wrap{

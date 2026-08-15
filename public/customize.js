@@ -4,6 +4,85 @@
 // authState, bodyDataConsentGranted 는 index.html 쪽에서 window에 노출해둔 값을
 // 그대로 참조해요 (이 파일에서 따로 선언하지 않아요).
 
+  /* ---------- 빠른 시작 템플릿 5종 ----------
+     "뭘 만들지 막막하다"는 분들을 위한 원클릭 시작점이에요. 색상+무늬 조합을 미리
+     정해뒀을 뿐이라, 골라도 그 뒤로는 자유롭게 색·무늬를 더 바꿀 수 있어요. */
+  const LOOK_TEMPLATES = [
+    { id: 'minimal-white', label: '미니멀 화이트', color: '#F5F2EA', pattern: null },
+    { id: 'deep-green', label: '딥그린 무지', color: '#0F2E2C', pattern: null },
+    { id: 'black-stripe', label: '블랙 스트라이프', color: '#1A1A1A', pattern: { type: 'stripes', bg: '#1A1A1A', fg: '#F5F2EA', scale: 30 } },
+    { id: 'camel-check', label: '카멜 체크', color: '#8B7355', pattern: { type: 'checker', bg: '#8B7355', fg: '#F5F2EA', scale: 26 } },
+    { id: 'teal-dot', label: '틸 도트', color: '#3E7F86', pattern: { type: 'dots', bg: '#3E7F86', fg: '#F5F2EA', scale: 24 } },
+  ];
+  const templateQuickstartGrid = document.getElementById('template-quickstart-grid');
+
+  function templateSwatchStyle(tpl){
+    if(!tpl.pattern) return `background:${tpl.color};`;
+    // 버튼 미리보기는 CSS만으로 대략적인 무늬 느낌만 흉내내요(실제 무늬는 옷에 입힐 때 캔버스로 정확히 그려요).
+    if(tpl.pattern.type === 'stripes'){
+      return `background:repeating-linear-gradient(45deg, ${tpl.pattern.bg} 0 6px, ${tpl.pattern.fg} 6px 10px);`;
+    }
+    if(tpl.pattern.type === 'checker'){
+      return `background-color:${tpl.pattern.bg}; background-image:conic-gradient(${tpl.pattern.fg} 90deg, transparent 90deg 180deg, ${tpl.pattern.fg} 180deg 270deg, transparent 270deg); background-size:12px 12px;`;
+    }
+    if(tpl.pattern.type === 'dots'){
+      return `background-color:${tpl.pattern.bg}; background-image:radial-gradient(${tpl.pattern.fg} 30%, transparent 32%); background-size:12px 12px;`;
+    }
+    return `background:${tpl.color};`;
+  }
+
+  function findColorSwatch(hex){
+    return Array.from(document.querySelectorAll('.color-swatch[data-color]'))
+      .find(s => (s.dataset.color || '').toLowerCase() === hex.toLowerCase());
+  }
+
+  function applyLookTemplate(tpl){
+    // 1) 색상 적용 — 정확히 일치하는 스와치가 있으면 그걸 클릭한 것처럼, 없으면 커스텀 컬러 입력으로.
+    const swatch = findColorSwatch(tpl.color);
+    if(swatch){
+      swatch.click();
+    } else if(fabricColorCustomInput){
+      fabricColorCustomInput.value = tpl.color;
+      fabricColorCustomInput.dispatchEvent(new Event('input'));
+    }
+
+    // 2) 무늬 적용
+    if(tpl.pattern){
+      const presetModeBtn = document.querySelector('.calc-chip[data-pattern-mode="preset"]');
+      if(presetModeBtn) presetModeBtn.click();
+      const presetTypeBtn = document.querySelector(`.calc-chip[data-preset="${tpl.pattern.type}"]`);
+      if(presetTypeBtn) presetTypeBtn.click();
+      if(patternPresetBg) patternPresetBg.value = tpl.pattern.bg;
+      if(patternPresetFg) patternPresetFg.value = tpl.pattern.fg;
+      if(patternPresetScale) patternPresetScale.value = tpl.pattern.scale;
+      regeneratePresetPattern();
+    } else {
+      const noneModeBtn = document.querySelector('.calc-chip[data-pattern-mode="none"]');
+      if(noneModeBtn) noneModeBtn.click();
+    }
+
+    if(templateQuickstartGrid){
+      templateQuickstartGrid.querySelectorAll('.template-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.templateId === tpl.id);
+      });
+    }
+  }
+
+  if(templateQuickstartGrid){
+    templateQuickstartGrid.innerHTML = LOOK_TEMPLATES.map(tpl => `
+      <button class="template-card" type="button" data-template-id="${tpl.id}">
+        <span class="template-card-swatch" style="${templateSwatchStyle(tpl)}"></span>
+        <span class="template-card-label">${tpl.label}</span>
+      </button>
+    `).join('');
+    templateQuickstartGrid.querySelectorAll('.template-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const tpl = LOOK_TEMPLATES.find(t => t.id === card.dataset.templateId);
+        if(tpl) applyLookTemplate(tpl);
+      });
+    });
+  }
+
   /* ---------- 원단 색상 실시간 미리보기 (3D 모드에서 옷을 입은 상태면 그 옷 색깔도 같이 바꿔요) ---------- */
   const fabricColorPreview = document.getElementById('fabric-color-preview');
   const fabricColorCustomInput = document.getElementById('fabric-color-custom');
