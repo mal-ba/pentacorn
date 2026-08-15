@@ -1,7 +1,7 @@
 {
-  "name": "pentacorn",
-  "short_name": "pentacorn",
-  "description": "신체 스캔부터 맞춤 의류 디자인까지, 나만의 옷을 만드는 pentacorn",
+  "name": "pentacorp",
+  "short_name": "pentacorp",
+  "description": "신체 스캔부터 맞춤 의류 디자인까지, 나만의 옷을 만드는 pentacorp",
   "start_url": "/",
   "scope": "/",
   "id": "/",

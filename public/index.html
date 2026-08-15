@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pentacorn — 데모</title>
+<title>pentacorp — 데모</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0F2E2C">
 <link rel="icon" href="/icon-192.png">
@@ -426,7 +426,7 @@
     </button>
     <div class="brand">
       <svg class="mark" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
-      pentacorn
+      pentacorp
     </div>
   </div>
   <div class="nav-links">
@@ -443,7 +443,7 @@
 
 <section class="hero">
   <svg class="hero-star" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#F5F2EA"/></svg>
-  <div class="eyebrow">pentacorn</div>
+  <div class="eyebrow">pentacorp</div>
   <h1 class="serif">숨겨진 몸의 서사를,<br><em>내가 디자인한</em> 옷으로</h1>
   <p>신체를 스캔하면 AI가 나만의 아바타를 만들고, 그 위에서 바로 옷을 커스터마이징합니다. 완성된 디자인은 실제 제작 가능한 도면으로 변환돼요.</p>
   <div class="hero-actions">
@@ -491,7 +491,7 @@
   <div class="sec-head">
     <div class="eyebrow">PRODUCT</div>
     <h2 class="serif">제품 구성</h2>
-    <p>pentacorn는 3가지 핵심 기능으로 이루어져 있습니다. 신체 스캔부터 실제 제작 도면까지 하나의 흐름으로 이어집니다.</p>
+    <p>pentacorp는 3가지 핵심 기능으로 이루어져 있습니다. 신체 스캔부터 실제 제작 도면까지 하나의 흐름으로 이어집니다.</p>
   </div>
 
   <div class="flow" style="margin-bottom:56px;">
@@ -789,7 +789,7 @@
 
 <footer>
   <div>
-    <div class="brand" style="font-weight:600; margin-bottom:6px;">pentacorn</div>
+    <div class="brand" style="font-weight:600; margin-bottom:6px;">pentacorp</div>
     PentaCorp. · 문의는 오른쪽 위 상단 보다는 제작자한테 하면 더 좋음
   </div>
   <div class="footer-social">
@@ -807,7 +807,7 @@
 
     <div class="consent-section">
       <div class="consent-scroll">
-        pentacorn는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
+        pentacorp는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
         (1) 본 서비스는 데모 버전이며 실제 약관은 추후 정식 서비스 출시 시 변호사 검토를 거쳐 제공됩니다.
         (2) 이용자는 본인의 신체 정보를 자발적으로 입력합니다.
         (3) 계정 및 결제 정보는 관련 법령에 따라 안전하게 관리됩니다.
@@ -1237,8 +1237,8 @@
 
   // 이 브라우저 탭에서 한 번만 방문 기록을 남겨요(새로고침·다른 조작으로 중복 집계되지
   // 않도록 sessionStorage로 표시해둬요). "몇 시에 몇 명 왔는지" 통계용이에요.
-  if(!sessionStorage.getItem('pentacornVisitTracked')){
-    sessionStorage.setItem('pentacornVisitTracked', '1');
+  if(!sessionStorage.getItem('pentacorpVisitTracked')){
+    sessionStorage.setItem('pentacorpVisitTracked', '1');
     fetch('/api/track-visit', { method: 'POST' }).catch(() => {}); // 실패해도 화면엔 영향 없어요.
   }
 

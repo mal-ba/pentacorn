@@ -44,7 +44,7 @@
       },
       {
         keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'pentacorp', '펜타콘'],
-        answer: 'pentacorn는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
+        answer: 'pentacorp는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
       },
       {
         keywords: ['인생'],
@@ -122,7 +122,7 @@
       panel.classList.add('open');
       overlay.hidden = false;
       if(messages.children.length === 0){
-        addMessage('안녕하세요! pentacorn에 대해 궁금한 걸 물어보세요. 스캔, 로그인, 결제, 원단, 옷장 등 무엇이든 답해드릴게요. (규칙 기반 FAQ 챗봇이에요)', 'bot');
+        addMessage('안녕하세요! pentacorp에 대해 궁금한 걸 물어보세요. 스캔, 로그인, 결제, 원단, 옷장 등 무엇이든 답해드릴게요. (규칙 기반 FAQ 챗봇이에요)', 'bot');
         renderSuggestions();
       }
       input.focus();
@@ -147,7 +147,7 @@
       });
       const brand = document.createElement('div');
       brand.className = 'credits-brand';
-      brand.textContent = 'pentacorn';
+      brand.textContent = 'pentacorp';
       creditsScroll.appendChild(brand);
 
       const durationMs = 3200 + lines.length * 1600;
