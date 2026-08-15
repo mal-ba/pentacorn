@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>관리자 — pentacorn 주문 관리</title>
+<title>관리자 — pentacorp 주문 관리</title>
 <meta name="robots" content="noindex, nofollow">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -92,6 +92,29 @@
     font-family:inherit; width:140px; background:var(--paper); color:var(--ink);
   }
   .admin-form-error{ font-size:12.5px; color:var(--coral); margin:-6px 0 14px; min-height:16px; }
+  .visits-date-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .visits-date-row input[type="date"]{
+    padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;
+    font-family:inherit; background:var(--paper); color:var(--ink);
+  }
+  .visits-total{ font-size:13px; color:var(--ink-soft); font-weight:400; }
+  .visits-total b{ color:var(--ink); font-size:16px; }
+  .visits-subtitle{ font-size:14px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .visits-chart{
+    display:flex; align-items:flex-end; gap:3px; height:160px; padding:10px 4px 0;
+    border-bottom:1px solid var(--line); overflow-x:auto;
+  }
+  .visits-bar-col{ display:flex; flex-direction:column; align-items:center; justify-content:flex-end; flex:1; min-width:16px; height:100%; }
+  .visits-bar{
+    width:100%; max-width:22px; background:var(--star-dark); border-radius:3px 3px 0 0;
+    min-height:2px; transition:background .15s;
+  }
+  .visits-bar:hover{ background:var(--deep); }
+  .visits-chart-admin .visits-bar{ background:var(--coral); }
+  .visits-chart-admin .visits-bar:hover{ background:var(--deep); }
+  .visits-bar-count{ font-size:9.5px; color:var(--ink-soft); margin-bottom:2px; }
+  .visits-hours{ display:flex; gap:3px; margin-top:4px; }
+  .visits-hour-label{ flex:1; min-width:16px; text-align:center; font-size:9px; color:var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -118,7 +141,7 @@
 <div id="dashboard-view" hidden>
   <div class="top-bar">
     <div>
-      <h1>pentacorn 관리자</h1>
+      <h1>pentacorp 관리자</h1>
       <p class="sub" id="admin-email-text"></p>
     </div>
     <div style="display:flex; gap:10px;">
@@ -167,6 +190,19 @@
     <div class="empty-note" id="subs-empty" hidden>아직 구독자가 없어요.</div>
   </div>
 
+  <div class="section-title">접속자 통계</div>
+  <div class="visits-date-row">
+    <input type="date" id="visits-date-input">
+  </div>
+
+  <div class="visits-subtitle">일반 방문자 <span class="visits-total">그날 방문 <b id="visits-total-count">0</b>회</span></div>
+  <div class="visits-chart" id="visits-chart"></div>
+  <div class="visits-hours" id="visits-hours"></div>
+
+  <div class="visits-subtitle" style="margin-top:24px;">관리자 접속 <span class="visits-total">그날 접속 <b id="visits-admin-count">0</b>회</span></div>
+  <div class="visits-chart visits-chart-admin" id="visits-chart-admin"></div>
+  <div class="visits-hours" id="visits-hours-admin"></div>
+
   <div id="admin-management-section" hidden>
     <div class="section-title">관리자 관리 <span style="font-size:12px; font-weight:400; color:var(--ink-soft);">(대빵 전용)</span></div>
     <form class="admin-add-form" id="admin-add-form">
@@ -203,6 +239,13 @@
   const subsTbody = document.getElementById('subs-tbody');
   const subsEmpty = document.getElementById('subs-empty');
   const subsTable = document.getElementById('subs-table');
+  const visitsDateInput = document.getElementById('visits-date-input');
+  const visitsChart = document.getElementById('visits-chart');
+  const visitsHoursEl = document.getElementById('visits-hours');
+  const visitsTotalCount = document.getElementById('visits-total-count');
+  const visitsChartAdmin = document.getElementById('visits-chart-admin');
+  const visitsHoursAdminEl = document.getElementById('visits-hours-admin');
+  const visitsAdminCount = document.getElementById('visits-admin-count');
   const adminManagementSection = document.getElementById('admin-management-section');
   const adminsTbody = document.getElementById('admins-tbody');
   const adminAddForm = document.getElementById('admin-add-form');
@@ -299,6 +342,41 @@
       if(!data.ok) return;
       renderSubs(data.subscriptions);
     } catch(err){ /* 무시해도 괜찮아요 */ }
+  }
+
+  /* ---------- 접속자 통계 ---------- */
+  function todayKstDateStr(){
+    // 한국 시간 기준 오늘 날짜(YYYY-MM-DD)를 구해요.
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    return kst.toISOString().slice(0, 10);
+  }
+
+  async function loadVisits(dateStr){
+    try{
+      const res = await fetch(`/api/admin/visits?date=${encodeURIComponent(dateStr)}`);
+      const data = await res.json();
+      if(!data.ok) return;
+      renderVisitChart(visitsChart, visitsHoursEl, visitsTotalCount, data.hourly, data.total);
+      renderVisitChart(visitsChartAdmin, visitsHoursAdminEl, visitsAdminCount, data.hourlyAdmin, data.totalAdmin);
+    } catch(err){ /* 무시해도 괜찮아요 */ }
+  }
+
+  function renderVisitChart(chartEl, hoursEl, totalEl, hourly, total){
+    totalEl.textContent = total || 0;
+    const max = Math.max(...hourly, 1); // 0으로 나누는 걸 방지
+    chartEl.innerHTML = hourly.map(count => `
+      <div class="visits-bar-col">
+        <span class="visits-bar-count">${count > 0 ? count : ''}</span>
+        <div class="visits-bar" style="height:${Math.max((count / max) * 100, count > 0 ? 4 : 1)}%" title="${count}명"></div>
+      </div>
+    `).join('');
+    hoursEl.innerHTML = hourly.map((_, h) => `<span class="visits-hour-label">${h % 3 === 0 ? h : ''}</span>`).join('');
+  }
+
+  if(visitsDateInput){
+    visitsDateInput.value = todayKstDateStr();
+    visitsDateInput.max = todayKstDateStr(); // 미래 날짜는 어차피 기록이 없으니 막아둬요.
+    visitsDateInput.addEventListener('change', () => loadVisits(visitsDateInput.value));
   }
 
   /* ---------- 관리자 관리 (대빵 전용) ---------- */
@@ -485,6 +563,7 @@
       loadOrders();
       loadSubscriptions();
       loadAdmins();
+      loadVisits(todayKstDateStr());
     } catch(err){
       showView('login');
     }
@@ -508,7 +587,7 @@
     }
   };
 
-  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); loadAdmins(); });
+  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); loadAdmins(); loadVisits(visitsDateInput.value); });
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     location.reload();

@@ -52,7 +52,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 // 유지해요. 이렇게 하면 Render 무료 서버가 15분 넘게 안 쓰여서 잠들었다가 다시
 // 깨어나도(=서버 재시작) 로그인이 풀리지 않고, 사용자가 직접 로그아웃하기 전까지
 // 계속 로그인 상태가 유지돼요.
-const AUTH_COOKIE_NAME = 'pentacorn_auth';
+const AUTH_COOKIE_NAME = 'pentacorp_auth';
 const AUTH_TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365; // 1년
 
 function signAuthToken(user) {
@@ -103,10 +103,10 @@ function isAdminEmail(email) {
 
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
 
+// 피봇 후 가격 체계: Lite(자가 제작용 패턴만) / Premium(AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 아바타 기반 핏 보장 QC)
 const PLAN_PRICES = {
-  basic: { name: 'Basic', amount: 15000 },
-  standard: { name: 'Standard', amount: 45000 },
-  pro: { name: 'Pro', amount: 89000 },
+  lite: { name: 'Lite', amount: 5000 },
+  premium: { name: 'Premium', amount: 69000 },
 };
 
 /* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
@@ -760,7 +760,7 @@ app.post('/api/payments/create-order', requireLogin, (req, res) => {
     ok: true,
     orderId,
     amount: plan.amount,
-    orderName: `pentacorn ${plan.name} 플랜 구독`,
+    orderName: `pentacorp ${plan.name} 플랜 구독`,
   });
 });
 
@@ -880,7 +880,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했어요.' });
   }
 
-  res.json({ ok: true, orderId, amount, orderName: 'pentacorn 맞춤 제작 주문' });
+  res.json({ ok: true, orderId, amount, orderName: 'pentacorp 맞춤 제작 주문' });
 });
 
 // Toss 결제창에서 successUrl로 돌아온 뒤, 프론트가 이 API로 실제 결제를 승인(confirm)해요.
@@ -961,7 +961,7 @@ app.delete('/api/admin/orders/:orderId', requireLogin, requireAdmin, async (req,
   res.json({ ok: true });
 });
 
-// 관리자 전용: 구독 플랜(Basic/Standard/Pro) 목록. (맞춤 제작 주문과는 별개예요)
+// 관리자 전용: 구독 플랜(Lite/Premium) 목록. (맞춤 제작 주문과는 별개예요)
 app.get('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res) => {
   const { data, error } = await supabase
     .from('subscriptions')
@@ -979,6 +979,64 @@ app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
 /* ---------------- 관리자 관리 (대빵 전용) ----------------
    대빵이 다른 관리자를 실시간으로 추가·수정·삭제할 수 있어요. 재배포 없이 바로 반영돼요
    (등록/삭제할 때마다 refreshAdminEmailsCache()로 캐시를 즉시 갱신해요). */
+/* ---------------- 접속자 통계 ----------------
+   메인 페이지가 로드될 때마다(브라우저 탭 하나당 한 번) 방문 기록을 한 줄 남겨요.
+   로그인 여부와 상관없이(익명 방문자도 포함) 기록해요 — "몇 시에 몇 명 왔는지"를
+   보려는 목적이라, 누가 왔는지보다 언제 얼마나 왔는지가 중요해서예요. */
+app.post('/api/track-visit', async (req, res) => {
+  try {
+    // 로그인 쿠키가 같이 오니까, 지금 이 방문자가 관리자 계정인지 서버가 직접 확인해서
+    // 같이 기록해요(클라이언트 쪽에서 따로 알려줄 필요 없어요).
+    const user = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
+    const isAdminVisit = !!(user && isAdminEmail(user.email));
+    await supabase.from('page_visits').insert({ visited_at: new Date().toISOString(), is_admin: isAdminVisit });
+  } catch (err) {
+    // 방문 기록은 부가 기능이라, 실패해도 사용자 경험에 영향 주면 안 돼서 조용히 넘어가요.
+  }
+  res.status(204).end();
+});
+
+// 관리자 전용: 특정 날짜(한국 시간 기준)의 시간대별(0~23시) 방문자 수.
+// 관리자 본인이 테스트하며 접속한 건 실제 방문자 수(hourly/total)에서 빼고,
+// 따로 totalAdmin으로만 보여줘요.
+app.get('/api/admin/visits', requireLogin, requireAdmin, async (req, res) => {
+  // date가 없으면 "오늘"(한국 시간 기준)을 기본값으로 써요.
+  const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  let dateStr = req.query.date;
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    dateStr = new Date(Date.now() + KST_OFFSET_MS).toISOString().slice(0, 10);
+  }
+  // 한국 시간 기준 그날 00:00:00 ~ 다음날 00:00:00을 UTC 범위로 바꿔서 조회해요.
+  const kstMidnightUtcMs = new Date(`${dateStr}T00:00:00.000Z`).getTime() - KST_OFFSET_MS;
+  const startUtc = new Date(kstMidnightUtcMs).toISOString();
+  const endUtc = new Date(kstMidnightUtcMs + 24 * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from('page_visits')
+    .select('visited_at, is_admin')
+    .gte('visited_at', startUtc)
+    .lt('visited_at', endUtc);
+  if (error) return res.status(500).json({ ok: false, error: '방문 기록을 불러오지 못했어요.' });
+
+  const hourly = new Array(24).fill(0);       // 일반 방문자
+  const hourlyAdmin = new Array(24).fill(0);  // 관리자 접속 — 따로 집계해요(빼는 게 아니라 구분해서 같이 보여줘요).
+  (data || []).forEach(row => {
+    const kstMs = new Date(row.visited_at).getTime() + KST_OFFSET_MS;
+    const hour = new Date(kstMs).getUTCHours();
+    if (row.is_admin) hourlyAdmin[hour]++;
+    else hourly[hour]++;
+  });
+
+  res.json({
+    ok: true,
+    date: dateStr,
+    hourly,
+    hourlyAdmin,
+    total: hourly.reduce((sum, n) => sum + n, 0),
+    totalAdmin: hourlyAdmin.reduce((sum, n) => sum + n, 0),
+  });
+});
+
 app.get('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) => {
   const { data, error } = await supabase
     .from('admin_accounts')
@@ -1055,7 +1113,7 @@ async function start() {
   await seedBuiltinWardrobeIfEmpty();
   await refreshAdminEmailsCache();
   app.listen(PORT, () => {
-    console.log(`pentacorn 서버 실행 중: http://localhost:${PORT}`);
+    console.log(`pentacorp 서버 실행 중: http://localhost:${PORT}`);
     if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있어요. .env 파일을 확인하세요.');
     if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) console.warn('⚠️  Supabase 설정이 비어있어요. .env 파일을 확인하세요.');
   });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pentacorn — 데모</title>
+<title>pentacorp — 데모</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0F2E2C">
 <link rel="icon" href="/icon-192.png">
@@ -227,6 +227,8 @@
   /* ---------- PRICING ---------- */
   .price-grid{display:grid; gap:18px; grid-template-columns:1fr;}
   @media(min-width:760px){ .price-grid{grid-template-columns:repeat(3,1fr);} }
+  .price-grid-2{ max-width:760px; margin:0 auto; }
+  @media(min-width:600px){ .price-grid-2{ grid-template-columns:repeat(2,1fr); } }
   .price-card{
     border:1px solid var(--line); border-radius:var(--radius); padding:30px 26px;
     background:var(--paper);
@@ -237,6 +239,7 @@
     font-size:11px; padding:4px 12px; border-radius:999px; font-weight:600;
   }
   .price-card h3{font-size:15px; font-weight:600; margin-bottom:6px; color:var(--ink-soft);}
+  .price-card .plan-subtitle{ font-size:11.5px; font-weight:500; color:var(--star-dark); margin-left:6px; }
   .price-card .amount{font-family:'Fraunces',serif; font-size:34px; margin-bottom:18px;}
   .price-card .amount span{font-size:14px; font-family:'Noto Sans KR'; color:var(--ink-soft); font-weight:400;}
   .price-card ul{list-style:none; font-size:13.5px; color:var(--ink-soft); display:flex; flex-direction:column; gap:9px;}
@@ -426,7 +429,7 @@
     </button>
     <div class="brand">
       <svg class="mark" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
-      pentacorn
+      pentacorp
     </div>
   </div>
   <div class="nav-links">
@@ -443,7 +446,7 @@
 
 <section class="hero">
   <svg class="hero-star" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#F5F2EA"/></svg>
-  <div class="eyebrow">pentacorn</div>
+  <div class="eyebrow">pentacorp</div>
   <h1 class="serif">숨겨진 몸의 서사를,<br><em>내가 디자인한</em> 옷으로</h1>
   <p>신체를 스캔하면 AI가 나만의 아바타를 만들고, 그 위에서 바로 옷을 커스터마이징합니다. 완성된 디자인은 실제 제작 가능한 도면으로 변환돼요.</p>
   <div class="hero-actions">
@@ -491,7 +494,7 @@
   <div class="sec-head">
     <div class="eyebrow">PRODUCT</div>
     <h2 class="serif">제품 구성</h2>
-    <p>pentacorn는 3가지 핵심 기능으로 이루어져 있습니다. 신체 스캔부터 실제 제작 도면까지 하나의 흐름으로 이어집니다.</p>
+    <p>pentacorp는 3가지 핵심 기능으로 이루어져 있습니다. 신체 스캔부터 실제 제작 도면까지 하나의 흐름으로 이어집니다.</p>
   </div>
 
   <div class="flow" style="margin-bottom:56px;">
@@ -623,39 +626,29 @@
 <section id="pricing">
   <div class="sec-head">
     <div class="eyebrow">SUBSCRIPTION</div>
-    <h2 class="serif">서비스 이용료는 무료부터, 부담 없이</h2>
-    <p>앱 이용 자체는 무료로 시작할 수 있고, 다운로드·제작 연결 단계에서만 등급을 올리면 됩니다. 유료 플랜은 Google 계정으로 로그인 후 결제할 수 있어요. 로그인은 왼쪽 상단 메뉴에서 할 수 있어요.</p>
+    <h2 class="serif">직접 만들지, 완성품으로 받을지 — 골라보세요</h2>
+    <p>AI가 만든 나만의 패턴을 <b>Lite</b>로 저렴하게 다운로드해서 직접 만들거나, <b>Premium</b>으로 검증된 지역 재봉사와 매칭해 완제품 그대로 집 앞까지 받아보세요. 유료 플랜은 Google 계정으로 로그인 후 결제할 수 있어요. 로그인은 왼쪽 상단 메뉴에서 할 수 있어요.</p>
   </div>
 
-  <div class="price-grid price-grid-3">
-    <div class="price-card" data-plan="Basic" data-price="15000">
-      <h3>Basic</h3>
-      <div class="amount serif">15,000원<span> / 월</span></div>
+  <div class="price-grid price-grid-2">
+    <div class="price-card" data-plan="Lite" data-price="5000">
+      <h3>Lite <span class="plan-subtitle">자가 제작(DIY)</span></h3>
+      <div class="amount serif">5,000원<span> / 월</span></div>
       <ul>
         <li>워터마크 없는 패턴 PDF 다운로드</li>
-        <li>템플릿 5종</li>
-        <li>저장 프로젝트 3개</li>
+        <li>템플릿 5종 + 무제한 나만의 디자인</li>
+        <li>직접 재단·제작하는 분들께 딱 맞는 가격</li>
       </ul>
       <button class="plan-select-btn" type="button">구독하기</button>
     </div>
-    <div class="price-card featured" data-plan="Standard" data-price="45000">
-      <div class="badge">가장 많이 선택</div>
-      <h3>Standard</h3>
-      <div class="amount serif">45,000원<span> / 월</span></div>
+    <div class="price-card featured" data-plan="Premium" data-price="69000">
+      <div class="badge">완제품까지 한 번에</div>
+      <h3>Premium <span class="plan-subtitle">재봉사 매칭 + 완제품 배송</span></h3>
+      <div class="amount serif">69,000원<span> / 월</span></div>
       <ul>
-        <li>실시간 커스터마이징 전체 기능</li>
-        <li>무제한 프로젝트 저장</li>
-        <li>고해상도 재단 패턴 + 제작 파트너 매칭</li>
-      </ul>
-      <button class="plan-select-btn" type="button">구독하기</button>
-    </div>
-    <div class="price-card" data-plan="Pro" data-price="89000">
-      <h3>Pro</h3>
-      <div class="amount serif">89,000원<span> / 월</span></div>
-      <ul>
-        <li>AI 스타일 추천 엔진</li>
-        <li>완제품 제작 우선 큐</li>
-        <li>전담 스타일 컨설팅</li>
+        <li>AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
+        <li>완제품 도어투도어 배송</li>
+        <li>아바타 기반 핏 보장(QC) — 오차 검수 후 불량 시 보상</li>
       </ul>
       <button class="plan-select-btn" type="button">구독하기</button>
     </div>
@@ -789,7 +782,7 @@
 
 <footer>
   <div>
-    <div class="brand" style="font-weight:600; margin-bottom:6px;">pentacorn</div>
+    <div class="brand" style="font-weight:600; margin-bottom:6px;">pentacorp</div>
     PentaCorp. · 문의는 오른쪽 위 상단 보다는 제작자한테 하면 더 좋음
   </div>
   <div class="footer-social">
@@ -807,7 +800,7 @@
 
     <div class="consent-section">
       <div class="consent-scroll">
-        pentacorn는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
+        pentacorp는 신체 스캔 기반 맞춤 의류 디자인 서비스입니다. 서비스 이용 시 다음 사항에 동의해야 합니다.
         (1) 본 서비스는 데모 버전이며 실제 약관은 추후 정식 서비스 출시 시 변호사 검토를 거쳐 제공됩니다.
         (2) 이용자는 본인의 신체 정보를 자발적으로 입력합니다.
         (3) 계정 및 결제 정보는 관련 법령에 따라 안전하게 관리됩니다.
@@ -1235,6 +1228,13 @@
     }
   };
 
+  // 이 브라우저 탭에서 한 번만 방문 기록을 남겨요(새로고침·다른 조작으로 중복 집계되지
+  // 않도록 sessionStorage로 표시해둬요). "몇 시에 몇 명 왔는지" 통계용이에요.
+  if(!sessionStorage.getItem('pentacorpVisitTracked')){
+    sessionStorage.setItem('pentacorpVisitTracked', '1');
+    fetch('/api/track-visit', { method: 'POST' }).catch(() => {}); // 실패해도 화면엔 영향 없어요.
+  }
+
   async function checkAuthOnLoad(){
     try{
       const res = await fetch('/api/me');
@@ -1367,7 +1367,7 @@
   const modalPlanPrice = document.getElementById('modal-plan-price');
   const paymentCancelBtn = document.getElementById('payment-cancel-btn');
   const paymentConfirmBtn = document.getElementById('payment-confirm-btn');
-  const PLAN_KEY_MAP = { Basic: 'basic', Standard: 'standard', Pro: 'pro' };
+  const PLAN_KEY_MAP = { Lite: 'lite', Premium: 'premium' };
   let pendingPlanKey = null;
   let pendingCardEl = null;
 
