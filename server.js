@@ -52,7 +52,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 // 유지해요. 이렇게 하면 Render 무료 서버가 15분 넘게 안 쓰여서 잠들었다가 다시
 // 깨어나도(=서버 재시작) 로그인이 풀리지 않고, 사용자가 직접 로그아웃하기 전까지
 // 계속 로그인 상태가 유지돼요.
-const AUTH_COOKIE_NAME = 'pentacorn_auth';
+const AUTH_COOKIE_NAME = 'pentacorp_auth';
 const AUTH_TOKEN_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365; // 1년
 
 function signAuthToken(user) {
@@ -760,7 +760,7 @@ app.post('/api/payments/create-order', requireLogin, (req, res) => {
     ok: true,
     orderId,
     amount: plan.amount,
-    orderName: `pentacorn ${plan.name} 플랜 구독`,
+    orderName: `pentacorp ${plan.name} 플랜 구독`,
   });
 });
 
@@ -880,7 +880,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했어요.' });
   }
 
-  res.json({ ok: true, orderId, amount, orderName: 'pentacorn 맞춤 제작 주문' });
+  res.json({ ok: true, orderId, amount, orderName: 'pentacorp 맞춤 제작 주문' });
 });
 
 // Toss 결제창에서 successUrl로 돌아온 뒤, 프론트가 이 API로 실제 결제를 승인(confirm)해요.
@@ -1113,7 +1113,7 @@ async function start() {
   await seedBuiltinWardrobeIfEmpty();
   await refreshAdminEmailsCache();
   app.listen(PORT, () => {
-    console.log(`pentacorn 서버 실행 중: http://localhost:${PORT}`);
+    console.log(`pentacorp 서버 실행 중: http://localhost:${PORT}`);
     if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있어요. .env 파일을 확인하세요.');
     if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) console.warn('⚠️  Supabase 설정이 비어있어요. .env 파일을 확인하세요.');
   });

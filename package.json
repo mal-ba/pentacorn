@@ -1,7 +1,7 @@
 {
-  "name": "pentacorn-server",
+  "name": "pentacorp-server",
   "version": "1.0.0",
-  "description": "pentacorn 데모 - 구글 로그인 + 토스페이먼츠 결제 연동 서버",
+  "description": "pentacorp 데모 - 구글 로그인 + 토스페이먼츠 결제 연동 서버",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
