@@ -603,8 +603,27 @@
         garment.position.set(0, targetY, 0);
         garment.scale.set(autoScale, autoScale, autoScale);
 
-        // 진단용 로그예요 — 위치가 이상하면 이 값들을 보고 정확히 뭐가 잘못됐는지 바로
-        // 알 수 있어요. 문제 다 해결되면 이 블록은 지워도 돼요.
+        // 진단용 로그예요 — 이번엔 손으로 계산한 값 말고, Three.js가 실제로 계산한
+        // "진짜 최종 월드 좌표"를 직접 꺼내서 비교해요. 이게 손계산이랑 다르면 렌더링 쪽에
+        // 뭔가 다른 문제가 있다는 뜻이고, 같으면 애초에 기준선(SHOULDER_Y) 자체가 이
+        // 마네킹한테는 안 맞는다는 뜻이에요.
+        garment.updateMatrixWorld(true);
+        scanMannequin.updateMatrixWorld(true);
+        const topLocalPoint = new THREE.Vector3(0, bounds.maxY, 0);
+        const topWorldPoint = topLocalPoint.clone().applyMatrix4(garment.matrixWorld);
+        const mannequinWorldPos = new THREE.Vector3();
+        scanMannequin.getWorldPosition(mannequinWorldPos);
+        // 마네킹 뼈대에서 어깨 관절을 직접 찾아서, 그 관절의 "진짜 렌더링 월드 좌표"도
+        // 같이 확인해요 — 이게 옷 윗부분(topWorldPoint.y)이랑 얼마나 차이나는지 보면,
+        // 기준선(SHOULDER_Y=77.6%)이 이 마네킹한테 실제로 맞는 값인지 바로 알 수 있어요.
+        let shoulderBoneWorldY = null;
+        scanMannequin.traverse(node => {
+          if(shoulderBoneWorldY === null && node.isBone && /shoulder/i.test(node.name || '')){
+            const p = new THREE.Vector3();
+            node.getWorldPosition(p);
+            shoulderBoneWorldY = { name: node.name, y: p.y };
+          }
+        });
         console.log('[옷 맞춤 진단]', {
           category: cat,
           scanMannequinDefaultHeight,
@@ -616,7 +635,10 @@
           autoScale,
           SHOULDER_Y,
           targetY,
-          예상_최종_world_Y: scanMannequin.position.y + scanMannequin.scale.y * (targetY + scaledMaxY),
+          손계산_예상_world_Y: scanMannequin.position.y + scanMannequin.scale.y * (targetY + scaledMaxY),
+          '★진짜_렌더링_world_Y(옷 윗부분)': topWorldPoint.y,
+          '★마네킹_실제_어깨뼈_world_Y': shoulderBoneWorldY,
+          '★마네킹_실제_world_position': mannequinWorldPos,
         });
 
         wornGarments[cat] = garment;
