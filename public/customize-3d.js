@@ -60,11 +60,33 @@
         };
       }
     }
-    const wbox = new THREE.Box3().setFromObject(root);
+    // 스킨 없는 일반 옷(대부분의 옷장 아이템)은 이 경로로 와요. Box3().setFromObject(root)를
+    // 그냥 쓰면, root의 부모(마네킹)가 지금 어떤 스케일·위치를 갖고 있든 그게 다 섞여서
+    // 나와요(옷을 마네킹의 자식으로 붙인 다음에 재기 때문이에요) — 그래서 마네킹 키를
+    // 바꿔놨거나 위치를 옮겨놨으면 잘못된 크기가 나와요. 그래서 각 메쉬의 "월드 좌표"를
+    // 구한 다음, root 자신의 월드 행렬의 역행렬을 곱해서 "root 기준 로컬 좌표"로 되돌려요 —
+    // 이러면 마네킹(부모)이 어떤 상태든 상관없이 항상 옷 자체의 순수한 크기가 나와요.
+    root.updateWorldMatrix(true, true);
+    const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    const box = new THREE.Box3();
+    let found = false;
+    root.traverse(node => {
+      if(node.isMesh && node.geometry){
+        if(!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+        const nodeBox = node.geometry.boundingBox.clone();
+        const localMatrix = new THREE.Matrix4().multiplyMatrices(rootInverse, node.matrixWorld);
+        nodeBox.applyMatrix4(localMatrix);
+        if(!found){ box.copy(nodeBox); found = true; }
+        else box.union(nodeBox);
+      }
+    });
+    if(!found || !isFinite(box.min.y) || !isFinite(box.max.y)){
+      return { minY: 0, maxY: 0, height: 0, width: 0 };
+    }
     return {
-      minY: wbox.min.y, maxY: wbox.max.y,
-      height: wbox.max.y - wbox.min.y,
-      width: Math.max(wbox.max.x - wbox.min.x, wbox.max.z - wbox.min.z),
+      minY: box.min.y, maxY: box.max.y,
+      height: box.max.y - box.min.y,
+      width: Math.max(box.max.x - box.min.x, box.max.z - box.min.z),
     };
   }
 
