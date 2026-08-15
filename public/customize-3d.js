@@ -16,6 +16,7 @@
   let scanMannequinDefaultHeight = 0; // 원본(스케일 1) 상태의 모델 높이(scene 단위)
   let scanMannequinDefaultMinY = 0; // 원본(스케일 1) 상태에서 발끝의 y좌표 (옷을 입혀도 이 값은 안 바뀌어요)
   let scanMannequinWidthRatio = 1; // 모델 너비(팔 벌린 폭) / 키 비율
+  let scanMannequinShoulderY = null; // 마네킹의 실측 어깨선(로컬 좌표) — 옷을 입힐 때 이 값을 기준으로 맞춰요.
 
   // mannequin.glb는 관절(Armature/스킨)이 있는 리깅된 모델이에요. THREE.Box3().setFromObject()는
   // 스킨 변형(관절이 정점을 움직이는 것)을 무시하고 메쉬 노드의 단순 변환만 계산해서 크기를
@@ -90,6 +91,44 @@
     };
   }
 
+  // 상의·아우터의 "진짜 어깨선"을 찾아요. 옷 전체에서 제일 높은 지점(bounds.maxY)은
+  // 후드가 있으면 후드 끝, 칼라가 높으면 칼라 끝 등 옷마다 완전히 다른 지점이라, 그걸
+  // 그대로 "어깨선"으로 쓰면 후드처럼 위로 솟은 부분이 있는 옷은 몸 전체가 그만큼
+  // 아래로 밀려버려요(예: 옷이 허리까지 처지는 문제). 그래서 대신 "옷이 좌우로 가장
+  // 넓게 퍼지는 높이"(소매가 벌어지는 지점 = 실제 어깨선)를 지오메트리에서 직접
+  // 찾아서 그 높이를 기준으로 삼아요 — 후드·칼라 모양과 무관하게 항상 정확해요.
+  function findShoulderLineY(root){
+    let skinnedMesh = null, staticMesh = null;
+    root.traverse(node => {
+      if(node.isSkinnedMesh && !skinnedMesh) skinnedMesh = node;
+      if(node.isMesh && !node.isSkinnedMesh && !staticMesh) staticMesh = node;
+    });
+    const mesh = skinnedMesh || staticMesh;
+    if(!mesh || !mesh.geometry || !mesh.geometry.attributes.position) return null;
+
+    const posAttr = mesh.geometry.attributes.position;
+    const box = mesh.geometry.boundingBox || (mesh.geometry.computeBoundingBox(), mesh.geometry.boundingBox);
+    const minY = box.min.y, maxY = box.max.y;
+    const span = maxY - minY;
+    if(span <= 0) return null;
+
+    const BUCKETS = 24;
+    const maxAbsXInBucket = new Array(BUCKETS).fill(0);
+    for(let i = 0; i < posAttr.count; i++){
+      const y = posAttr.getY(i);
+      const x = posAttr.getX(i);
+      let b = Math.floor(((y - minY) / span) * BUCKETS);
+      if(b < 0) b = 0; if(b >= BUCKETS) b = BUCKETS - 1;
+      const ax = Math.abs(x);
+      if(ax > maxAbsXInBucket[b]) maxAbsXInBucket[b] = ax;
+    }
+    let bestBucket = 0, bestWidth = -1;
+    for(let b = 0; b < BUCKETS; b++){
+      if(maxAbsXInBucket[b] > bestWidth){ bestWidth = maxAbsXInBucket[b]; bestBucket = b; }
+    }
+    return minY + span * ((bestBucket + 0.5) / BUCKETS);
+  }
+
   function initMannequinViewer(){
     const container = document.getElementById('scan-avatar-3d');
     if(!container){
@@ -157,6 +196,10 @@
           scanMannequinDefaultHeight = rawHeight;
           scanMannequinDefaultMinY = rawMinY;
           scanMannequinWidthRatio = (rawWidth > 0 && isFinite(rawWidth)) ? rawWidth / scanMannequinDefaultHeight : 0.4;
+          // 마네킹의 진짜 어깨선(T포즈에서 좌우로 제일 넓게 퍼지는 높이)도 실측해둬요 —
+          // 옷을 입힐 때 추측한 비율(77.6%) 대신 이 실측값을 써서 훨씬 정확하게 맞춰요.
+          const measuredShoulderY = findShoulderLineY(scanMannequin);
+          scanMannequinShoulderY = (measuredShoulderY !== null) ? measuredShoulderY : (scanMannequinDefaultMinY + scanMannequinDefaultHeight * 0.776);
 
           applyHeightToMannequin(165);
           if(scanAvatarLoading) scanAvatarLoading.hidden = true;
@@ -574,13 +617,14 @@
         // 있었어요(예: 후드가 가슴에 걸리는 등). 그래서 절대 좌표 대신, 마네킹의 실측
         // 로컬 키(scanMannequinDefaultHeight)에 대한 "비율"로 기준선을 잡아요 — 이러면
         // 마네킹을 아무리 옮기거나 크기를 바꿔도 항상 정확히 따라가요.
-        //  - 어깨선 ≈ 키의 77.6% (상의·아우터를 이 높이에 걸쳐요)
         //  - 골반/허리선 ≈ 키의 47.3% (하의 허리단을 이 높이에 맞춰요)
         //  - 발바닥 = 마네킹 로컬 최하단 (신발 밑창을 이 높이에 맞춰요)
         //  - 머리 시작 ≈ 키의 78.8% (헤어 아이템 아래쪽을 이 높이부터 올려요)
         //  - 가슴~목 ≈ 키의 69.7% (장신구 등)
+        //  - 어깨선은 비율 추측 대신 마네킹에서 실측한 scanMannequinShoulderY를 써요
+        //    (마네킹 로드 시 T포즈에서 좌우로 제일 넓게 퍼지는 높이를 직접 재둔 값이에요).
         const mannequinBottomY = scanMannequinDefaultMinY;
-        const SHOULDER_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.776;
+        const SHOULDER_Y = (scanMannequinShoulderY !== null) ? scanMannequinShoulderY : (mannequinBottomY + scanMannequinDefaultHeight * 0.776);
         const WAIST_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.473;
         const HAIR_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.788;
         const CHEST_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.697;
@@ -589,7 +633,12 @@
         const scaledMaxY = bounds.maxY * autoScale;
         let targetY;
         if(cat === 'top' || cat === 'outer'){
-          targetY = SHOULDER_Y - scaledMaxY; // 옷의 "위쪽 끝"(어깨선)을 마네킹 어깨선에 맞춰요.
+          // 옷 전체에서 "제일 높은 지점"(후드 끝 등)이 아니라, 옷 자신의 "진짜 어깨선"
+          // (좌우로 제일 넓게 퍼지는 높이)을 마네킹의 실측 어깨선에 맞춰요. 후드·칼라처럼
+          // 위로 솟은 부분이 있어도 항상 정확한 위치에 걸려요.
+          const garmentShoulderYRaw = findShoulderLineY(garment);
+          const scaledGarmentShoulderY = (garmentShoulderYRaw !== null ? garmentShoulderYRaw : bounds.maxY) * autoScale;
+          targetY = SHOULDER_Y - scaledGarmentShoulderY;
         } else if(cat === 'bottom'){
           targetY = WAIST_Y - scaledMaxY; // 옷의 "위쪽 끝"(허리단)을 마네킹 골반선에 맞춰요.
         } else if(cat === 'shoes'){
@@ -603,19 +652,12 @@
         garment.position.set(0, targetY, 0);
         garment.scale.set(autoScale, autoScale, autoScale);
 
-        // 진단용 로그예요 — 이번엔 손으로 계산한 값 말고, Three.js가 실제로 계산한
-        // "진짜 최종 월드 좌표"를 직접 꺼내서 비교해요. 이게 손계산이랑 다르면 렌더링 쪽에
-        // 뭔가 다른 문제가 있다는 뜻이고, 같으면 애초에 기준선(SHOULDER_Y) 자체가 이
-        // 마네킹한테는 안 맞는다는 뜻이에요.
+        // 진단용 로그예요 — 옷 자신의 어깨선(garmentShoulderYRaw)과 마네킹의 실측
+        // 어깨선(SHOULDER_Y)이 실제로 같은 높이에서 만나는지 확인해요.
         garment.updateMatrixWorld(true);
         scanMannequin.updateMatrixWorld(true);
-        const topLocalPoint = new THREE.Vector3(0, bounds.maxY, 0);
-        const topWorldPoint = topLocalPoint.clone().applyMatrix4(garment.matrixWorld);
-        const mannequinWorldPos = new THREE.Vector3();
-        scanMannequin.getWorldPosition(mannequinWorldPos);
-        // 마네킹 뼈대에서 어깨 관절을 직접 찾아서, 그 관절의 "진짜 렌더링 월드 좌표"도
-        // 같이 확인해요 — 이게 옷 윗부분(topWorldPoint.y)이랑 얼마나 차이나는지 보면,
-        // 기준선(SHOULDER_Y=77.6%)이 이 마네킹한테 실제로 맞는 값인지 바로 알 수 있어요.
+        const garmentShoulderLocalY = (findShoulderLineY(garment) ?? bounds.maxY);
+        const shoulderWorldPoint = new THREE.Vector3(0, garmentShoulderLocalY, 0).applyMatrix4(garment.matrixWorld);
         let shoulderBoneWorldY = null;
         scanMannequin.traverse(node => {
           if(shoulderBoneWorldY === null && node.isBone && /shoulder/i.test(node.name || '')){
@@ -626,19 +668,12 @@
         });
         console.log('[옷 맞춤 진단]', {
           category: cat,
-          scanMannequinDefaultHeight,
-          scanMannequinDefaultMinY,
-          scanMannequinWidthRatio,
-          mannequinScale: scanMannequin.scale.y,
-          mannequinPositionY: scanMannequin.position.y,
-          garmentBounds: bounds,
+          scanMannequinShoulderY,
+          garmentShoulderLocalY,
           autoScale,
-          SHOULDER_Y,
           targetY,
-          손계산_예상_world_Y: scanMannequin.position.y + scanMannequin.scale.y * (targetY + scaledMaxY),
-          '★진짜_렌더링_world_Y(옷 윗부분)': topWorldPoint.y,
-          '★마네킹_실제_어깨뼈_world_Y': shoulderBoneWorldY,
-          '★마네킹_실제_world_position': mannequinWorldPos,
+          '★옷_어깨선_실제_world_Y': shoulderWorldPoint.y,
+          '★마네킹_어깨뼈_실제_world_Y': shoulderBoneWorldY,
         });
 
         wornGarments[cat] = garment;
