@@ -1037,6 +1037,42 @@ app.get('/api/admin/visits', requireLogin, requireAdmin, async (req, res) => {
   });
 });
 
+// 관리자 전용: 하루가 아니라 "지금까지 쌓인 전체 기간"을 다 모아서, 시간대별(0~23시)
+// 평균 접속자 수를 계산해요. "일반 사용자들이 평균적으로 몇 시에 제일 많이 접속하는지"를
+// 보려는 용도예요. 관리자 본인 접속은 여기서도 빼요(패턴이 왜곡되지 않도록).
+app.get('/api/admin/visits/average', requireLogin, requireAdmin, async (req, res) => {
+  const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+  const { data, error } = await supabase
+    .from('page_visits')
+    .select('visited_at, is_admin')
+    .eq('is_admin', false);
+  if (error) return res.status(500).json({ ok: false, error: '방문 기록을 불러오지 못했어요.' });
+
+  const hourlyTotal = new Array(24).fill(0);
+  const daysSeen = new Set(); // 한국 시간 기준 날짜(YYYY-MM-DD)가 며칠치 쌓였는지 세요 — 평균 낼 때 나눌 분모예요.
+  (data || []).forEach(row => {
+    const kstMs = new Date(row.visited_at).getTime() + KST_OFFSET_MS;
+    const kstDate = new Date(kstMs);
+    const hour = kstDate.getUTCHours();
+    hourlyTotal[hour]++;
+    daysSeen.add(kstDate.toISOString().slice(0, 10));
+  });
+
+  const dayCount = Math.max(daysSeen.size, 1); // 0으로 나누는 것 방지
+  const hourlyAverage = hourlyTotal.map(n => n / dayCount);
+  const peakHour = hourlyAverage.reduce((best, val, hour) => (val > hourlyAverage[best] ? hour : best), 0);
+
+  res.json({
+    ok: true,
+    dayCount: daysSeen.size,
+    hourlyTotal,
+    hourlyAverage,
+    peakHour,
+    totalVisits: hourlyTotal.reduce((sum, n) => sum + n, 0),
+  });
+});
+
 app.get('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) => {
   const { data, error } = await supabase
     .from('admin_accounts')
