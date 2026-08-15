@@ -518,11 +518,24 @@
         // 옷마다 Meshy에서 만들어진 원래 크기 단위가 제각각이라(예: 몸통보다 훨씬 크게 나올 수 있어요),
         // 마네킹 키를 기준으로 대략 맞는 크기부터 자동으로 시작하게 해요. 스킨(관절) 있는 옷이면
         // measureObjectBounds가 그 문제도 알아서 피해가요(마네킹 크기 버그와 같은 원리).
+        //
+        // 카테고리마다 "몸 키 대비 정상적인 옷 크기 비율"이 완전히 달라요 — 예를 들어 반바지는
+        // 원래 키의 25~30%밖에 안 되는데, 예전엔 모든 카테고리를 똑같이 "키의 50%"로 맞춰서
+        // 하의가 실제보다 훨씬 크게(거의 롱스커트처럼) 나오는 문제가 있었어요. 카테고리별로
+        // 현실적인 기준값을 따로 둬요.
         const bounds = measureObjectBounds(garment);
         const garmentHeight = bounds.height;
+        const CATEGORY_TARGET_FRACTION = {
+          top: 0.38,       // 어깨~골반 정도
+          outer: 0.5,      // 상의보다 길게 떨어지는 아우터
+          bottom: 0.28,    // 허리~무릎 안팎(반바지~짧은 하의 기준, 롱팬츠면 사람이 크기를 더 키울 수 있어요)
+          shoes: 0.10,
+          hair: 0.16,
+          accessory: 0.14,
+        };
         let autoScale = 1;
         if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
-          const targetFraction = 0.5; // 몸 키의 절반 정도 크기로 시작하는 대략적인 기준값
+          const targetFraction = CATEGORY_TARGET_FRACTION[cat] ?? 0.35;
           autoScale = (scanMannequinDefaultHeight * targetFraction) / garmentHeight;
           autoScale = Math.min(Math.max(autoScale, 0.02), 5);
         }
