@@ -408,6 +408,22 @@
     #admin-fab-emoji{ font-size:21px; }
   }
 
+  /* ---------- 문의하기 · 버그 제보하기 플로팅 버튼 (우측 하단, admin-fab 옆에 나란히) ---------- */
+  #contact-fab, #bugreport-fab{
+    position:fixed; bottom:20px; width:52px; height:52px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    box-shadow:0 4px 14px rgba(15,46,44,0.35); border:none; cursor:pointer; z-index:80;
+    color:#fff; font-family:inherit;
+  }
+  #contact-fab{ right:84px; background:var(--star-dark); }
+  #contact-fab:hover{ background:var(--deep); }
+  #bugreport-fab{ right:148px; background:var(--coral); }
+  #bugreport-fab:hover{ opacity:0.88; }
+  @media(max-width:600px){
+    #contact-fab{ right:68px; width:46px; height:46px; font-size:19px; }
+    #bugreport-fab{ right:122px; width:46px; height:46px; font-size:19px; }
+  }
+
 </style>
 </head>
 <body>
@@ -415,6 +431,9 @@
 <a id="admin-fab" href="/admin.html" hidden aria-label="관리자 사이트로 이동">
   <span id="admin-fab-emoji">🦦</span>
 </a>
+
+<button id="bugreport-fab" type="button" aria-label="버그 제보하기" title="버그 제보하기">🐛</button>
+<button id="contact-fab" type="button" aria-label="문의하기" title="문의하기">💬</button>
 
 <div class="inapp-banner" id="inapp-banner" hidden>
   <span id="inapp-banner-text">인앱 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.</span>
@@ -438,7 +457,7 @@
     <a href="#pricing">pricing</a>
     <a href="#scan">scan demo</a>
   </div>
-  <button class="nav-support-btn" id="support-open-btn" type="button">문의하기</button>
+  <a class="nav-support-btn" href="/community.html">커뮤니티</a>
 </nav>
 
 <div id="side-menu-mount"></div>
@@ -921,8 +940,7 @@
   document.addEventListener('copy', e => e.preventDefault());
   document.addEventListener('cut', e => e.preventDefault());
 
-  /* ---------- 문의 챗봇 (처음 '문의하기' 누를 때만 불러와요) ---------- */
-  const supportOpenBtn = document.getElementById('support-open-btn');
+  /* ---------- 문의 챗봇 (처음 '문의하기'/'버그 제보' 누를 때만 불러와요) ---------- */
   let supportBundleLoaded = false;
   let supportBundleLoading = null;
 
@@ -950,9 +968,25 @@
     return supportBundleLoading;
   }
 
-  supportOpenBtn.addEventListener('click', async () => {
+  const contactFab = document.getElementById('contact-fab');
+  const bugreportFab = document.getElementById('bugreport-fab');
+
+  contactFab.addEventListener('click', async () => {
     await loadSupportBundle();
     if(typeof window.openSupportPanel === 'function') window.openSupportPanel();
+  });
+
+  // 버그 제보도 같은 문의 챗봇을 열되, 입력칸에 "[버그 제보]"를 미리 채워서
+  // 사람들이 뭘 적어야 할지 바로 알 수 있게 해요.
+  bugreportFab.addEventListener('click', async () => {
+    await loadSupportBundle();
+    if(typeof window.openSupportPanel === 'function') window.openSupportPanel();
+    const input = document.getElementById('support-input');
+    if(input && !input.value){
+      input.value = '[버그 제보] ';
+      input.focus();
+      if(input.setSelectionRange) input.setSelectionRange(input.value.length, input.value.length);
+    }
   });
 
   /* ---------- 인앱 브라우저 감지 (카카오톡, 클로드 앱 등) ---------- */

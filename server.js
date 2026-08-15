@@ -19,6 +19,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-only-secret-change-me'
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
 const WARDROBE_BUCKET = 'wardrobe-assets';
+const COMMUNITY_BUCKET = 'community-assets'; // 커뮤니티 게시물 이미지용 버킷이에요.
 // 쉼표로 여러 개 등록 가능: 예전 방식의 관리자 목록이에요. 지금은 Supabase의
 // admin_accounts 테이블로 실시간 관리하는 게 기본이지만, 혹시 그 테이블이 비어있거나
 // 문제가 생겨도 로그인이 완전히 막히지 않도록 안전장치로 계속 같이 확인해요.
@@ -139,13 +140,13 @@ function fixMulterFilenameEncoding(name) {
 // itemId로 폴더를 나눠서, 서로 다른 아이템끼리 파일 이름이 겹쳐도 안전해요.
 // filePath는 디스크에 임시로 저장된 파일 경로예요 — 파일 전체를 메모리에 올리지 않고
 // 스트림으로 읽어서 그대로 Supabase에 흘려보내요(대용량 파일에도 RAM 부담이 거의 없어요).
-async function uploadToWardrobeBucket(itemId, filePath, desiredFileName, defaultContentType) {
+async function uploadFileToBucket(bucketName, itemId, filePath, desiredFileName, defaultContentType) {
   const safeName = sanitizeFilename(desiredFileName);
   const storagePath = `${itemId}/${Date.now()}_${safeName}`;
   const contentType = guessContentType(safeName) || defaultContentType;
 
   const { error } = await supabase.storage
-    .from(WARDROBE_BUCKET)
+    .from(bucketName)
     .upload(storagePath, fs.createReadStream(filePath), {
       contentType,
       upsert: false,
@@ -153,15 +154,23 @@ async function uploadToWardrobeBucket(itemId, filePath, desiredFileName, default
     });
   if (error) throw error;
 
-  const { data } = supabase.storage.from(WARDROBE_BUCKET).getPublicUrl(storagePath);
+  const { data } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
   return { publicUrl: data.publicUrl, storagePath };
+}
+// 옷장 업로드는 원래 쓰던 이름 그대로 유지해요(다른 코드에서 이 이름으로 호출하고 있어요).
+async function uploadToWardrobeBucket(itemId, filePath, desiredFileName, defaultContentType) {
+  return uploadFileToBucket(WARDROBE_BUCKET, itemId, filePath, desiredFileName, defaultContentType);
 }
 
 // multer가 diskStorage로 임시 폴더에 남긴 파일들을 정리해요. 업로드 성공/실패 여부와
 // 상관없이 항상 호출해서, 임시 폴더에 파일이 계속 쌓이는 걸 막아요.
 function cleanupTempUploadFiles(reqFiles){
   if(!reqFiles) return;
-  const all = [...(reqFiles.glbFile || []), ...(reqFiles.thumbnailFile || [])];
+  const all = [
+    ...(reqFiles.glbFile || []),
+    ...(reqFiles.thumbnailFile || []),
+    ...(reqFiles.image || []),
+  ];
   for(const f of all){
     fs.unlink(f.path, () => {}); // 실패해도(이미 지워졌거나) 무시해요.
   }
@@ -274,6 +283,15 @@ const wardrobeUpload = multer({
     filename: (req, file, cb) => cb(null, `wardrobe_${crypto.randomUUID()}${path.extname(file.originalname || '')}`),
   }),
   limits: { fileSize: 35 * 1024 * 1024 }, // 파일 하나당 최대 35MB
+});
+
+// 커뮤니티 게시물용: 옷장 파일보다 훨씬 가벼운 이미지 한 장만 받아요.
+const communityUpload = multer({
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (req, file, cb) => cb(null, `community_${crypto.randomUUID()}${path.extname(file.originalname || '')}`),
+  }),
+  limits: { fileSize: 8 * 1024 * 1024 }, // 이미지 한 장, 최대 8MB
 });
 
 // index.html 안의 %%GOOGLE_CLIENT_ID%%, %%TOSS_CLIENT_KEY%% 를
@@ -983,6 +1001,84 @@ app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
    메인 페이지가 로드될 때마다(브라우저 탭 하나당 한 번) 방문 기록을 한 줄 남겨요.
    로그인 여부와 상관없이(익명 방문자도 포함) 기록해요 — "몇 시에 몇 명 왔는지"를
    보려는 목적이라, 누가 왔는지보다 언제 얼마나 왔는지가 중요해서예요. */
+/* ---------------- 커뮤니티 (사람들이 만든 작품 공유) ---------------- */
+// 목록 조회는 누구나(로그인 안 해도) 볼 수 있어요.
+app.get('/api/community/posts', async (req, res) => {
+  const { data, error } = await supabase
+    .from('community_posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) return res.status(500).json({ ok: false, error: '게시물을 불러오지 못했어요.' });
+  res.json({
+    ok: true,
+    posts: (data || []).map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      imageUrl: row.image_url,
+      authorName: row.author_name,
+      authorEmail: row.author_email,
+      createdAt: row.created_at,
+    })),
+  });
+});
+
+// 작성은 로그인해야 가능해요. 이미지 하나 필수.
+app.post('/api/community/posts', requireLogin, communityUpload.single('image'), async (req, res) => {
+  const title = String(req.body?.title || '').trim().slice(0, 80);
+  const description = String(req.body?.description || '').trim().slice(0, 500);
+  const imageFile = req.file;
+
+  if (!title) {
+    if (imageFile) fs.unlink(imageFile.path, () => {});
+    return res.status(400).json({ ok: false, error: '제목을 입력해주세요.' });
+  }
+  if (!imageFile) {
+    return res.status(400).json({ ok: false, error: '이미지를 올려주세요.' });
+  }
+
+  const id = crypto.randomUUID();
+  let imageUrl = null;
+  try {
+    const uploaded = await uploadFileToBucket(
+      COMMUNITY_BUCKET, id, imageFile.path,
+      fixMulterFilenameEncoding(imageFile.originalname) || `${id}.png`, 'image/png'
+    );
+    imageUrl = uploaded.publicUrl;
+  } catch (err) {
+    console.error('커뮤니티 이미지 업로드 실패:', err.message || err);
+    fs.unlink(imageFile.path, () => {});
+    return res.status(500).json({ ok: false, error: '이미지 업로드 중 오류가 발생했어요.' });
+  }
+  fs.unlink(imageFile.path, () => {});
+
+  const row = {
+    id,
+    title,
+    description,
+    image_url: imageUrl,
+    author_email: req.user.email,
+    author_name: req.user.name,
+    created_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from('community_posts').insert(row);
+  if (error) return res.status(500).json({ ok: false, error: '게시물 저장 중 오류가 발생했어요.' });
+  res.json({ ok: true, post: { ...row, imageUrl: row.image_url, authorName: row.author_name } });
+});
+
+// 삭제는 글쓴이 본인이거나 관리자만.
+app.delete('/api/community/posts/:id', requireLogin, async (req, res) => {
+  const { data: post } = await supabase.from('community_posts').select('*').eq('id', req.params.id).maybeSingle();
+  if (!post) return res.status(404).json({ ok: false, error: '게시물을 찾을 수 없어요.' });
+  if (post.author_email !== req.user.email && !isAdminEmail(req.user.email)) {
+    return res.status(403).json({ ok: false, error: '본인 게시물만 지울 수 있어요.' });
+  }
+  const { error } = await supabase.from('community_posts').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  res.json({ ok: true });
+});
+
 app.post('/api/track-visit', async (req, res) => {
   try {
     // 로그인 쿠키가 같이 오니까, 지금 이 방문자가 관리자 계정인지 서버가 직접 확인해서
