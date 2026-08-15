@@ -603,6 +603,22 @@
         garment.position.set(0, targetY, 0);
         garment.scale.set(autoScale, autoScale, autoScale);
 
+        // 진단용 로그예요 — 위치가 이상하면 이 값들을 보고 정확히 뭐가 잘못됐는지 바로
+        // 알 수 있어요. 문제 다 해결되면 이 블록은 지워도 돼요.
+        console.log('[옷 맞춤 진단]', {
+          category: cat,
+          scanMannequinDefaultHeight,
+          scanMannequinDefaultMinY,
+          scanMannequinWidthRatio,
+          mannequinScale: scanMannequin.scale.y,
+          mannequinPositionY: scanMannequin.position.y,
+          garmentBounds: bounds,
+          autoScale,
+          SHOULDER_Y,
+          targetY,
+          예상_최종_world_Y: scanMannequin.position.y + scanMannequin.scale.y * (targetY + scaledMaxY),
+        });
+
         wornGarments[cat] = garment;
         activeGarmentCategory = cat; // 방금 입은 걸 바로 색칠/무늬 편집할 수 있게 활성화해요.
         garmentColorInput.value = '#ffffff';
