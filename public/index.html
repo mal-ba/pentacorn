@@ -227,6 +227,8 @@
   /* ---------- PRICING ---------- */
   .price-grid{display:grid; gap:18px; grid-template-columns:1fr;}
   @media(min-width:760px){ .price-grid{grid-template-columns:repeat(3,1fr);} }
+  .price-grid-2{ max-width:760px; margin:0 auto; }
+  @media(min-width:600px){ .price-grid-2{ grid-template-columns:repeat(2,1fr); } }
   .price-card{
     border:1px solid var(--line); border-radius:var(--radius); padding:30px 26px;
     background:var(--paper);
@@ -237,6 +239,7 @@
     font-size:11px; padding:4px 12px; border-radius:999px; font-weight:600;
   }
   .price-card h3{font-size:15px; font-weight:600; margin-bottom:6px; color:var(--ink-soft);}
+  .price-card .plan-subtitle{ font-size:11.5px; font-weight:500; color:var(--star-dark); margin-left:6px; }
   .price-card .amount{font-family:'Fraunces',serif; font-size:34px; margin-bottom:18px;}
   .price-card .amount span{font-size:14px; font-family:'Noto Sans KR'; color:var(--ink-soft); font-weight:400;}
   .price-card ul{list-style:none; font-size:13.5px; color:var(--ink-soft); display:flex; flex-direction:column; gap:9px;}
@@ -623,39 +626,29 @@
 <section id="pricing">
   <div class="sec-head">
     <div class="eyebrow">SUBSCRIPTION</div>
-    <h2 class="serif">서비스 이용료는 무료부터, 부담 없이</h2>
-    <p>앱 이용 자체는 무료로 시작할 수 있고, 다운로드·제작 연결 단계에서만 등급을 올리면 됩니다. 유료 플랜은 Google 계정으로 로그인 후 결제할 수 있어요. 로그인은 왼쪽 상단 메뉴에서 할 수 있어요.</p>
+    <h2 class="serif">직접 만들지, 완성품으로 받을지 — 골라보세요</h2>
+    <p>AI가 만든 나만의 패턴을 <b>Lite</b>로 저렴하게 다운로드해서 직접 만들거나, <b>Premium</b>으로 검증된 지역 재봉사와 매칭해 완제품 그대로 집 앞까지 받아보세요. 유료 플랜은 Google 계정으로 로그인 후 결제할 수 있어요. 로그인은 왼쪽 상단 메뉴에서 할 수 있어요.</p>
   </div>
 
-  <div class="price-grid price-grid-3">
-    <div class="price-card" data-plan="Basic" data-price="15000">
-      <h3>Basic</h3>
-      <div class="amount serif">15,000원<span> / 월</span></div>
+  <div class="price-grid price-grid-2">
+    <div class="price-card" data-plan="Lite" data-price="5000">
+      <h3>Lite <span class="plan-subtitle">자가 제작(DIY)</span></h3>
+      <div class="amount serif">5,000원<span> / 월</span></div>
       <ul>
         <li>워터마크 없는 패턴 PDF 다운로드</li>
-        <li>템플릿 5종</li>
-        <li>저장 프로젝트 3개</li>
+        <li>템플릿 5종 + 무제한 나만의 디자인</li>
+        <li>직접 재단·제작하는 분들께 딱 맞는 가격</li>
       </ul>
       <button class="plan-select-btn" type="button">구독하기</button>
     </div>
-    <div class="price-card featured" data-plan="Standard" data-price="45000">
-      <div class="badge">가장 많이 선택</div>
-      <h3>Standard</h3>
-      <div class="amount serif">45,000원<span> / 월</span></div>
+    <div class="price-card featured" data-plan="Premium" data-price="69000">
+      <div class="badge">완제품까지 한 번에</div>
+      <h3>Premium <span class="plan-subtitle">재봉사 매칭 + 완제품 배송</span></h3>
+      <div class="amount serif">69,000원<span> / 월</span></div>
       <ul>
-        <li>실시간 커스터마이징 전체 기능</li>
-        <li>무제한 프로젝트 저장</li>
-        <li>고해상도 재단 패턴 + 제작 파트너 매칭</li>
-      </ul>
-      <button class="plan-select-btn" type="button">구독하기</button>
-    </div>
-    <div class="price-card" data-plan="Pro" data-price="89000">
-      <h3>Pro</h3>
-      <div class="amount serif">89,000원<span> / 월</span></div>
-      <ul>
-        <li>AI 스타일 추천 엔진</li>
-        <li>완제품 제작 우선 큐</li>
-        <li>전담 스타일 컨설팅</li>
+        <li>AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
+        <li>완제품 도어투도어 배송</li>
+        <li>아바타 기반 핏 보장(QC) — 오차 검수 후 불량 시 보상</li>
       </ul>
       <button class="plan-select-btn" type="button">구독하기</button>
     </div>
@@ -1374,7 +1367,7 @@
   const modalPlanPrice = document.getElementById('modal-plan-price');
   const paymentCancelBtn = document.getElementById('payment-cancel-btn');
   const paymentConfirmBtn = document.getElementById('payment-confirm-btn');
-  const PLAN_KEY_MAP = { Basic: 'basic', Standard: 'standard', Pro: 'pro' };
+  const PLAN_KEY_MAP = { Lite: 'lite', Premium: 'premium' };
   let pendingPlanKey = null;
   let pendingCardEl = null;
 
