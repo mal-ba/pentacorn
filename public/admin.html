@@ -92,6 +92,27 @@
     font-family:inherit; width:140px; background:var(--paper); color:var(--ink);
   }
   .admin-form-error{ font-size:12.5px; color:var(--coral); margin:-6px 0 14px; min-height:16px; }
+  .bugreports-filter-row{ display:flex; gap:8px; margin-bottom:14px; }
+  .bugreports-filter-chip{
+    font-family:inherit; font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer;
+  }
+  .bugreports-filter-chip.active{ background:var(--deep); border-color:var(--deep); color:#fff; }
+  .bugreport-card{
+    border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:12px; background:var(--paper);
+  }
+  .bugreport-card.resolved{ opacity:0.6; }
+  .bugreport-card-desc{ font-size:13.5px; color:var(--ink); white-space:pre-wrap; line-height:1.6; margin-bottom:10px; }
+  .bugreport-card-meta{ font-size:11.5px; color:var(--ink-soft); display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; }
+  .bugreport-card-meta a{ color:var(--star-dark); }
+  .bugreport-card-actions{ display:flex; gap:8px; }
+  .bugreport-action-btn{
+    font-family:inherit; font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px;
+    border:1px solid var(--line); background:var(--mist); color:var(--ink); cursor:pointer;
+  }
+  .bugreport-action-btn:hover{ border-color:var(--star-dark); }
+  .bugreport-action-btn.danger{ color:var(--coral); }
+
   .visits-date-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
   .visits-date-row input[type="date"]{
     padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px;
@@ -193,6 +214,15 @@
     <div class="empty-note" id="subs-empty" hidden>아직 구독자가 없어요.</div>
   </div>
 
+  <div class="section-title">버그 제보함</div>
+  <div class="bugreports-filter-row">
+    <button class="bugreports-filter-chip active" data-filter="open" type="button">열린 제보</button>
+    <button class="bugreports-filter-chip" data-filter="resolved" type="button">해결됨</button>
+    <button class="bugreports-filter-chip" data-filter="all" type="button">전체</button>
+  </div>
+  <div id="bugreports-list"></div>
+  <div class="empty-note" id="bugreports-empty" hidden>해당하는 제보가 없어요.</div>
+
   <div class="section-title">접속자 통계</div>
   <div class="visits-date-row">
     <input type="date" id="visits-date-input">
@@ -261,6 +291,11 @@
   const visitsAvgDaycount = document.getElementById('visits-avg-daycount');
   const visitsPeakNote = document.getElementById('visits-peak-note');
   const adminManagementSection = document.getElementById('admin-management-section');
+  const bugreportsList = document.getElementById('bugreports-list');
+  const bugreportsEmpty = document.getElementById('bugreports-empty');
+  const bugreportsFilterChips = document.querySelectorAll('.bugreports-filter-chip');
+  let bugreportsFilter = 'open';
+  let allBugReports = [];
   const adminsTbody = document.getElementById('admins-tbody');
   const adminAddForm = document.getElementById('admin-add-form');
   const adminFormError = document.getElementById('admin-form-error');
@@ -357,6 +392,74 @@
       renderSubs(data.subscriptions);
     } catch(err){ /* 무시해도 괜찮아요 */ }
   }
+
+  /* ---------- 버그 제보함 ---------- */
+  async function loadBugReports(){
+    try{
+      const res = await fetch('/api/admin/bug-reports');
+      const data = await res.json();
+      if(!data.ok) return;
+      allBugReports = data.reports;
+      renderBugReports();
+    } catch(err){ /* 무시해도 괜찮아요 */ }
+  }
+
+  function renderBugReports(){
+    const filtered = bugreportsFilter === 'all'
+      ? allBugReports
+      : allBugReports.filter(r => r.status === bugreportsFilter);
+    if(filtered.length === 0){
+      bugreportsList.innerHTML = '';
+      bugreportsEmpty.hidden = false;
+      return;
+    }
+    bugreportsEmpty.hidden = true;
+    bugreportsList.innerHTML = filtered.map(r => `
+      <div class="bugreport-card${r.status === 'resolved' ? ' resolved' : ''}">
+        <div class="bugreport-card-desc">${(r.description || '').replace(/</g, '&lt;')}</div>
+        <div class="bugreport-card-meta">
+          <span>${fmtDate(r.createdAt)}</span>
+          <span>${r.reporterName ? `${r.reporterName} (${r.reporterEmail})` : '익명 제보'}</span>
+          ${r.pageUrl ? `<a href="${r.pageUrl}" target="_blank" rel="noopener noreferrer">해당 페이지 열기 →</a>` : ''}
+        </div>
+        <div class="bugreport-card-actions">
+          ${r.status === 'open'
+            ? `<button class="bugreport-action-btn" data-action="resolve" data-id="${r.id}" type="button">해결됨으로 표시</button>`
+            : `<button class="bugreport-action-btn" data-action="reopen" data-id="${r.id}" type="button">다시 열기</button>`}
+          <button class="bugreport-action-btn danger" data-action="delete" data-id="${r.id}" type="button">삭제</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  bugreportsFilterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      bugreportsFilterChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      bugreportsFilter = chip.dataset.filter;
+      renderBugReports();
+    });
+  });
+
+  bugreportsList.addEventListener('click', async e => {
+    const btn = e.target.closest('.bugreport-action-btn');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    try{
+      if(action === 'delete'){
+        if(!confirm('이 제보를 삭제할까요?')) return;
+        await fetch(`/api/admin/bug-reports/${id}`, { method: 'DELETE' });
+      } else {
+        await fetch(`/api/admin/bug-reports/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: action === 'resolve' ? 'resolved' : 'open' }),
+        });
+      }
+      loadBugReports();
+    } catch(err){ /* 무시해도 다음에 새로고침하면 다시 시도 가능 */ }
+  });
 
   /* ---------- 접속자 통계 ---------- */
   function todayKstDateStr(){
@@ -605,6 +708,7 @@
       showView('dashboard');
       loadOrders();
       loadSubscriptions();
+      loadBugReports();
       loadAdmins();
       loadVisits(todayKstDateStr());
       loadVisitsAverage();
@@ -631,7 +735,7 @@
     }
   };
 
-  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); loadAdmins(); loadVisits(visitsDateInput.value); loadVisitsAverage(); });
+  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); loadBugReports(); loadAdmins(); loadVisits(visitsDateInput.value); loadVisitsAverage(); });
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     location.reload();

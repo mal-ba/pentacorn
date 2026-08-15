@@ -280,7 +280,14 @@
   .modal-plan-summary .mp-price{ font-family:'Fraunces',serif; font-size:22px; color:var(--star-dark); }
   .modal-note{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
 
-  .consent-box{ max-width:480px; max-height:88vh; overflow-y:auto; }
+  .consent-box{ max-width:480px; max-height:88vh; overflow-y:auto; position:relative; }
+  .bugreport-textarea{
+    width:100%; min-height:120px; resize:vertical; margin-top:14px;
+    font-family:inherit; font-size:14px; color:var(--ink); line-height:1.6;
+    padding:12px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--paper); outline:none;
+  }
+  .bugreport-textarea:focus{ border-color:var(--star-dark); }
   .consent-section{
     padding:16px 0; border-bottom:1px solid var(--line);
   }
@@ -831,6 +838,21 @@
 
 <div id="customize-bundle-mount"></div>
 
+<div class="modal-overlay" id="bugreport-modal" hidden>
+  <div class="modal-box consent-box">
+    <h3 class="serif">버그 제보하기</h3>
+    <p class="consent-desc">어떤 화면에서, 뭘 하다가, 뭐가 이상했는지 최대한 자세히 적어주시면 큰 도움이 돼요.</p>
+    <form id="bugreport-form">
+      <textarea id="bugreport-desc-input" class="bugreport-textarea" placeholder="예: 옷장에서 후드집업을 입혔더니 위치가 이상하게 나와요." maxlength="2000" required></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="bugreport-submit-btn" type="submit">제보하기</button>
+      </div>
+      <p class="modal-note" id="bugreport-note"></p>
+    </form>
+    <button class="wizard-close" id="bugreport-close-btn" type="button" aria-label="닫기" style="position:absolute; top:18px; right:18px;">✕</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="consent-modal" hidden>
   <div class="modal-box consent-box">
     <h3 class="serif">서비스 이용약관 · 신체 데이터 동의</h3>
@@ -962,23 +984,55 @@
   }
 
   const contactFab = document.getElementById('contact-fab');
-  const bugreportFab = document.getElementById('bugreport-fab');
 
   contactFab.addEventListener('click', async () => {
     await loadSupportBundle();
     if(typeof window.openSupportPanel === 'function') window.openSupportPanel();
   });
 
-  // 버그 제보도 같은 문의 챗봇을 열되, 입력칸에 "[버그 제보]"를 미리 채워서
-  // 사람들이 뭘 적어야 할지 바로 알 수 있게 해요.
-  bugreportFab.addEventListener('click', async () => {
-    await loadSupportBundle();
-    if(typeof window.openSupportPanel === 'function') window.openSupportPanel();
-    const input = document.getElementById('support-input');
-    if(input && !input.value){
-      input.value = '[버그 제보] ';
-      input.focus();
-      if(input.setSelectionRange) input.setSelectionRange(input.value.length, input.value.length);
+  /* ---------- 버그 제보 (챗봇 아니고 독립된 전용 폼) ---------- */
+  const bugreportFab = document.getElementById('bugreport-fab');
+  const bugreportModal = document.getElementById('bugreport-modal');
+  const bugreportCloseBtn = document.getElementById('bugreport-close-btn');
+  const bugreportForm = document.getElementById('bugreport-form');
+  const bugreportInput = document.getElementById('bugreport-desc-input');
+  const bugreportSubmitBtn = document.getElementById('bugreport-submit-btn');
+  const bugreportNote = document.getElementById('bugreport-note');
+
+  bugreportFab.addEventListener('click', () => {
+    bugreportNote.textContent = '';
+    bugreportInput.value = '';
+    bugreportModal.hidden = false;
+    bugreportInput.focus();
+  });
+  bugreportCloseBtn.addEventListener('click', () => { bugreportModal.hidden = true; });
+  bugreportModal.addEventListener('click', e => { if(e.target === bugreportModal) bugreportModal.hidden = true; });
+
+  bugreportForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const description = bugreportInput.value.trim();
+    if(!description) return;
+    bugreportSubmitBtn.disabled = true;
+    bugreportSubmitBtn.textContent = '보내는 중...';
+    try{
+      const res = await fetch('/api/bug-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, pageUrl: location.href }),
+      });
+      const data = await res.json();
+      if(data.ok){
+        bugreportNote.textContent = '제보 감사해요! 확인 후 처리할게요.';
+        bugreportInput.value = '';
+        setTimeout(() => { bugreportModal.hidden = true; }, 1200);
+      } else {
+        bugreportNote.textContent = data.error || '전송에 실패했어요.';
+      }
+    } catch(err){
+      bugreportNote.textContent = '전송 중 오류가 발생했어요.';
+    } finally {
+      bugreportSubmitBtn.disabled = false;
+      bugreportSubmitBtn.textContent = '제보하기';
     }
   });
 

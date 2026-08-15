@@ -1079,6 +1079,66 @@ app.delete('/api/community/posts/:id', requireLogin, async (req, res) => {
   res.json({ ok: true });
 });
 
+/* ---------------- 버그 제보 ---------------- */
+// 누구나(로그인 안 해도) 제보할 수 있어요. 로그인한 상태면 이메일/이름을 같이 남겨서
+// 관리자가 필요하면 다시 연락할 수 있게 해요.
+app.post('/api/bug-reports', async (req, res) => {
+  const description = String(req.body?.description || '').trim().slice(0, 2000);
+  const pageUrl = String(req.body?.pageUrl || '').trim().slice(0, 500);
+  if (!description) {
+    return res.status(400).json({ ok: false, error: '어떤 문제였는지 적어주세요.' });
+  }
+  const user = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
+  const row = {
+    id: crypto.randomUUID(),
+    description,
+    page_url: pageUrl || null,
+    reporter_email: user ? user.email : null,
+    reporter_name: user ? user.name : null,
+    status: 'open',
+    created_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from('bug_reports').insert(row);
+  if (error) return res.status(500).json({ ok: false, error: '제보 저장 중 오류가 발생했어요.' });
+  res.json({ ok: true });
+});
+
+// 관리자 전용: 버그 제보함 목록.
+app.get('/api/admin/bug-reports', requireLogin, requireAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('bug_reports')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ ok: false, error: '버그 제보를 불러오지 못했어요.' });
+  res.json({
+    ok: true,
+    reports: (data || []).map(row => ({
+      id: row.id,
+      description: row.description,
+      pageUrl: row.page_url,
+      reporterEmail: row.reporter_email,
+      reporterName: row.reporter_name,
+      status: row.status,
+      createdAt: row.created_at,
+    })),
+  });
+});
+
+// 관리자 전용: 상태 변경(열림 ↔ 해결됨).
+app.put('/api/admin/bug-reports/:id', requireLogin, requireAdmin, async (req, res) => {
+  const status = req.body?.status === 'resolved' ? 'resolved' : 'open';
+  const { error } = await supabase.from('bug_reports').update({ status }).eq('id', req.params.id);
+  if (error) return res.status(500).json({ ok: false, error: '상태 변경 중 오류가 발생했어요.' });
+  res.json({ ok: true });
+});
+
+// 관리자 전용: 제보 삭제.
+app.delete('/api/admin/bug-reports/:id', requireLogin, requireAdmin, async (req, res) => {
+  const { error } = await supabase.from('bug_reports').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  res.json({ ok: true });
+});
+
 app.post('/api/track-visit', async (req, res) => {
   try {
     // 로그인 쿠키가 같이 오니까, 지금 이 방문자가 관리자 계정인지 서버가 직접 확인해서
