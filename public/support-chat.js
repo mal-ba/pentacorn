@@ -43,8 +43,8 @@
         answer: '신체 데이터(사진·키)는 로그인 후 "신체 데이터 수집·보관"에 직접 동의한 경우에만 저장돼요. 동의하지 않으면 화면에만 보이고 서버에는 저장되지 않고, 언제든 우측 상단 "개인정보 설정"에서 동의를 바꾸거나 저장된 데이터를 삭제할 수 있어요.',
       },
       {
-        keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'pentacorp', '펜타콘'],
-        answer: 'pentacorp는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
+        keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'UNEXPOSED', '펜타콘'],
+        answer: 'UNEXPOSED는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
       },
       {
         keywords: ['인생'],
@@ -122,7 +122,7 @@
       panel.classList.add('open');
       overlay.hidden = false;
       if(messages.children.length === 0){
-        addMessage('안녕하세요! pentacorp에 대해 궁금한 걸 물어보세요. 스캔, 로그인, 결제, 원단, 옷장 등 무엇이든 답해드릴게요. (규칙 기반 FAQ 챗봇이에요)', 'bot');
+        addMessage('안녕하세요! UNEXPOSED에 대해 궁금한 걸 물어보세요. 스캔, 로그인, 결제, 원단, 옷장 등 무엇이든 답해드릴게요. (규칙 기반 FAQ 챗봇이에요)', 'bot');
         renderSuggestions();
       }
       input.focus();
@@ -147,7 +147,7 @@
       });
       const brand = document.createElement('div');
       brand.className = 'credits-brand';
-      brand.textContent = 'pentacorp';
+      brand.textContent = 'UNEXPOSED';
       creditsScroll.appendChild(brand);
 
       const durationMs = 3200 + lines.length * 1600;
