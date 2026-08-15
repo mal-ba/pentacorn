@@ -518,11 +518,6 @@
         // 옷마다 Meshy에서 만들어진 원래 크기 단위가 제각각이라(예: 몸통보다 훨씬 크게 나올 수 있어요),
         // 마네킹 키를 기준으로 대략 맞는 크기부터 자동으로 시작하게 해요. 스킨(관절) 있는 옷이면
         // measureObjectBounds가 그 문제도 알아서 피해가요(마네킹 크기 버그와 같은 원리).
-        //
-        // 카테고리마다 "몸 키 대비 정상적인 옷 크기 비율"이 완전히 달라요 — 예를 들어 반바지는
-        // 원래 키의 25~30%밖에 안 되는데, 예전엔 모든 카테고리를 똑같이 "키의 50%"로 맞춰서
-        // 하의가 실제보다 훨씬 크게(거의 롱스커트처럼) 나오는 문제가 있었어요. 카테고리별로
-        // 현실적인 기준값을 따로 둬요.
         const bounds = measureObjectBounds(garment);
         const garmentHeight = bounds.height;
         const CATEGORY_TARGET_FRACTION = {
@@ -534,11 +529,23 @@
           accessory: 0.14,
         };
         let autoScale = 1;
-        if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
+        if(cat === 'top' || cat === 'outer'){
+          // 상의·아우터는 세로 길이보다 "소매가 마네킹의 T포즈 팔 벌린 폭과 맞는지"가 훨씬
+          // 눈에 잘 띄어요. 옷마다 원래 만들어진 가로세로 비율이 서로 달라서(팔을 넓게 벌린
+          // 형태로 만들어진 옷도 있어요), 세로 길이 기준으로 맞추면 소매가 마네킹 팔보다
+          // 훨씬 좁아져서 몸에 딱 붙어 보이는 문제가 있었어요. 그래서 마네킹의 실제 팔 벌린
+          // 폭에 맞춰 스케일을 잡아요.
+          const mannequinWidth = scanMannequinDefaultHeight * scanMannequinWidthRatio;
+          if(bounds.width > 0 && mannequinWidth > 0){
+            autoScale = mannequinWidth / bounds.width;
+          } else if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
+            autoScale = (scanMannequinDefaultHeight * CATEGORY_TARGET_FRACTION[cat]) / garmentHeight; // 폭 정보가 없을 때의 대체 계산
+          }
+        } else if(garmentHeight > 0 && scanMannequinDefaultHeight > 0){
           const targetFraction = CATEGORY_TARGET_FRACTION[cat] ?? 0.35;
           autoScale = (scanMannequinDefaultHeight * targetFraction) / garmentHeight;
-          autoScale = Math.min(Math.max(autoScale, 0.02), 5);
         }
+        autoScale = Math.min(Math.max(autoScale, 0.02), 5);
 
         // 마네킹의 기준점(원점)이 대략 배·허리 높이에 있어서, 아무 위치 지정 없이 입히면
         // 전부 그 지점에서 시작해요. 얼굴 메이크업 때처럼, 마네킹을 직접 측정해서 얻은
