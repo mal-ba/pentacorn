@@ -199,7 +199,9 @@
   }
 
   let lastAppliedHeightMeters = 1.65;
-  let mannequinVerticalOffset = 0; // 사용자가 슬라이더로 직접 조정하는 상하 위치 보정값
+  const mannequinVerticalOffset = 0; // "마네킹 상하 위치" 슬라이더는 제거했어요 — 카메라가 항상 마네킹을 자동으로
+  // 다시 중앙에 맞춰서(frameCameraToFullBody) 화면상 아무 효과가 없었는데, 옷 위치 계산에는
+  // 안 보이게 영향을 줘서 버그(예: 후드가 가슴에 걸리는 등)의 원인이 됐었어요. 항상 0으로 고정해요.
 
   // 모델 키(대략적인 크기)와 팔 벌린 폭이 화면 안에 항상 여유 있게 다 들어오도록,
   // 세로 기준 거리와 가로(T포즈 폭) 기준 거리를 각각 계산해서 더 넉넉한 쪽을 써요.
@@ -270,9 +272,9 @@
     const scale = targetMeters / scanMannequinDefaultHeight;
     scanMannequin.scale.set(scale, scale, scale);
 
-    // 모델마다 원점(기준점) 위치가 제각각이라(허리인 경우도, 발인 경우도 있어요),
-    // 자동으로 발을 바닥에 맞추는 대신 "마네킹 상하 위치" 슬라이더 값을 그대로 적용해요.
-    scanMannequin.position.y = mannequinVerticalOffset;
+    // 마네킹의 위치는 항상 원점(0)에 고정해요 — 슬라이더를 없앴으니 더 이상 옮길 이유가 없고,
+    // 이렇게 고정해두면 옷 위치 계산도 항상 예측 가능한 좌표계에서 이뤄져요.
+    scanMannequin.position.y = 0;
 
     lastAppliedHeightMeters = targetMeters;
     frameCameraToFullBody(targetMeters);
@@ -358,15 +360,6 @@
         : '몸통 인식에는 실패했어요. 밝은 곳에서 찍은 사진으로 다시 시도해보세요.';
     }
   };
-
-  // "마네킹 상하 위치" 슬라이더: 값이 바뀔 때마다 현재 키 기준으로 위치를 다시 계산해요.
-  const mannequinVposInput = document.getElementById('mannequin-vpos-input');
-  if(mannequinVposInput){
-    mannequinVposInput.addEventListener('input', () => {
-      mannequinVerticalOffset = parseFloat(mannequinVposInput.value);
-      applyHeightToMannequin(Math.round(lastAppliedHeightMeters * 100));
-    });
-  }
 
   // 모달이 처음 열릴 때만 3D 뷰어를 초기화해요 (숨겨진 상태에서 초기화하면
   // 컨테이너 크기가 0이라 렌더러가 깨지기 때문에, 실제로 보일 때 시작해요)
