@@ -112,6 +112,9 @@
   .visits-bar:hover{ background:var(--deep); }
   .visits-chart-admin .visits-bar{ background:var(--coral); }
   .visits-chart-admin .visits-bar:hover{ background:var(--deep); }
+  .visits-chart-avg .visits-bar{ background:var(--deep); }
+  .visits-chart-avg .visits-bar-col.peak .visits-bar{ background:var(--coral); }
+  .visits-peak-note{ font-size:13px; color:var(--star-dark); font-weight:600; margin:2px 0 8px; }
   .visits-bar-count{ font-size:9.5px; color:var(--ink-soft); margin-bottom:2px; }
   .visits-hours{ display:flex; gap:3px; margin-top:4px; }
   .visits-hour-label{ flex:1; min-width:16px; text-align:center; font-size:9px; color:var(--ink-soft); }
@@ -203,6 +206,13 @@
   <div class="visits-chart visits-chart-admin" id="visits-chart-admin"></div>
   <div class="visits-hours" id="visits-hours-admin"></div>
 
+  <div class="visits-subtitle" style="margin-top:32px;">
+    평균 접속 시간대 <span class="visits-total">전체 <b id="visits-avg-daycount">0</b>일치 데이터 기준</span>
+  </div>
+  <p class="visits-peak-note" id="visits-peak-note"></p>
+  <div class="visits-chart visits-chart-avg" id="visits-chart-avg"></div>
+  <div class="visits-hours" id="visits-hours-avg"></div>
+
   <div id="admin-management-section" hidden>
     <div class="section-title">관리자 관리 <span style="font-size:12px; font-weight:400; color:var(--ink-soft);">(대빵 전용)</span></div>
     <form class="admin-add-form" id="admin-add-form">
@@ -246,6 +256,10 @@
   const visitsChartAdmin = document.getElementById('visits-chart-admin');
   const visitsHoursAdminEl = document.getElementById('visits-hours-admin');
   const visitsAdminCount = document.getElementById('visits-admin-count');
+  const visitsChartAvg = document.getElementById('visits-chart-avg');
+  const visitsHoursAvgEl = document.getElementById('visits-hours-avg');
+  const visitsAvgDaycount = document.getElementById('visits-avg-daycount');
+  const visitsPeakNote = document.getElementById('visits-peak-note');
   const adminManagementSection = document.getElementById('admin-management-section');
   const adminsTbody = document.getElementById('admins-tbody');
   const adminAddForm = document.getElementById('admin-add-form');
@@ -359,6 +373,35 @@
       renderVisitChart(visitsChart, visitsHoursEl, visitsTotalCount, data.hourly, data.total);
       renderVisitChart(visitsChartAdmin, visitsHoursAdminEl, visitsAdminCount, data.hourlyAdmin, data.totalAdmin);
     } catch(err){ /* 무시해도 괜찮아요 */ }
+  }
+
+  async function loadVisitsAverage(){
+    try{
+      const res = await fetch('/api/admin/visits/average');
+      const data = await res.json();
+      if(!data.ok) return;
+      renderVisitsAverage(data.hourlyAverage, data.peakHour, data.dayCount);
+    } catch(err){ /* 무시해도 괜찮아요 */ }
+  }
+
+  function renderVisitsAverage(hourlyAverage, peakHour, dayCount){
+    if(visitsAvgDaycount) visitsAvgDaycount.textContent = dayCount;
+    if(visitsPeakNote){
+      visitsPeakNote.textContent = dayCount > 0
+        ? `일반 사용자들이 평균적으로 가장 많이 접속하는 시간대는 ${peakHour}시예요.`
+        : '아직 쌓인 방문 기록이 없어요.';
+    }
+    if(!visitsChartAvg) return;
+    const max = Math.max(...hourlyAverage, 0.01); // 0으로 나누는 걸 방지
+    visitsChartAvg.innerHTML = hourlyAverage.map((avg, h) => `
+      <div class="visits-bar-col${h === peakHour && avg > 0 ? ' peak' : ''}">
+        <span class="visits-bar-count">${avg > 0 ? avg.toFixed(1) : ''}</span>
+        <div class="visits-bar" style="height:${Math.max((avg / max) * 100, avg > 0 ? 4 : 1)}%" title="평균 ${avg.toFixed(2)}명 (${h}시)"></div>
+      </div>
+    `).join('');
+    if(visitsHoursAvgEl){
+      visitsHoursAvgEl.innerHTML = hourlyAverage.map((_, h) => `<span class="visits-hour-label">${h % 3 === 0 ? h : ''}</span>`).join('');
+    }
   }
 
   function renderVisitChart(chartEl, hoursEl, totalEl, hourly, total){
@@ -564,6 +607,7 @@
       loadSubscriptions();
       loadAdmins();
       loadVisits(todayKstDateStr());
+      loadVisitsAverage();
     } catch(err){
       showView('login');
     }
@@ -587,7 +631,7 @@
     }
   };
 
-  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); loadAdmins(); loadVisits(visitsDateInput.value); });
+  document.getElementById('refresh-btn').addEventListener('click', () => { loadOrders(); loadSubscriptions(); loadAdmins(); loadVisits(visitsDateInput.value); loadVisitsAverage(); });
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     location.reload();
