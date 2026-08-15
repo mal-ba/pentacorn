@@ -20,8 +20,8 @@
   main{ max-width:760px; margin:0 auto; padding:56px 6vw 100px; }
   .eyebrow{ font-size:12.5px; letter-spacing:0.08em; color:var(--star-dark); font-weight:700; margin-bottom:10px; }
   h1{ font-family:'Fraunces', serif; font-weight:500; font-size:clamp(28px,4vw,38px); margin:0 0 32px; }
-  .flow{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:36px; flex-wrap:wrap; }
-  .flow-node{ display:flex; flex-direction:column; align-items:center; gap:8px; width:110px; text-align:center; }
+  .flow{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:36px; flex-wrap:wrap; }
+  .flow-node{ display:flex; flex-direction:column; align-items:center; gap:8px; width:92px; text-align:center; }
   .flow-icon{ width:56px; height:56px; border-radius:50%; background:var(--mist); display:flex; align-items:center; justify-content:center; }
   .flow-label{ font-size:12.5px; font-weight:600; }
   .flow-arrow{ color:var(--line); font-size:20px; flex-shrink:0; }
@@ -69,13 +69,18 @@
     </div>
     <div class="flow-arrow">→</div>
     <div class="flow-node">
-      <div class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><path d="M12 3l7 4v10l-7 4-7-4V7z"/><path d="M12 3v18M5 7l7 4 7-4"/></svg></div>
-      <div class="flow-label">제작 진행</div>
+      <div class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><path d="M9 3v18M15 3v18M4 8h16M4 16h16"/></svg></div>
+      <div class="flow-label">AI 패턴 생성</div>
     </div>
     <div class="flow-arrow">→</div>
     <div class="flow-node">
-      <div class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8l9-5 9 5"/></svg></div>
-      <div class="flow-label">배송 준비</div>
+      <div class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><circle cx="8" cy="8" r="3.2"/><circle cx="17" cy="8" r="3.2"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M12 20c0-3 2.5-5 5-5s5 2 5 5"/></svg></div>
+      <div class="flow-label">재봉사 매칭</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <div class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F2E2C" stroke-width="1.8"><path d="M12 3l7 4v10l-7 4-7-4V7z"/><path d="M12 3v18M5 7l7 4 7-4"/></svg></div>
+      <div class="flow-label">제작 &amp; 핏 검수(QC)</div>
     </div>
     <div class="flow-arrow">→</div>
     <div class="flow-node">
@@ -84,19 +89,23 @@
     </div>
   </div>
 
+  <div class="callout" style="margin-top:0; margin-bottom:32px;">
+    <b>재봉사 매칭이란?</b> AI가 만든 나만의 패턴을, 그 지역에서 활동하는 검증된 숙련 재봉사와 1:1로 연결해드려요. 획일화된 공장 생산이 아니라, 사람의 손을 거쳐 완성되는 방식이에요. 완성품은 신체 스캔 아바타 데이터를 기준으로 핏(fit) 오차를 검수(QC)하고, 기준을 벗어나면 보상해드려요.
+  </div>
+
   <div class="options">
     <div class="option">
-      <h3>완제품 도어투도어 배송</h3>
-      <p>제작이 끝난 완성품을 입력하신 배송지로 직접 보내드려요. 주문 시 이름·연락처·주소를 입력하고 동의해야 해요.</p>
+      <h3>Premium — 재봉사 매칭 + 완제품 배송</h3>
+      <p>AI 패턴 생성부터 재봉사 매칭, 제작, 핏 검수(QC)까지 다 마친 완성품을 입력하신 배송지로 직접 보내드려요. 주문 시 이름·연락처·주소를 입력하고 동의해야 해요.</p>
     </div>
     <div class="option">
-      <h3>패턴 PDF만</h3>
-      <p>배송 없이, 완성된 디자인의 재단 도안(패턴) 파일만 받아볼 수 있어요. 직접 제작하고 싶은 분들을 위한 옵션이에요.</p>
+      <h3>Lite — 패턴 PDF만 (자가 제작)</h3>
+      <p>배송·재봉사 매칭 없이, 완성된 디자인의 재단 도안(패턴) 파일만 받아볼 수 있어요. 직접 제작하고 싶은 분들을 위한 저렴한 옵션이에요.</p>
     </div>
   </div>
 
   <div class="callout">
-    현재는 데모 단계라, 실제 원단 제작·배송 파트너 연결은 아직 준비 중이에요. 주문이 접수되면 팀이 직접 이메일로 안내드려요.
+    현재는 데모 단계라, 실제 재봉사 매칭·원단 제작·배송 파트너 연결은 아직 준비 중이에요. 주문이 접수되면 팀이 직접 이메일로 안내드려요.
   </div>
 </main>
 

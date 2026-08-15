@@ -392,6 +392,8 @@
       totalEl.textContent = fmt(total);
       noteEl.textContent = '기본 제작비 30,000원 + 선택 옵션';
     }
+    const finishTailorNote = document.getElementById('finish-tailor-note');
+    if(finishTailorNote) finishTailorNote.hidden = state.finish !== 30000; // Premium(재봉사 매칭) 선택했을 때만 안내를 보여줘요.
   }
 
   document.querySelectorAll('.calc-choices').forEach(group => {
