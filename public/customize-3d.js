@@ -573,23 +573,38 @@
         // 전부 그 지점에서 시작해요. 얼굴 메이크업 때처럼, 마네킹을 직접 측정해서 얻은
         // 실측 좌표를 기준으로 카테고리별 "기준선"에 옷의 위쪽/아래쪽 끝을 맞춰요
         // (그냥 옷 중심을 아무 높이에나 놓는 것보다 훨씬 정확하게 시작돼요).
-        //  - 어깨선 Y≈1.28 (상의·아우터를 이 높이에 걸쳐요)
-        //  - 골반/허리선 Y≈0.78 (하의 허리단을 이 높이에 맞춰요)
-        //  - 발바닥 Y≈0 (신발 밑창을 이 높이에 맞춰요)
-        //  - 머리 시작 Y≈1.30 (헤어 아이템 아래쪽을 이 높이부터 올려요)
+        //
+        // 중요: 옷은 마네킹의 "자식"으로 붙어있어서, 옷의 position은 마네킹 자신의 로컬
+        // 좌표계(스케일 1, 원점) 안에서 해석돼요. 그래서 절대 좌표(예: "어깨는 항상 Y=1.28")를
+        // 그대로 쓰면, 마네킹 키를 슬라이더로 바꾸거나 "마네킹 상하 위치"를 옮겨놨을 때
+        // 마네킹 자신의 스케일·위치가 옷에도 또 한 번 곱해지면서 기준선이 어긋나는 문제가
+        // 있었어요(예: 후드가 가슴에 걸리는 등). 그래서 절대 좌표 대신, 마네킹의 실측
+        // 로컬 키(scanMannequinDefaultHeight)에 대한 "비율"로 기준선을 잡아요 — 이러면
+        // 마네킹을 아무리 옮기거나 크기를 바꿔도 항상 정확히 따라가요.
+        //  - 어깨선 ≈ 키의 77.6% (상의·아우터를 이 높이에 걸쳐요)
+        //  - 골반/허리선 ≈ 키의 47.3% (하의 허리단을 이 높이에 맞춰요)
+        //  - 발바닥 = 마네킹 로컬 최하단 (신발 밑창을 이 높이에 맞춰요)
+        //  - 머리 시작 ≈ 키의 78.8% (헤어 아이템 아래쪽을 이 높이부터 올려요)
+        //  - 가슴~목 ≈ 키의 69.7% (장신구 등)
+        const mannequinBottomY = scanMannequinDefaultMinY;
+        const SHOULDER_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.776;
+        const WAIST_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.473;
+        const HAIR_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.788;
+        const CHEST_Y = mannequinBottomY + scanMannequinDefaultHeight * 0.697;
+
         const scaledMinY = bounds.minY * autoScale;
         const scaledMaxY = bounds.maxY * autoScale;
         let targetY;
         if(cat === 'top' || cat === 'outer'){
-          targetY = 1.28 - scaledMaxY; // 옷의 "위쪽 끝"(어깨선)을 마네킹 어깨선에 맞춰요.
+          targetY = SHOULDER_Y - scaledMaxY; // 옷의 "위쪽 끝"(어깨선)을 마네킹 어깨선에 맞춰요.
         } else if(cat === 'bottom'){
-          targetY = 0.78 - scaledMaxY; // 옷의 "위쪽 끝"(허리단)을 마네킹 골반선에 맞춰요.
+          targetY = WAIST_Y - scaledMaxY; // 옷의 "위쪽 끝"(허리단)을 마네킹 골반선에 맞춰요.
         } else if(cat === 'shoes'){
-          targetY = 0 - scaledMinY; // 신발의 "아래쪽 끝"(밑창)을 바닥(Y=0)에 맞춰요.
+          targetY = mannequinBottomY - scaledMinY; // 신발의 "아래쪽 끝"(밑창)을 마네킹 발바닥에 맞춰요.
         } else if(cat === 'hair'){
-          targetY = 1.30 - scaledMinY; // 헤어의 "아래쪽 끝"을 목 밑동 높이부터 올려요.
+          targetY = HAIR_Y - scaledMinY; // 헤어의 "아래쪽 끝"을 목 밑동 높이부터 올려요.
         } else {
-          targetY = 1.15 - (scaledMinY + scaledMaxY) / 2; // 장신구 등은 가슴~목 높이에 중심을 맞춰요.
+          targetY = CHEST_Y - (scaledMinY + scaledMaxY) / 2; // 장신구 등은 가슴~목 높이에 중심을 맞춰요.
         }
 
         garment.position.set(0, targetY, 0);
