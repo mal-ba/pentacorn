@@ -103,10 +103,10 @@ function isAdminEmail(email) {
 
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
 
+// 피봇 후 가격 체계: Lite(자가 제작용 패턴만) / Premium(AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 아바타 기반 핏 보장 QC)
 const PLAN_PRICES = {
-  basic: { name: 'Basic', amount: 15000 },
-  standard: { name: 'Standard', amount: 45000 },
-  pro: { name: 'Pro', amount: 89000 },
+  lite: { name: 'Lite', amount: 5000 },
+  premium: { name: 'Premium', amount: 69000 },
 };
 
 /* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
@@ -961,7 +961,7 @@ app.delete('/api/admin/orders/:orderId', requireLogin, requireAdmin, async (req,
   res.json({ ok: true });
 });
 
-// 관리자 전용: 구독 플랜(Basic/Standard/Pro) 목록. (맞춤 제작 주문과는 별개예요)
+// 관리자 전용: 구독 플랜(Lite/Premium) 목록. (맞춤 제작 주문과는 별개예요)
 app.get('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res) => {
   const { data, error } = await supabase
     .from('subscriptions')
