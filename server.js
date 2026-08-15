@@ -1018,21 +1018,22 @@ app.get('/api/admin/visits', requireLogin, requireAdmin, async (req, res) => {
     .lt('visited_at', endUtc);
   if (error) return res.status(500).json({ ok: false, error: '방문 기록을 불러오지 못했어요.' });
 
-  const hourly = new Array(24).fill(0);
-  let totalAdmin = 0;
+  const hourly = new Array(24).fill(0);       // 일반 방문자
+  const hourlyAdmin = new Array(24).fill(0);  // 관리자 접속 — 따로 집계해요(빼는 게 아니라 구분해서 같이 보여줘요).
   (data || []).forEach(row => {
-    if (row.is_admin) { totalAdmin++; return; } // 관리자 접속은 실제 방문자 그래프에서 빼요.
     const kstMs = new Date(row.visited_at).getTime() + KST_OFFSET_MS;
     const hour = new Date(kstMs).getUTCHours();
-    hourly[hour]++;
+    if (row.is_admin) hourlyAdmin[hour]++;
+    else hourly[hour]++;
   });
 
   res.json({
     ok: true,
     date: dateStr,
     hourly,
-    total: hourly.reduce((sum, n) => sum + n, 0), // 관리자 접속 제외한 실제 방문자 합계
-    totalAdmin, // 관리자 본인 접속 횟수(참고용, 위 통계엔 안 섞여요)
+    hourlyAdmin,
+    total: hourly.reduce((sum, n) => sum + n, 0),
+    totalAdmin: hourlyAdmin.reduce((sum, n) => sum + n, 0),
   });
 });
 
