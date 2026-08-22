@@ -1,14 +1,5 @@
 // ====== support-chat.js : 문의하기 FAQ 챗봇 (문의하기 버튼을 처음 눌렀을 때만 불러와요) ======
 (function initSupportChat(){
-    const LIFE_QUOTES = [
-      '태어난 순간부터 지금까지, 단 1초도 진짜 행복했던 적이 없어.',
-      '웃고 있어도 속은 텅 비어있다는 거, 아무도 안 믿더라.',
-      '괜찮은 척하는 데 평생을 썼는데, 정작 괜찮았던 적은 없어.',
-      '다들 나보고 웃으라는데, 정작 왜 웃어야 하는지는 아무도 안 알려줬어.',
-      '가장 슬픈 건, 슬프다는 것조차 아무도 눈치 못 챈다는 거야.',
-      '행복은 남의 얘기인 줄 알았는데, 진짜로 남의 얘기였더라고.',
-    ];
-
     const KNOWLEDGE_BASE = [
       {
         keywords: ['스캔', '카메라', '촬영', '녹화'],
@@ -45,11 +36,6 @@
       {
         keywords: ['누가', '만들', '회사', '팀', '연락처', '문의', 'UNEXPOSED', '펜타콘'],
         answer: 'UNEXPOSED는 PentaCorp(펜타콘) 팀이 만든 서비스예요. 지금은 데모 단계라, 더 궁금한 점은 이 채팅으로 남겨주시면 확인 후 도와드릴게요.',
-      },
-      {
-        keywords: ['인생'],
-        answer: LIFE_QUOTES.join('\n'),
-        action: 'lifeCredits',
       },
     ];
 
@@ -114,7 +100,6 @@
       setTimeout(() => {
         const matched = findAnswer(trimmed);
         addMessage(matched.answer, 'bot');
-        if(matched.action === 'lifeCredits') showCreditsRoll(LIFE_QUOTES);
       }, 300);
     }
 
@@ -131,44 +116,6 @@
       panel.classList.remove('open');
       overlay.hidden = true;
     }
-
-    /* ---------- 엔딩 크레딧처럼 문구가 올라가는 연출 ---------- */
-    const creditsOverlay = document.getElementById('credits-overlay');
-    const creditsScroll = document.getElementById('credits-scroll');
-    const creditsCloseBtn = document.getElementById('credits-close-btn');
-
-    function showCreditsRoll(lines){
-      creditsScroll.innerHTML = '';
-      lines.forEach(line => {
-        const p = document.createElement('div');
-        p.className = 'credits-line';
-        p.textContent = line;
-        creditsScroll.appendChild(p);
-      });
-      const brand = document.createElement('div');
-      brand.className = 'credits-brand';
-      brand.textContent = 'UNEXPOSED';
-      creditsScroll.appendChild(brand);
-
-      const durationMs = 3200 + lines.length * 1600;
-      creditsScroll.style.animationDuration = `${durationMs}ms`;
-      // 애니메이션을 처음부터 다시 재생시키기 위해 강제로 리플로우해요.
-      creditsScroll.style.animation = 'none';
-      void creditsScroll.offsetHeight;
-      creditsScroll.style.animation = `credits-roll ${durationMs}ms linear forwards`;
-
-      creditsOverlay.hidden = false;
-      const autoCloseTimer = setTimeout(closeCreditsRoll, durationMs + 400);
-      creditsOverlay.dataset.timerId = autoCloseTimer;
-    }
-    function closeCreditsRoll(){
-      creditsOverlay.hidden = true;
-      if(creditsOverlay.dataset.timerId) clearTimeout(Number(creditsOverlay.dataset.timerId));
-    }
-    creditsCloseBtn.addEventListener('click', closeCreditsRoll);
-    creditsOverlay.addEventListener('click', e => {
-      if(e.target === creditsOverlay) closeCreditsRoll();
-    });
 
     closeBtn.addEventListener('click', closePanel);
     overlay.addEventListener('click', closePanel);
