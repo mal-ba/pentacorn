@@ -10,7 +10,6 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { createClient } = require('@supabase/supabase-js');
 const multer = require('multer');
-const sharp = require('sharp'); // 커뮤니티 이미지를 서버에서 자동으로 줄여서(압축) 저장하는 데 써요.
 
 const PORT = process.env.PORT || 3000;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
@@ -139,20 +138,20 @@ function fixMulterFilenameEncoding(name) {
 
 // Supabase Storage에 파일을 올리고, 누구나 접근 가능한 공개 URL을 돌려줘요.
 // itemId로 폴더를 나눠서, 서로 다른 아이템끼리 파일 이름이 겹쳐도 안전해요.
-// fileInput은 디스크 파일 경로(문자열)이거나, 이미 메모리에 있는 Buffer예요(압축된
-// 이미지처럼 작은 파일은 Buffer로 바로 넘겨도 RAM 부담이 거의 없어요). 큰 파일(GLB 등)은
-// 항상 경로로 넘겨서 스트리밍하는 걸 유지해요.
-async function uploadFileToBucket(bucketName, itemId, fileInput, desiredFileName, defaultContentType) {
+// filePath는 디스크에 임시로 저장된 파일 경로예요 — 파일 전체를 메모리에 올리지 않고
+// 스트림으로 읽어서 그대로 Supabase에 흘려보내요(대용량 파일에도 RAM 부담이 거의 없어요).
+async function uploadFileToBucket(bucketName, itemId, filePath, desiredFileName, defaultContentType) {
   const safeName = sanitizeFilename(desiredFileName);
   const storagePath = `${itemId}/${Date.now()}_${safeName}`;
   const contentType = guessContentType(safeName) || defaultContentType;
-  const isBuffer = Buffer.isBuffer(fileInput);
-  const body = isBuffer ? fileInput : fs.createReadStream(fileInput);
 
-  const uploadOptions = { contentType, upsert: false };
-  if (!isBuffer) uploadOptions.duplex = 'half'; // Node의 fetch가 스트림 body를 보낼 때 요구하는 옵션이에요.
-
-  const { error } = await supabase.storage.from(bucketName).upload(storagePath, body, uploadOptions);
+  const { error } = await supabase.storage
+    .from(bucketName)
+    .upload(storagePath, fs.createReadStream(filePath), {
+      contentType,
+      upsert: false,
+      duplex: 'half', // Node의 fetch가 스트림 body를 보낼 때 요구하는 옵션이에요.
+    });
   if (error) throw error;
 
   const { data } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
@@ -1042,23 +1041,10 @@ app.post('/api/community/posts', requireLogin, communityUpload.single('image'), 
   const id = crypto.randomUUID();
   let imageUrl = null;
   try {
-    // 원본 그대로 올리지 않고, 서버에서 자동으로 줄여서(가로·세로 최대 1600px, WebP 압축)
-    // 저장해요. 사용자는 그냥 평소처럼 사진을 고르기만 하면 되고, 화면에 보이는 방식은
-    // 그대로(사이트 안에서 바로 보임) 똑같아요 — 저장 용량만 훨씬 작아져요.
-    let compressedBuffer;
-    try {
-      compressedBuffer = await sharp(imageFile.path)
-        .rotate() // 휴대폰 사진의 방향 정보(EXIF)를 반영해서 자동으로 바로 세워요.
-        .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 78 })
-        .toBuffer();
-    } catch (compressErr) {
-      console.error('이미지 압축 실패:', compressErr.message || compressErr);
-      fs.unlink(imageFile.path, () => {});
-      return res.status(400).json({ ok: false, error: '이미지 파일을 처리할 수 없어요. 다른 이미지를 올려주세요.' });
-    }
-
-    const uploaded = await uploadFileToBucket(COMMUNITY_BUCKET, id, compressedBuffer, `${id}.webp`, 'image/webp');
+    const uploaded = await uploadFileToBucket(
+      COMMUNITY_BUCKET, id, imageFile.path,
+      fixMulterFilenameEncoding(imageFile.originalname) || `${id}.png`, 'image/png'
+    );
     imageUrl = uploaded.publicUrl;
   } catch (err) {
     console.error('커뮤니티 이미지 업로드 실패:', err.message || err);
@@ -1274,7 +1260,7 @@ app.post('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) 
     return res.status(400).json({ ok: false, error: '올바른 이메일을 입력해주세요.' });
   }
   if (isSuperAdminEmail(email)) {
-    return res.status(400).json({ ok: false, error: '대빵 계정은 이미 최고관리자예요.' });
+    return res.status(400).json({ ok: false, error: '이미 최고관리자 계정이에요.' });
   }
   const { error } = await supabase
     .from('admin_accounts')
@@ -1295,7 +1281,7 @@ app.put('/api/admin/admins/:email', requireLogin, requireSuperAdmin, async (req,
 app.delete('/api/admin/admins/:email', requireLogin, requireSuperAdmin, async (req, res) => {
   const email = String(req.params.email || '').trim().toLowerCase();
   if (isSuperAdminEmail(email)) {
-    return res.status(400).json({ ok: false, error: '대빵 계정은 삭제할 수 없어요.' });
+    return res.status(400).json({ ok: false, error: '최고관리자 계정은 삭제할 수 없어요.' });
   }
   const { error } = await supabase.from('admin_accounts').delete().eq('email', email);
   if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });

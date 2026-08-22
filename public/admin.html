@@ -244,7 +244,7 @@
   <div class="visits-hours" id="visits-hours-avg"></div>
 
   <div id="admin-management-section" hidden>
-    <div class="section-title">관리자 관리 <span style="font-size:12px; font-weight:400; color:var(--ink-soft);">(대빵 전용)</span></div>
+    <div class="section-title">관리자 관리 <span style="font-size:12px; font-weight:400; color:var(--ink-soft);">(최고관리자 전용)</span></div>
     <form class="admin-add-form" id="admin-add-form">
       <input type="email" name="email" placeholder="추가할 관리자 이메일" required>
       <input type="text" name="note" placeholder="메모(선택, 예: 재고 담당)">
@@ -531,7 +531,7 @@
     if(superAdmin){
       rows.push(`
         <tr>
-          <td>${superAdmin} <span class="owner-badge">대빵</span></td>
+          <td>${superAdmin} <span class="owner-badge">최고관리자</span></td>
           <td colspan="2" style="color:var(--ink-soft);">최고관리자 · 삭제 불가</td>
           <td></td>
           <td></td>
