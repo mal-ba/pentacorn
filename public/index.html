@@ -47,6 +47,7 @@
     --ink-soft: #4A5654;
     --line: rgba(20,32,30,0.12);
     --radius: 18px;
+    --radius-sharp: 3px;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html{scroll-behavior:smooth;}
@@ -114,13 +115,53 @@
     position:relative;
     background:var(--deep);
     color:var(--paper);
-    padding:88px 6vw 100px;
+    padding:64px 6vw 0;
     overflow:hidden;
+    display:grid;
+    gap:8px;
+    grid-template-columns:1fr;
   }
-  .hero-star{
-    position:absolute; right:-6vw; top:-8vw; width:52vw; max-width:560px;
-    opacity:0.16;
+  @media(min-width:900px){
+    .hero{
+      grid-template-columns:1.05fr 0.85fr;
+      align-items:end;
+      padding-top:88px;
+    }
   }
+  .hero-copy{ padding-bottom:88px; }
+  @media(min-width:900px){ .hero-copy{ padding-right:4vw; } }
+
+  /* signature: body-scan silhouette — reused later as the site's motif */
+  .scan-visual{
+    position:relative;
+    align-self:stretch;
+    min-height:280px;
+    border-left:1px solid rgba(255,255,255,0.14);
+    padding:0 0 0 clamp(20px,4vw,44px);
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  @media(max-width:899px){ .scan-visual{ border-left:none; padding-left:0; margin-top:36px; } }
+  .scan-visual svg{ width:100%; max-width:280px; height:auto; overflow:visible; }
+  .scan-silhouette{ fill:none; stroke:rgba(245,242,234,0.55); stroke-width:1.1; }
+  .scan-ticks line{ stroke:rgba(111,184,194,0.55); stroke-width:1; }
+  .scan-ticks text{ fill:#6FB8C2; font-size:7px; font-family:'Noto Sans KR',sans-serif; }
+  .scan-line{
+    stroke:var(--star); stroke-width:1.4; opacity:0.9;
+    animation:scan-sweep 3.2s cubic-bezier(.4,0,.2,1) infinite;
+  }
+  .scan-caption{
+    position:absolute; left:clamp(20px,4vw,44px); bottom:14px;
+    font-size:11px; letter-spacing:0.08em; color:#7FA39D; text-transform:uppercase;
+  }
+  @keyframes scan-sweep{
+    0%{ transform:translateY(0); opacity:0; }
+    8%{ opacity:0.9; }
+    50%{ transform:translateY(220px); opacity:0.9; }
+    58%{ opacity:0; }
+    100%{ transform:translateY(220px); opacity:0; }
+  }
+  @media (prefers-reduced-motion: reduce){ .scan-line{ animation:none; opacity:0.6; } }
+
   .eyebrow{
     font-size:12px; letter-spacing:0.18em; text-transform:uppercase;
     color:var(--star); font-weight:600; margin-bottom:22px;
@@ -171,8 +212,9 @@
   .flow{display:grid; gap:16px; grid-template-columns:1fr;}
   @media(min-width:760px){ .flow{grid-template-columns:repeat(3,1fr);} }
   .flow-card{
-    background:var(--mist); border-radius:var(--radius);
+    background:var(--mist); border-radius:var(--radius-sharp);
     padding:28px 26px; border:1px solid var(--line);
+    border-left:2px solid var(--star-dark);
   }
   .flow-card .step-no{
     font-family:'Fraunces',serif; font-size:14px; color:var(--star-dark);
@@ -230,7 +272,7 @@
   .price-grid-2{ max-width:760px; margin:0 auto; }
   @media(min-width:600px){ .price-grid-2{ grid-template-columns:repeat(2,1fr); } }
   .price-card{
-    border:1px solid var(--line); border-radius:var(--radius); padding:30px 26px;
+    border:1px solid var(--line); border-radius:var(--radius-sharp); padding:30px 26px;
     background:var(--paper);
   }
   .price-card.featured{ border:2px solid var(--star-dark); position:relative; }
@@ -460,23 +502,36 @@
 
 
 <section class="hero">
-  <svg class="hero-star" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#F5F2EA"/></svg>
-  <div class="eyebrow">UNEXPOSED</div>
-  <h1 class="serif">숨겨진 몸의 서사를,<br><em>내가 디자인한</em> 옷으로</h1>
-  <p>신체를 스캔하면 AI가 나만의 아바타를 만들고, 그 위에서 바로 옷을 커스터마이징합니다. 완성된 디자인은 실제 제작 가능한 도면으로 변환돼요.</p>
-  <div class="hero-actions">
-    <a class="btn btn-primary" href="#product">제품 둘러보기</a>
-    <a class="btn btn-ghost" href="#pricing">요금제 보기</a>
-  </div>
-  <div class="hero-stats">
-    <div><div class="num serif">3탭</div><div class="label">아웃핏 완성까지</div></div>
-    <div>
-      <div class="num serif" style="font-size:16px; display:flex; gap:10px; flex-wrap:wrap;">
-        <span>15,000원</span><span>45,000원</span><span>89,000원</span>
-      </div>
-      <div class="label">유료 구독 3단계 (Free 제외)</div>
+  <div class="hero-copy">
+    <div class="eyebrow">UNEXPOSED</div>
+    <h1 class="serif">숨겨진 몸의 서사를,<br><em>내가 디자인한</em> 옷으로</h1>
+    <p>신체를 스캔하면 AI가 나만의 아바타를 만들고, 그 위에서 바로 옷을 커스터마이징합니다. 완성된 디자인은 실제 제작 가능한 도면으로 변환돼요.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#product">제품 둘러보기</a>
+      <a class="btn btn-ghost" href="#pricing">요금제 보기</a>
     </div>
-    <div><div class="num serif">0장</div><div class="label">사진 저장 (제로 리텐션)</div></div>
+    <div class="hero-stats">
+      <div><div class="num serif">3탭</div><div class="label">아웃핏 완성까지</div></div>
+      <div>
+        <div class="num serif" style="font-size:16px; display:flex; gap:10px; flex-wrap:wrap;">
+          <span>15,000원</span><span>45,000원</span><span>89,000원</span>
+        </div>
+        <div class="label">유료 구독 3단계 (Free 제외)</div>
+      </div>
+      <div><div class="num serif">0장</div><div class="label">사진 저장 (제로 리텐션)</div></div>
+    </div>
+  </div>
+  <div class="scan-visual" aria-hidden="true">
+    <svg viewBox="0 0 120 240">
+      <path class="scan-silhouette" d="M60 14c9 0 16 7 16 16 0 8-5 14-11 16 12 3 19 12 21 24l6 46-14 3-4-30-3 62h-9l-2-52-2 52h-9l-3-62-4 30-14-3 6-46c2-12 9-21 21-24-6-2-11-8-11-16 0-9 7-16 16-16z"/>
+      <g class="scan-ticks">
+        <line x1="0" y1="60" x2="10" y2="60"/><text x="14" y="62">shoulder</text>
+        <line x1="0" y1="118" x2="10" y2="118"/><text x="14" y="120">waist</text>
+        <line x1="0" y1="196" x2="10" y2="196"/><text x="14" y="198">hem</text>
+      </g>
+      <line class="scan-line" x1="4" y1="10" x2="116" y2="10"/>
+    </svg>
+    <div class="scan-caption">Body scan — 실시간 치수 인식</div>
   </div>
 </section>
 
